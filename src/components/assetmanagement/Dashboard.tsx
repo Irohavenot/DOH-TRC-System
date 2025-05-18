@@ -220,6 +220,9 @@ const Dashboard = () => {
                 />
               </div>
             )}
+            {(currentView === 'dashboard') && (
+              <h2 className="asset-overview-heading">Dashboard Overview</h2>
+            )}
             {(currentView !== 'reports' && currentView !== 'assets') && (
               <div className="search-placeholder" style={{ width: '250px' }}></div>
             )}
@@ -353,24 +356,6 @@ const Dashboard = () => {
 
 
   {/* ===== Furniture / Fixtures Table ===== */}
-  <div className="table-cards table2-card">
-    <h3>Furnitures / Fixtures</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Property #</th><th>Type</th><th>Program</th><th>Repaired</th>
-        </tr>
-      </thead>
-      <tbody>
-        {dashboardData.furnituresFixtures.map((row, i) => (
-          <tr key={i}>
-            <td>{row.property}</td><td>{row.type}</td>
-            <td>{row.program}</td><td>{row.repaired}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
 
   <div className="table-cards table3-card">
   <h3>People</h3>
@@ -410,7 +395,24 @@ const Dashboard = () => {
 </div>
 
 </div>
-
+  <div className="table-cards table2-card">
+    <h3>Furnitures / Fixtures</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Property #</th><th>Type</th><th>Program</th><th>Repaired</th>
+        </tr>
+      </thead>
+      <tbody>
+        {dashboardData.furnituresFixtures.map((row, i) => (
+          <tr key={i}>
+            <td>{row.property}</td><td>{row.type}</td>
+            <td>{row.program}</td><td>{row.repaired}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
 
 
  {/* ===== New-Item Cards ===== */}

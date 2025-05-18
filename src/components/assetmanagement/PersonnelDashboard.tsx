@@ -7,6 +7,7 @@ import AssetHistory from "./AssetHistory";
 import { Link } from 'react-router-dom';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { FaHistory } from 'react-icons/fa';
+import { Package } from 'lucide-react';
 
 const PersonnelDashboard = () => {
   const [currentView, setCurrentView] = useState<'dashboard' | 'qr' | 'generate' | 'reports' | 'reports-analytics' | 'profile' | 'history'>('dashboard'  );
@@ -271,8 +272,8 @@ const [showReportModal, setShowReportModal] = useState(false);
                 setActiveView('dashboard');
               }}
             >
-              <img src="/layout.png" alt="Dashboard" className="menu-icon" />
-              <span>Dashboard</span>
+              <Package className="menu-icon" color="black"  /> 
+              <span>Asset Management</span>
             </Link>
            
            
