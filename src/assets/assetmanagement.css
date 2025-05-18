@@ -302,26 +302,35 @@ body {
     transition: background 0.2s, color 0.2s;
   }
   
-  .filter-tabs button span {
-    background: #007aff30; /* Light blue badge background */
-    color: #007aff;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: bold;
-    transition: background 0.2s, color 0.2s;
-  }
-  
-  .filter-tabs button:hover {
-    background: #1876db;
-    color: white;
-  }
-  
-  .filter-tabs button:hover span {
-    background: white;
-    color: #007aff;
-  }
-  
+.filter-dropdowns {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.filter-dropdowns {
+  display: flex;
+  gap: 2rem; /* space between filter blocks */
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.filter-dropdowns label {
+  display: flex;
+  align-items: center;
+  font-weight: bold;
+  gap: 0.5rem; /* space between label text and dropdown */
+}
+
+.filter-dropdowns select {
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+
   .cards-grid {
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 20px;
