@@ -1,0 +1,175 @@
+/* General reset and box-sizing */
+* {
+    box-sizing: border-box;
+  }
+  
+   .auth-page {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Roboto', sans-serif;
+    background: linear-gradient(135deg, #B2DFDB 50%, #E0F2F1 50%);
+  }
+  
+  /* Wrapper for both left and right sections */
+  .auth-wrapper {
+    display: flex;
+    flex-direction: row;
+    width: 90%;
+    max-width: 1000px;
+    min-height: 600px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
+    overflow: hidden;
+    background-color: white;
+    transition: all 0.5s ease;
+  }
+  
+  /* Left panel */
+  .auth-left {
+    width: 50%;
+    background: linear-gradient(135deg, #a5d6d4, #51b9b6);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    text-align: center;
+    flex-direction: column;
+    position: relative;
+  }
+  
+  /* Right panel */
+  .auth-right {
+    width: 50%;
+    background-color: #e6f7f7;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    position: relative;
+    transition: transform 0.5s ease-in-out;
+  }
+  
+  /* Slide effect if wrapper has class */
+  .auth-wrapper.register-active .auth-left {
+    order: 2;
+  }
+  
+  .auth-wrapper.register-active .auth-right {
+    order: 1;
+  }
+  
+  /* Form card */
+  .form-card {
+    width: 100%;
+    max-width: 400px;
+    background: #effffb;
+    padding: 2rem;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  /* Form heading */
+  h2 {
+    margin-bottom: 1rem;
+    color: #004d40;
+    font-size: 1.8rem;
+    text-align: center;
+  }
+  
+  /* Inputs */
+  input {
+    padding: 10px 14px;
+    font-size: 16px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    outline: none;
+    width: 100%;
+    background-color: white;
+    margin-bottom: 1rem;
+    box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 6px 0px;
+  }
+  
+  input:focus {
+    border-color: #00796b;
+  }
+  .rounded-logo {
+    width: 11.875rem; /* Adjust size as needed */
+    height: 11.875rem; /* Ensure width and height are equal for a perfect circle */
+    border-radius: 50%; /* Makes the image circular */
+    object-fit: cover; /* Ensures the image fits within the circle */
+}
+  /* Button */
+  .login-button {
+    background-color: #00695c;
+    color: white;
+    padding: 12px;
+    font-size: 16px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    width: 100%;
+  }
+  
+  .login-button:hover {
+    background-color: #004d40;
+  }
+  
+  /* Switch toggle */
+  .switch {
+    font-size: 14px;
+    color: #666;
+    margin-top: 1rem;
+    text-align: center;
+  }
+  
+  .switch span {
+    color: #00796b;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  
+  .switch span:hover {
+    text-decoration: underline;
+  }
+  
+  /* Mobile Responsive Fix */
+  @media screen and (max-width: 768px) {
+    .auth-wrapper {
+      flex-direction: column;
+      border-radius: 0;
+      width: 100%;
+      min-height: 100vh;
+    }
+  
+    .auth-left, .auth-right {
+      width: 100%;
+      padding: 1.5rem 1rem;
+    }
+  
+    .form-card {
+      padding: 1.5rem 1rem;
+    }
+  
+    h2 {
+      font-size: 1.4rem;
+    }
+  
+    input, button {
+      font-size: 14px;
+      padding: 10px;
+    }
+  
+    .switch {
+      font-size: 13px;
+    }
+  }

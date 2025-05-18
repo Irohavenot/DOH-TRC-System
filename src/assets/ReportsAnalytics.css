@@ -1,0 +1,433 @@
+
+/* Dashboard CSS */
+
+
+.dashboard-container {
+  font-family: 'Roboto', sans-serif;
+  min-height: 100vh;
+}
+
+
+
+.welcome-text {
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.header-welcome h1 {
+  font-size: 1.8rem;
+  color: #004d40;
+  white-space: nowrap;
+  margin: 0;
+}
+
+
+
+
+.dashboard-subtext {
+  font-size: 1rem;
+  color: #004d40;
+  margin-top: 0;
+}
+
+.dashboard-container {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 250px;
+  background: linear-gradient(135deg, #6a9e9c, #0c836f);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-left: 1rem;
+  text-align: center;
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.content-here {
+  background-color: #B2DFDB;
+  padding: 1.8rem;
+  border-radius: 0px 0px 40px 40px;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  text-decoration: none;
+  color: white;
+}
+
+.sidebar:not(.collapsed) .menu-item:hover {
+  background-color: #00796b;
+}
+
+
+.menu-item.active {
+  background-color: #00796b;
+}
+
+.menu-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.menu-item.logout {
+  margin-top: auto;
+}
+
+.menu-item.logout:hover {
+  background-color: #7e1313;
+}
+
+.dashboard-logo {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #004d40;
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 6px 0px;
+}
+.main-contents {
+  flex: 1;
+  padding: 1rem;
+  padding-bottom: 4rem; /* Dugang padding sa ubos */
+  overflow-y: auto;
+  color: #004d40;
+  
+}
+
+  .main-headers {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 1rem;
+   
+    
+    
+  }
+  
+  .user-infos {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+
+.user-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+}
+
+.notif {
+  font-size: 18px;
+}
+
+.welcome-text {
+  font-weight: bold;
+}
+
+
+
+
+  
+ .reports-container {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.reports-container h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #00796b;
+}
+
+.filter-section {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 2rem auto;
+  max-width: 1000px;
+  padding: 0 1rem;
+}
+
+.filter-group {
+  flex: 1;
+  min-width:300px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.filter-group label {
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #00796b;
+}
+
+.filter-group select {
+  width: 100%;
+  padding: 10px 15px;
+  border-radius: 6px;
+  border: 1px solid #00796b;
+  background-color: #ffffff;
+  font-size: 1rem;
+  color: #00796b;
+}
+
+  .pie-chart-container {
+    max-width: 400px;
+    margin: 0 auto 2rem auto;
+  }
+  .selected-filters {
+    margin-top: 20px; /* Add space above the filters */
+    padding: 10px;
+    background-color: #f7f7f7;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+  
+  .selected-filters strong {
+    font-size: 16px;
+    font-weight: bold;
+  }
+  
+  .selected-filters span {
+    font-size: 14px;
+    color: #555;
+    padding-left: 10px; /* Add space between the label and the text */
+  }
+  
+  
+  
+  
+  /* Table */
+  .reports-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 2rem;
+    margin-top: 30px;
+  }
+  
+  .reports-table th,
+  .reports-table td {
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #ddd;
+  }
+  
+  .reports-table th {
+    background-color: #00796b;
+    color: white;
+    font-weight: bold;
+  }
+  
+  .reports-table td {
+    background-color: #f1fdfb;
+  }
+  
+  .reports-table tr:hover {
+    background-color: #f0f0f0;
+  }
+  
+  .export-buttons {
+    display: flex;
+    justify-content: flex-start; /* or center / flex-end */
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: nowrap; /* prevent line break */
+  }
+  
+  .export-buttons button {
+    background-color: #00796b;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    white-space: nowrap; /* prevent text wrapping */
+  }
+  
+  .export-buttons button:hover {
+    background-color: #004d40;
+  }
+  
+  
+  .month-label {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-right: 10px;
+  }
+
+  @media print {
+    body {
+      margin: 0;
+      padding: 0;
+    }
+  
+   
+    #printable-report {
+      visibility: visible !important;
+      position: static !important;
+      margin: 0 auto;
+      padding: 20mm;
+      background: white;
+      width: 100%;
+      max-width: 210mm; /* A4 width */
+      box-sizing: border-box;
+      font-size: 11pt;
+    }
+  
+    #printable-report table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10pt;
+    }
+  
+    #printable-report th,
+    #printable-report td {
+      border: 1px solid #000;
+      padding: 6px;
+      text-align: center;
+    }
+    
+    
+  }
+ /* Styling for the Reported IT Asset Issues container */
+.issue-filter {
+  display: flex;
+  justify-content: center; /* Center horizontally */
+  align-items: center;     /* Align vertically */
+  flex-wrap: wrap;         /* Allow wrapping if screen is small */
+  gap: 10px;
+  margin-bottom: 1.5rem;
+}
+
+/* Style all buttons uniformly */
+.issue-filter button {
+  flex: 1 1 auto;            /* Let buttons grow and shrink */
+  min-width: 120px;          /* Same minimum width for consistency */
+  text-align: center;
+  padding: 10px 20px;
+  border: 1px solid #ccc;
+  background-color: #f8f9fa;
+  cursor: pointer;
+  border-radius: 5px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  transition: all 0.2s ease;
+}
+
+.issue-filter button:hover {
+  background-color: #e9ecef;
+}
+
+/* Distinct colors for each filter button when active */
+.issue-filter button.active-filter[data-filter="all"] {
+  background-color: #007BFF; /* Green for All */
+  color: #fff;
+  border-color: #007BFF;
+}
+
+.issue-filter button.active-filter[data-filter="pending"] {
+  background-color: #ff0707; /* Yellow for Pending */
+  color: #fff;
+  border-color: #ff0707;
+}
+
+.issue-filter button.active-filter[data-filter="in-progress"] {
+  background-color: #ebb410; /* Blue for In Progress */
+  color: #fff;
+  border-color: #FFC107;
+}
+
+.issue-filter button.active-filter[data-filter="resolved"] {
+  background-color: #28A745; /* Teal for Resolved */
+  color: #fff;
+  border-color: #28A745;
+}
+
+/* Styling for the issues table */
+.issues-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.issues-table th,
+.issues-table td {
+  border: 1px solid #e0e0e0;
+  padding: 12px;
+  text-align: center;
+}
+
+.issues-table th {
+  background-color: #00796b;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  font-size: 13px;
+}
+
+.issues-table td {
+  color: #555;
+}
+
+.issues-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.issues-table tr:hover {
+  background-color: #f5f5f5;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .issue-filter {
+    flex-wrap: wrap;
+  }
+
+  .issue-filter button {
+    flex: 1 1 45%;
+    margin-bottom: 8px;
+  }
+
+  .issues-table th,
+  .issues-table td {
+    padding: 8px;
+    font-size: 12px;
+  }
+}
