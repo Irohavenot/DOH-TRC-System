@@ -17,6 +17,7 @@ const AssetManagement = () => {
     iconClass: string;
     type: TypeFilter;
   }
+  
 
 const [cards, setCards] = useState<Card[]>([
 
@@ -71,7 +72,36 @@ const [cards, setCards] = useState<Card[]>([
       {selectedCard && (
         <div className="modal-backdrop" onClick={handleCloseModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            {/* Modal Content */}
+ <div className="modal-image">
+              <img src="printer.jpg" alt="Asset" />
+            </div>
+            <div className="modal-details">
+              <h2>Asset Details</h2>
+              <table className="modal-table">
+                <thead>
+                  <tr>
+                    <th>Attribute</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td><strong>Asset ID:</strong></td><td>12345</td></tr>
+                  <tr><td><strong>Asset Name:</strong></td><td>{selectedCard.title}</td></tr>
+                  <tr><td><strong>Category:</strong></td><td>Laptop</td></tr>
+                  <tr><td><strong>Status:</strong></td><td>Active</td></tr>
+                  <tr><td><strong>Assigned Personnel:</strong></td><td>John Doe</td></tr>
+                  <tr><td><strong>Purchase Date:</strong></td><td>2023-04-21</td></tr>
+                  <tr><td><strong>Serial Number:</strong></td><td>SN123456</td></tr>
+                  <tr><td><strong>License Type:</strong></td><td>OEM</td></tr>
+                  <tr><td><strong>Expiration Date:</strong></td><td>2025-04-21</td></tr>
+                </tbody>
+              </table>
+
+              <div className="buttons-container">
+                <button className="close-btn" onClick={handleCloseModal}>Close</button>
+                <button className="edits-button">Edit</button>
+              </div>
+            </div>
           </div>
         </div>
       )}
