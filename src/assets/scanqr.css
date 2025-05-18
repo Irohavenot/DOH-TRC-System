@@ -1,0 +1,237 @@
+/* General Scanner Container */
+.scanqr-container {
+  text-align: center;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  padding: 1rem;
+  background-color: #f4f6f8;
+  min-height: 100vh;
+  
+}
+
+.scanqr-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 20px;
+}
+
+/* QR Scanner Box */
+.scanqr-reader-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.scanqr-reader-box {
+  width: 320px;
+  height: 260px;
+  border: 2px dashed #3498db;
+  border-radius: 10px;
+  background-color: #ecf0f1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 15px;
+}
+
+/* Upload Section */
+.scanqr-upload-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.scanqr-file-input {
+  padding: 10px;
+  border: 2px solid #bdc3c7;
+  border-radius: 6px;
+  background-color: #ffffff;
+  font-size: 14px;
+  width: 220px;
+}
+
+.scanqr-scan-btn {
+  background-color: #3498db;
+  color: white;
+  padding: .8rem;
+  font-size: 14px;
+  margin-right: 1rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.scanqr-scan-btn:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
+}
+
+.scanqr-scan-btn:hover:not(:disabled) {
+  background-color: #2980b9;
+}
+
+/* Scan Result */
+.scanqr-result {
+  font-size: 16px;
+  color: #27ae60;
+  margin-top: 10px;
+}
+
+/* Modal Backdrop */
+.scanqr-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+/* Modal Window */
+.scanqr-modal {
+  background-color: #ffffff;
+  border-radius: 10px;
+  padding: 1.25rem;
+  width: 28.25rem;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  animation: scaleIn 0.3s ease-out;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  border-style: solid;
+  border-color: #124712;
+}
+
+.scanqr-modal-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.scanqr-modal-image img {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.scanqr-modal-details {
+  text-align: left;
+  width: 100%;
+  font-size: 15px;
+  line-height: 1rem;
+  color: #2c3e50;
+}
+
+/* Buttons */
+.scanqr-close-btn,
+.scanqr-edit-btn {
+  width: 100%;
+  padding: .5rem 0;
+  margin-top: 12px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.scanqr-close-btn {
+  background-color: #a82719;
+  color: #fff;
+}
+
+.scanqr-close-btn:hover {
+  background-color: #e6402e;
+}
+
+.scanqr-edit-btn {
+  background-color: #259110;
+  color: #ffffff;
+}
+.scanqr-buttons {
+  justify-content: center;
+  gap: 20px;
+
+}
+
+.scanqr-edit-btn:hover {
+  background-color: #2ed40d;
+}
+
+.scanqr-preview-container {
+  margin-top: 20px;
+  padding: 15px;
+  border: 2px solid #3498db;
+  border-radius: 10px;
+  background-color: #ffffff;
+  display: inline-block;
+}
+.scanqr-video {
+  width: 300px;
+  height: auto;
+  border-radius: 8px;
+  border: 2px solid #3498db;
+}
+
+.scanqr-image-preview {
+  width: 300px;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 2px solid #3498db;
+}
+.details-container{
+display: inline;
+}
+.qr-modal-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  border: 1px solid #ddd; /* Table border */
+  border-radius: 10px; /* Apply border-radius to table */
+  overflow: hidden; /* Prevent content from spilling over rounded corners */
+}
+
+.qr-modal-table th, .qr-modal-table td {
+  padding: 12px 20px;
+  text-align: left;
+  border: 1px solid #ddd; /* Border for table cells */
+  word-wrap: break-word;
+}
+
+.qr-modal-table th {
+  background-color: #f1f1f1;
+  font-weight: bold;
+}
+
+.qr-modal-table td {
+  background-color: #fafafa;
+}
+  /* Fade-in animation for backdrop */
+  @keyframes fadeIn {
+    from {
+      background-color: rgba(0, 0, 0, 0);
+    }
+    to {
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+  }
+  
+  /* Scale-in animation for modal */
+  @keyframes scaleIn {
+    from {
+      transform: scale(0.8);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }

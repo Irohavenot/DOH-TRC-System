@@ -1,0 +1,210 @@
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  overflow: visible;
+}
+
+.notif {
+  font-size: 12px;
+  cursor: pointer;
+  position: relative;
+  margin-right: 0;
+}
+
+.user-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 0;
+}
+
+.notif-popup {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  background-color: white;
+  border: 1px solid #004d40;
+  padding: 20px;
+  width: 300px;
+  height: 400px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  z-index: 999;
+  color: black;
+}
+
+.notif-filter {
+  display: flex;
+  justify-content: flex-start;
+  gap: 15px;
+  margin-top: 15px;
+  margin-bottom: 15px;
+  font-size: 12px;
+}
+
+.notif-filter button {
+  padding: 6px 12px;
+  border: 1px solid #004d40;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #004d40;
+  background-color: white;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.notif-filter .active-filter {
+  background-color: #004d40;
+  color: white;
+  font-weight: bold;
+}
+
+.notif-filter button:hover {
+  background-color: #004d40;
+  color: white;
+}
+
+.notif-filter button:focus {
+  outline: none;
+}
+
+.notif-popup ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.notif-popup li {
+  padding: 10px 0;
+  cursor: pointer;
+  color: #333;
+  font-size: 13px;
+}
+
+.notif-popup li:hover {
+  background-color: #f1f1f1;
+}
+
+.notif-popup li:active {
+  background-color: #ddd;
+}
+
+.notif-popup li[style*="font-weight: bold"] {
+  font-weight: bold;
+}
+
+.notif-popup li[style*="font-weight: normal"] {
+  font-weight: normal;
+}
+
+.notif-popup h3 {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.notif-popup button.show-toggle {
+  background-color: #004d40;
+  border: none;
+  border-radius: 5px;
+  color: #ccc;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 10px;
+  border-top: 1px solid #ccc;
+  margin-top: 25px;
+  margin-left: 35%;
+}
+
+/* Notification Items */
+.notification-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid #eee;
+  position: relative;
+}
+
+.notification-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.notification-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.notification-message {
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-message .text {
+  font-weight: bold;
+}
+
+.notification-message .timestamp {
+  font-size: 12px;
+  color: gray;
+}
+
+.notification-options {
+  position: relative;
+  cursor: pointer;
+}
+
+.notification-options-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background-color: white;
+  border: 1px solid #004d40;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-options-menu button {
+  padding: 6px 10px;
+  border: none;
+  background-color: transparent;
+  color: #004d40;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.notification-options-menu button:hover {
+  background-color: #f5f5f5;
+}
+
+.delete-btn {
+  font-size: 14px;
+  color: red;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.delete-btn i {
+  font-size: 16px;
+  color: red;
+}
+
+.notification-icon {
+  font-size: 22px;
+  margin-right: 12px;
+  color: #444;
+  width: 28px;
+  text-align: center;
+}
