@@ -319,19 +319,26 @@ const handleDownload = () => {
   margin: 1.5rem auto;
 }
 
-/* Button Container to align buttons */
 .button-group {
   display: flex;
+  flex-direction: column;
   justify-content: center;
+  align-items: center; /* center buttons horizontally */
   gap: 1rem;
-  flex-wrap: wrap;
+  
+  /* Optional: center the whole button-group container horizontally */
+  margin-left: auto;
+  margin-right: auto;
+  width: fit-content; /* para mo-fit siya sa buttons */
 }
+
+
 
 /* Common Button Styles */
 .print-btn,
 .close-btn,
 .download-btn {
-  width: 100px; /* fixed equal width */
+  width: 250px; /* fixed equal width */
   padding: 0.75rem 0;
   border: none;
   border-radius: 8px;

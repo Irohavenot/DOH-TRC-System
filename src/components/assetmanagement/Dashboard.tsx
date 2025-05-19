@@ -102,7 +102,13 @@ const Dashboard = () => {
       expiringIn2Months: 25,
       expiringIn3Months: 20,
     },
-   
+    consumables: { total: 200 },
+    propertyPlantEquipment: { total: 150 },
+    semiExpendableProperty: { total: 80 },
+    insuredProperty: { total: 100 },
+    defectiveProperty: { total: 60 },
+    custodian: { total: 50 },
+    unserviceableProperty: { total: 70 },
     
     
     
@@ -315,6 +321,8 @@ const Dashboard = () => {
   { label: 'Other Devices', data: dashboardData.otherDevices },
   { label: 'Accessories', data: dashboardData.accessories },
   { label: 'Components', data: dashboardData.components },
+
+  
   
 ].map((item, i) => {
   const total =
@@ -399,7 +407,7 @@ const Dashboard = () => {
                  
                 </div>
 
-  {/* ===== Furniture / Fixtures Table ===== */}
+{/* ===== Furniture / Fixtures Table ===== */}
 
   <div className="table-cards table3-card">
   <h3>People</h3>
@@ -438,9 +446,61 @@ const Dashboard = () => {
   </button>
 </div>
 
+
+ 
 </div>
- 
- 
+<div className='dashboard-columns'>
+<div className='simple'>
+ {/* ===== Simplified Status Cards (without subcategories) ===== */}
+                <div className='simplecard'
+                >
+                  {[
+                    { label: 'Consumables', total: dashboardData.consumables.total, color: '#9575cd', icon: 'fas fa-tint', viewLink: 'assets' },
+                    { label: 'Property Plant & Equipment', total: dashboardData.propertyPlantEquipment.total, color: '#607d8b', icon: 'fas fa-building', viewLink: 'assets' },
+                    { label: 'Semi-Expendable Property', total: dashboardData.semiExpendableProperty.total, color: '		#fbc02d', icon: 'fas fa-box-open', viewLink: 'assets' },
+                    { label: 'Insured Property', total: dashboardData.insuredProperty.total, color: '#4db6ac', icon: 'fas fa-shield-alt', viewLink: 'assets' },
+                    { label: 'Defective Property', total: dashboardData.defectiveProperty.total, color: '#e91e63', icon: 'fas fa-tools', viewLink: 'assets' },
+                    { label: 'Custodian', total: dashboardData.custodian.total, color: '#8bc34a', icon: 'fas fa-user-shield', viewLink: 'assets' },
+                    { label: 'Unserviceable Property', total: dashboardData.unserviceableProperty.total, color: '#d81b60', icon: 'fas fa-exclamation-triangle', viewLink: 'assets' },
+                  ].map((item, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        backgroundColor: item.color,
+                        borderRadius: '10px',
+                        padding: '15px',
+                     
+                        color: 'white',
+                        width: '255px',
+                        height: '170px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        position: 'relative',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{item.total}</div>
+                        <i className={item.icon} style={{ fontSize: '24px', opacity: 0.8 }}></i>
+                      </div>
+                      <div style={{ fontSize: '16px', fontWeight: '500' }}>{item.label}</div>
+                      <div
+                        onClick={() => {
+                          setCurrentView(item.viewLink as any);
+                          setActiveView(item.viewLink as any);
+                        }}
+                        style={{ cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                      >
+                        <span>VIEW ALL</span>
+                        <i className="fas fa-arrow-right" style={{ fontSize: '10px' }}></i>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                </div>
+  
+ <div className='new-card'>
 
 {/* ===== New-Item Cards ===== */}
 <div className="new-item-cards-container">
@@ -456,7 +516,8 @@ const Dashboard = () => {
     </div>
   ))}
 </div>
-
+</div>
+</div>
 
 </div>
 
