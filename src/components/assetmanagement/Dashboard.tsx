@@ -86,38 +86,42 @@ const Dashboard = () => {
 
   // Sample data for the dashboard
   const dashboardData = {
-    desktops: { total: 132, functional: 92, defective: 10, condemned: 30 },
-    laptops: { total: 47, functional: 18, defective: 9, condemned: 20 },
-    printers: { total: 50, functional: 40, defective: 5, condemned: 5 },
-    servers: { total: 20, functional: 15, defective: 3, condemned: 2 },
-    otherDevices: { total: 90, functional: 33, defective: 17, condemned: 40 },
+    desktops: { total: 132, functional: 92, defective: 10, unserviceable: 30 },
+    laptops: { total: 47, functional: 18, defective: 9, unserviceable: 20 },
+    printers: { total: 50, functional: 40, defective: 5, unserviceable: 5 },
+    servers: { total: 20, functional: 15, defective: 3, unserviceable: 2 },
+    otherDevices: { total: 90, functional: 33, defective: 17, unserviceable: 40 },
+    accessories: { total: 90, functional: 17, defective: 32, unserviceable: 41 },
+    components:  { total: 50, functional: 30, defective: 10, unserviceable: 10 },
+    
 
    
-    
+      licenses: {
+      total: 60,
+      expiringIn1Month: 20,
+      expiringIn2Months: 25,
+      expiringIn3Months: 20,
+    },
    
     
     
     
-    propertyData: [
-      { property: '10605030-COMPST-TRC-2014-01-0007', type: 'Desktop', program: 'Residential Program', repaired: 4 },
-      { property: '10605030-COMPST-TRC-2023-01-0098', type: 'Desktop', program: 'Residential Program', repaired: 3 },
-    ],
+    
+    
     otherTable: [
-      { category: 'Accessories', users: 50, toApprove: 5 },
-      { category: 'Components', users: 30, toApprove: 3 },
-      { category: 'Licenses', users: 20, toApprove: 2 },
-      { category: 'Consumables', users: 15, toApprove: 1 },
+     
+      
       { category: 'People', users: 10, toApprove: 3 },
+      
     ],
-    furnituresFixtures: [
-      { property: '10605030-FURN-TRC-2020-01-0001', type: 'Chair', program: 'Office', repaired: 2 },
-      { property: '10605030-FIXT-TRC-2019-01-0002', type: 'Table', program: 'Office', repaired: 1 },
-    ],
+    
+    
     newItems: {
       asset: 5,
       licenses: 3,
       accessory: 2,
       consumable: 1,
+      components: 5,
     },
   };
 
@@ -309,9 +313,12 @@ const Dashboard = () => {
   { label: 'Printers', data: dashboardData.printers },
   { label: 'Servers',  data: dashboardData.servers  },
   { label: 'Other Devices', data: dashboardData.otherDevices },
+  { label: 'Accessories', data: dashboardData.accessories },
+  { label: 'Components', data: dashboardData.components },
+  
 ].map((item, i) => {
   const total =
-    item.data.functional + item.data.defective + item.data.condemned;
+    item.data.functional + item.data.defective + item.data.unserviceable;
 
   return (
     <div className="asset-bar-card" key={i}>
@@ -341,19 +348,56 @@ const Dashboard = () => {
       </div>
 
       <div className="bar-row">
-        <span className="label">CONDEMNED</span>
+        <span className="label">UNSERVICEABLE</span>
         <div className="progress-bar bg-red">
           <div
             className="progress-fill"
-            style={{ width: `${(item.data.condemned / total) * 100}%` }}
+            style={{ width: `${(item.data.unserviceable / total) * 100}%` }}
           />
         </div>
-        <span className="value">{item.data.condemned}</span>
+        <span className="value">{item.data.unserviceable}</span>
       </div>
     </div>
   );
 })}
 
+    {/* ===== License Status Card ===== */}
+                <div className="asset-bar-card">
+                  <h3>Licenses</h3>
+                  <p className="total-count">Total: {dashboardData.licenses.total}</p>
+                 <div className="bar-row">
+                    <span className="label">EXPIRE IN 1 MONTH</span>
+                    <div className="progress-bar bg-green">
+                      <div
+                        className="progress-fill"
+                        style={{ width: `${(dashboardData.licenses.expiringIn1Month / dashboardData.licenses.total) * 100}%` }}
+                      />
+                    </div>
+                    <span className="value">{dashboardData.licenses.expiringIn1Month}</span>
+                  </div>
+                  <div className="bar-row">
+                    <span className="label">EXPIRE IN 2 MONTHS</span>
+                    <div className="progress-bar bg-yellow">
+                      <div
+                        className="progress-fill"
+                        style={{ width: `${(dashboardData.licenses.expiringIn2Months / dashboardData.licenses.total) * 100}%` }}
+                      />
+                    </div>
+                    <span className="value">{dashboardData.licenses.expiringIn2Months}</span>
+                  </div>
+                  <div className="bar-row">
+                    <span className="label">EXPIRE IN 3 MONTHS</span>
+                    <div className="progress-bar bg-red">
+                      <div
+                        className="progress-fill"
+                        style={{ width: `${(dashboardData.licenses.expiringIn3Months / dashboardData.licenses.total) * 100}%` }}
+                      />
+                    </div>
+                    <span className="value">{dashboardData.licenses.expiringIn3Months}</span>
+                  </div>
+                 
+                 
+                </div>
 
   {/* ===== Furniture / Fixtures Table ===== */}
 
@@ -395,38 +439,24 @@ const Dashboard = () => {
 </div>
 
 </div>
-  <div className="table-cards table2-card">
-    <h3>Furnitures / Fixtures</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Property #</th><th>Type</th><th>Program</th><th>Repaired</th>
-        </tr>
-      </thead>
-      <tbody>
-        {dashboardData.furnituresFixtures.map((row, i) => (
-          <tr key={i}>
-            <td>{row.property}</td><td>{row.type}</td>
-            <td>{row.program}</td><td>{row.repaired}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
+ 
+ 
 
+{/* ===== New-Item Cards ===== */}
+<div className="new-item-cards-container">
+  {[
+    { title: 'New Asset', class: 'asset' },
+    { title: 'New License', class: 'license' },
+    { title: 'New Accessory', class: 'accessory' },
+    { title: 'New Consumable', class: 'consumable' },
+    { title: 'New Component', class: 'component' },
+  ].map((n, i) => (
+    <div className={`new-item-card ${n.class}`} key={i}>
+      <h3>{n.title}</h3>
+    </div>
+  ))}
+</div>
 
- {/* ===== New-Item Cards ===== */}
-{[
-  { title: 'New Asset',      value: dashboardData.newItems.asset,      class: 'asset'      },
-  { title: 'New Licenses',   value: dashboardData.newItems.licenses,   class: 'license'    },
-  { title: 'New Accessory',  value: dashboardData.newItems.accessory,  class: 'accessory'  },
-  { title: 'New Consumable', value: dashboardData.newItems.consumable, class: 'consumable' },
-].map((n, i) => (
-  <div className={`new-item-card ${n.class}`} key={i}>
-    <h3>{n.title}</h3>
-    <div className="card-content"><p>{n.value}</p></div>
-  </div>
-))}
 
 </div>
 

@@ -404,49 +404,49 @@ body {
   color: #333; /* Dark gray text */
 }
 
-/* base look  */
+
+.new-item-cards-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
 .new-item-card {
+  flex: 1 1 calc(20% - 1rem); /* or 200px, adjust as needed */
+  min-width: 150px;
+  background-color: #f0f0f0;
   padding: 1rem;
-  border-radius: 10px;
+  border-radius: 8px;
   text-align: center;
-  font-weight: bold;
-  color: #ffffff;            /* default text color; overridden per theme if needed */
-  box-shadow: 0 1px 4px rgba(0,0,0,.15);
 }
 
-/* accent bar on the left for larger viewports */
-.new-item-card::before {
-  content: '';
-  display: block;
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 6px;
-  height: 100%;
-  border-top-left-radius: 10px;
-  border-bottom-left-radius: 10px;
+.new-item-card:hover {
+  transform: translateY(-3px);
 }
 
-/* ===== Theme variations ===== */
+.new-item-card h3 {
+  font-size: 1rem;
+  color: #333;
+  margin: 0;
+}
+
+/* Optional: Color variants per type */
 .new-item-card.asset {
-  background: #0f766e;       
+  background-color: #d1f7ff;
 }
-.new-item-card.asset::before { background: #14b8a6; } 
-
 .new-item-card.license {
-  background: #1e3a8a;       
+  background-color: #ffeecf;
 }
-.new-item-card.license::before { background: #3b82f6; } 
-
 .new-item-card.accessory {
-  background: #78350f;       
+  background-color: #e1ffd6;
 }
-.new-item-card.accessory::before { background: #f59e0b; } 
-
 .new-item-card.consumable {
-  background: #4d0f1c;      
+  background-color: #f9dfff;
 }
-.new-item-card.consumable::before { background: #fb7185; } 
+.new-item-card.component {
+  background-color: #e5e5ff;
+}
 
 .view-more-container {
   text-align: center;
