@@ -17,7 +17,6 @@ const AssetManagement = () => {
     iconClass: string;
     type: TypeFilter;
   }
-  
 
 const [cards, setCards] = useState<Card[]>([
 
