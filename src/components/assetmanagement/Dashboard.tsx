@@ -11,6 +11,14 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 import AssetManagement from './AssetManagement';
 import { Package } from 'lucide-react';
 import People from "./People";
+import {
+  LayoutDashboard,
+  PlusCircle,
+  AlertCircle,
+  FileBarChart2,
+  QrCode,
+  LogOut,
+} from 'lucide-react';
 
 const Dashboard = () => {
   const [currentView, setCurrentView] = useState<'dashboard' | 'qr' | 'generate' | 'reports' | 'reports-analytics' | 'profile' | 'assets' | 'people'>('dashboard');
@@ -136,84 +144,90 @@ const Dashboard = () => {
       <div className={`dashboard-container ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <aside className="sidebar">
           <div className="sidebar-header">
-            <img className="dashboard-logo" src="/logosaproject.jpg" alt="DOH Logo" />
-            <div className="logo">DOH-TRC</div>
-            <button className="toggle-sidebar-btn" onClick={toggleSidebar}>
+            <img className="dashboard-logos" src="/logosaproject.jpg" alt="DOH Logo" />
+            <div className="logo-doh">DOH-TRC Argao</div>
+            <button className="toggle-sidebar-btns" onClick={toggleSidebar}>
               ☰
             </button>
           </div>
-          <nav className="menu">
-            <Link
-              to="#"
-              className={`menu-item ${activeView === 'dashboard' ? 'active' : ''}`}
-              onClick={() => {
-                setCurrentView('dashboard');
-                setActiveView('dashboard');
-              }}
-            >
-              <img src="/layout.png" alt="Dashboard" className="menu-icon" />
-              <span>Dashboard</span>
-            </Link>
-          <Link
-  to="#"
-  className={`menu-item ${activeView === 'assets' ? 'active' : ''}`}
-  onClick={() => {
-    setCurrentView('assets');
-    setActiveView('assets');
-  }}
->
-  <Package className="menu-icon" color="black"  />       
-  <span>Asset Management</span>
-</Link>
-            <Link
-              to="#"
-              className={`menu-item ${activeView === 'generate' ? 'active' : ''}`}
-              onClick={() => {
-                setCurrentView('generate');
-                setActiveView('generate');
-              }}
-            >
-              <img src="/more.png" alt="Add Assets" className="menu-icon" />
-              <span>Add Asset</span>
-            </Link>
-            <Link
-              to="#"
-              className={`menu-item ${activeView === 'reports' ? 'active' : ''}`}
-              onClick={() => {
-                setCurrentView('reports');
-                setActiveView('reports');
-              }}
-            >
-              <img src="/alert.png" alt="QR-Scanner" className="menu-icon" />
-              <span>Reported Issues</span>
-            </Link>
-            <Link
-              to="#"
-              className={`menu-item ${activeView === 'reports-analytics' ? 'active' : ''}`}
-              onClick={() => {
-                setCurrentView('reports-analytics');
-                setActiveView('reports-analytics');
-              }}
-            >
-              <img src="/file.png" alt="QR-Scanner" className="menu-icon" />
-              <span>Reports / Analytics</span>
-            </Link>
-            <Link
-              to="#"
-              className={`menu-item ${activeView === 'qr' ? 'active' : ''}`}
-              onClick={() => {
-                setCurrentView('qr');
-                setActiveView('qr');
-              }}
-            >
-              <img src="/qr-code.png" alt="QR-Scanner" className="menu-icon" />
-              <span>QR Scanner</span>
-            </Link>
-            <Link to="/" className="menu-item logout">
-              <img src="/logout.png" alt="Logout" className="menu-icon" />
-              <span>Logout</span>
-            </Link>
-          </nav>
+        <nav className="menu">
+  <Link
+    to="#"
+    className={`menu-items ${activeView === 'dashboard' ? 'active' : ''}`}
+    onClick={() => {
+      setCurrentView('dashboard');
+      setActiveView('dashboard');
+    }}
+  >
+    <LayoutDashboard className="menu-icon" />
+    <span>Dashboard</span>
+  </Link>
+
+  <Link
+    to="#"
+    className={`menu-items ${activeView === 'assets' ? 'active' : ''}`}
+    onClick={() => {
+      setCurrentView('assets');
+      setActiveView('assets');
+    }}
+  >
+    <Package className="menu-icon" />
+    <span>Asset Management</span>
+  </Link>
+
+  <Link
+    to="#"
+    className={`menu-items ${activeView === 'generate' ? 'active' : ''}`}
+    onClick={() => {
+      setCurrentView('generate');
+      setActiveView('generate');
+    }}
+  >
+    <PlusCircle className="menu-icon" />
+    <span>Add Asset</span>
+  </Link>
+
+  <Link
+    to="#"
+    className={`menu-items ${activeView === 'reports' ? 'active' : ''}`}
+    onClick={() => {
+      setCurrentView('reports');
+      setActiveView('reports');
+    }}
+  >
+    <AlertCircle className="menu-icon" />
+    <span>Reported Issues</span>
+  </Link>
+
+  <Link
+    to="#"
+    className={`menu-items ${activeView === 'reports-analytics' ? 'active' : ''}`}
+    onClick={() => {
+      setCurrentView('reports-analytics');
+      setActiveView('reports-analytics');
+    }}
+  >
+    <FileBarChart2 className="menu-icon" />
+    <span>Reports / Analytics</span>
+  </Link>
+
+  <Link
+    to="#"
+    className={`menu-items ${activeView === 'qr' ? 'active' : ''}`}
+    onClick={() => {
+      setCurrentView('qr');
+      setActiveView('qr');
+    }}
+  >
+    <QrCode className="menu-icon" />
+    <span>QR Scanner</span>
+  </Link>
+
+  <Link to="/" className="menu-items logout">
+    <LogOut className="menu-icon" />
+    <span>Logout</span>
+  </Link>
+</nav>
         </aside>
 
         <div className="main-content">
