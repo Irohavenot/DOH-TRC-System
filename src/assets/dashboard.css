@@ -139,7 +139,7 @@ body {
   .collapsed .sidebar {
     width: 75px;
     
-    
+  
   }
   .collapsed .sidebar .menu-items span,
   .collapsed .sidebar-header .logo-doh {
@@ -244,9 +244,13 @@ margin-left: -1px;
   border-radius: 10px;
 }
 
+.menu-items.logout{
+   margin-top: 220px;
+}
 .menu-items.logout:hover {
-  background-color: #7e1313;
+  background-color: #052c28;
   border-radius: 10px;
+ 
 }
   
   /* Main Content */
@@ -298,18 +302,10 @@ margin-left: -1px;
   }
   
 
- /* Table Content (Grid Layout) */
-.table-content {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Slightly wider cards for better spacing */
-  gap: 1.5rem; /* Increased gap for breathing room */
-  padding: 1.5rem;
-  max-width: 1000px; /* Prevent overly wide layouts on large screens */
-  margin: 0 auto;
-}
 
-/* Asset Bar Cards */
-.asset-bar-card {
+
+ .collapsed .asset-bar-card{
+  width: 440px;
   background: #ffffff;
   padding: 1.25rem; /* Slightly more padding */
   border-radius: 16px; /* Softer corners */
@@ -318,6 +314,33 @@ margin-left: -1px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Subtle shadow */
   transition: transform 0.2s ease; /* Smooth hover effect */
 }
+
+
+ 
+.table-content{
+ max-width: 800px;
+}
+
+.tabless{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* Only 4 items per row */
+  gap: 1.25rem;
+
+}
+/* Asset Bar Cards */
+.asset-bar-card {
+  width: 380px;
+  background: #ffffff;
+  padding: 1.25rem; /* Slightly more padding */
+  border-radius: 16px; /* Softer corners */
+  color: #2d3748; /* Neutral dark for better contrast */
+  font-family: 'Inter', sans-serif; /* Modern font */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Subtle shadow */
+  transition: transform 0.2s ease; /* Smooth hover effect */
+  
+  
+}
+
 
 .asset-bar-card:hover {
   transform: translateY(-4px); /* Lift effect on hover */
@@ -433,26 +456,28 @@ margin-left: -1px;
 
 
 
-/* Make .dashboard-columns a flex container */
+
 .dashboard-columns {
   display: flex;
-  gap: 2rem; /* Space between the two sections */
+  gap: 2rem; 
   padding: 1.5rem;
-  flex-wrap: wrap; /* Allows wrapping on smaller screens */
+  flex-wrap: wrap; 
   align-items: flex-start;
 }
 
-/* Make both children share available space */
 .simple, .new-card {
-  flex: 1 1 50%; /* Grow/shrink with a base width of 50% */
-  min-width: 300px; /* Prevents being too narrow */
+  flex: 1 1 50%; 
+  min-width: 300px; 
 }
 
 
 .simplecard {
   display: grid;
-  grid-template-columns: repeat(4, 1fr); /* Only 4 items per row */
+  grid-template-columns: repeat(4, 1fr);
   gap: 1.25rem;
+  width: 1175px;
+  height: 400px;
+  margin-left: -20px;
 }
 
 
@@ -461,7 +486,7 @@ margin-left: -1px;
 
 
 .simplecard > div:hover {
-  transform: translateY(-4px); /* Hover lift effect */
+  transform: translateY(-4px); 
 }
 
 .simplecard > div > div:first-child {
@@ -471,7 +496,7 @@ margin-left: -1px;
 }
 
 .simplecard > div > div:first-child > div {
-  font-size: 1.75rem; /* Larger numbers */
+  font-size: 1.75rem; 
   font-weight: 700;
 }
 
@@ -497,56 +522,65 @@ margin-left: -1px;
   font-size: 0.75rem;
 }
 
+.show-more-wrapper {
+  display: flex;
+  justify-content: center; 
+  margin-bottom: 15px; 
+  margin-left: 380px;
+ 
+}
+
+.show-more-wrapper button {
+  padding: 8px 16px;
+  color: #ffffff; 
+  border: 1px solid #007bff;
+  border-radius: 5px;
+  font-size: 15px;
+  background: transparent; 
+  background-color: #007bff;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  font-weight: bold;
+}
+
+.show-more-wrapper button:hover {
+  background-color: #007bff;
+  color: white;
+}
 
 
 /* New-Item Cards */
 .new-item-cards-container {
  display: grid;
-  grid-template-columns: repeat(5, 1fr); /* Only 4 items per row */
-  gap: 1.25rem;
+  grid-template-columns: repeat(5, 1fr); 
+  gap: -1rem;
 }
 
 .new-item-card {
-  flex: 0 0 200px; /* Fixed width for consistency */
-  min-width: 200px;
-  padding: 10px;
-  border: 1px solid black;
+  background-color: #ffffff; 
+  color: #2d3748;
+  border-radius: 10px;
+  width: 208px;
   text-align: center;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid black;
+  padding: 10px;
+  margin-left: 24px;
 }
+
+.new-item-card h3 {
+  font-size: 1.1rem;
+  margin: 0;
+  font-weight: 600;
+}
+
 
 .new-item-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
-.new-item-card h3 {
-  font-size: 1.1rem;
-  color: white;
-  margin: 0;
-  font-weight: 600;
-}
 
-.new-item-card.asset {
-  background-color: #1f88c0; /* Similar to Property Plant & Equipment */
-}
-
-.new-item-card.license {
-  background-color: #ecc03a; /* Similar to Semi-Expendable Property */
-}
-
-.new-item-card.accessory {
-  background-color: #2dac9f; /* Similar to Insured Property */
-}
-
-.new-item-card.consumable {
-  background-color: #614494; /* Similar to Consumables */
-}
-
-.new-item-card.component {
-  background-color: #ec0e58; /* Similar to Defective Property */
-}
 
 /* View More Button */
 .view-more-container {
@@ -554,7 +588,7 @@ margin-left: -1px;
   margin-top: 1rem;
 }
 
-.view-more-btns {
+.view-more-button {
   border: none;
   font-size: 1rem;
   color: #2b6cb0; /* Professional blue */
@@ -566,7 +600,7 @@ margin-left: -1px;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.view-more-btns:hover {
+.view-more-button:hover {
   background-color: #2b6cb0;
   color: #ffffff;
 }
