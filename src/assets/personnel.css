@@ -156,9 +156,9 @@ body {
 }
 
 .logo {
-    font-size: 1.5rem;
+    font-size: 15px;
     font-weight: bold;
-    margin-left: 1rem;
+    margin-left: 5px;
     text-align: center;
   }
   .sidebar-header{
@@ -196,34 +196,39 @@ body {
   }
 
 .dashboard-logo{
-  width: 50px; /* Adjust size as needed */
-  height: 50px; /* Ensure width and height are equal for a perfect circle */
+  width: 60px; /* Adjust size as needed */
+  height: 60px; /* Ensure width and height are equal for a perfect circle */
   border-radius: 50%; /* Makes the image circular */
   object-fit: cover; /* Ensures the image fits within the circle */
   border: 2px solid #004d40; /* Optional: Add a border */
   box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 6px 0px;
+  margin-left: 1px;
 }
 .toggle-sidebar-btn {
   background: none;
   border: none;
-  font-size: 1.5rem;
-  margin: 10px;
+  color: white;
+  font-size: 2rem;
+  margin-left: 10px;
   cursor: pointer;
 }
 
 
 .menu-item.active {
-  background-color: #f8faf9;
-  color: black;
+   background-color: #f8faf9;
+  color: black;;
   border-radius: 5px;
 }
-
+.menu-item.active:hover {
+  background-color:white;
+  color: rgb(255, 255, 255);
+}
 .collapsed .menu-item.active:hover {
   background-color: #015c51;
-  border-radius: 50%; /* Circular highlight */
-  width: 40px; /* Adjust to fit the icon */
+  border-radius: 50%; 
+  width: 40px; 
   height: 40px;
-  margin: 10px auto; /* Center the item */
+  margin: 10px auto; 
   display: flex;
   justify-content: center;
   align-items: center;
@@ -236,11 +241,14 @@ body {
   border-radius: 10px;
 }
 
-.menu-item.logout:hover {
-  background-color: #7e1313;
-  border-radius: 10px;
+.menu-item.logouts{
+   margin-top: 390px;
 }
-  
+.menu-item.logouts:hover {
+  background-color: #052c28;
+  border-radius: 10px;
+ 
+}
   /* Main Content */
   .main-content {
     flex-grow: 1;

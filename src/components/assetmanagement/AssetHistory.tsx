@@ -1,5 +1,3 @@
-
-
 import "../../assets/assethistory.css";
 
 const AssetHistory = () => {
@@ -10,6 +8,7 @@ const AssetHistory = () => {
       reportedBy: 'Donna May Magsucang',
       dateReported: '2025-05-10',
       status: 'Under Maintenance',
+      repairType: 'In-house',
     },
     {
       id: 2,
@@ -17,6 +16,7 @@ const AssetHistory = () => {
       reportedBy: 'Donna May Magsucang',
       dateReported: '2025-05-11',
       status: 'Resolved',
+      repairType: 'Outsource',
     },
     {
       id: 3,
@@ -24,6 +24,7 @@ const AssetHistory = () => {
       reportedBy: 'Donna May Magsucang',
       dateReported: '2025-05-12',
       status: 'Pending',
+      repairType: 'In-house',
     },
     {
       id: 4,
@@ -31,6 +32,7 @@ const AssetHistory = () => {
       reportedBy: 'Donna May Magsucang',
       dateReported: '2025-05-13',
       status: 'Resolved',
+      repairType: 'Outsource',
     },
     {
       id: 5,
@@ -38,6 +40,7 @@ const AssetHistory = () => {
       reportedBy: 'Donna May Magsucang',
       dateReported: '2025-05-14',
       status: 'Pending',
+      repairType: 'In-house',
     },
     {
       id: 6,
@@ -45,6 +48,7 @@ const AssetHistory = () => {
       reportedBy: 'Donna May Magsucang',
       dateReported: '2025-05-15',
       status: 'Under Maintenance',
+      repairType: 'Outsource',
     },
   ];
 
@@ -83,6 +87,7 @@ const AssetHistory = () => {
               <th>Reported By</th>
               <th>Date Reported</th>
               <th>Status</th>
+              <th>Repair Type</th>
             </tr>
           </thead>
           <tbody>
@@ -97,6 +102,7 @@ const AssetHistory = () => {
                     {item.status}
                   </span>
                 </td>
+                <td>{item.repairType}</td>
               </tr>
             ))}
           </tbody>
