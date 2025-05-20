@@ -11,6 +11,14 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 import AssetManagement from './AssetManagement';
 import { Package } from 'lucide-react';
 import People from "./People";
+import {
+  LayoutDashboard,
+  PlusCircle,
+  AlertCircle,
+  FileBarChart2,
+  QrCode,
+  LogOut,
+} from 'lucide-react';
 
 const Dashboard = () => {
   const [currentView, setCurrentView] = useState<'dashboard' | 'qr' | 'generate' | 'reports' | 'reports-analytics' | 'profile' | 'assets' | 'people'>('dashboard');
@@ -86,38 +94,48 @@ const Dashboard = () => {
 
   // Sample data for the dashboard
   const dashboardData = {
-    desktops: { total: 132, functional: 92, defective: 10, condemned: 30 },
-    laptops: { total: 47, functional: 18, defective: 9, condemned: 20 },
-    printers: { total: 50, functional: 40, defective: 5, condemned: 5 },
-    servers: { total: 20, functional: 15, defective: 3, condemned: 2 },
-    otherDevices: { total: 90, functional: 33, defective: 17, condemned: 40 },
+    desktops: { total: 132, functional: 92, defective: 10, unserviceable: 30 },
+    laptops: { total: 47, functional: 18, defective: 9, unserviceable: 20 },
+    printers: { total: 50, functional: 40, defective: 5, unserviceable: 5 },
+    servers: { total: 20, functional: 15, defective: 3, unserviceable: 2 },
+    otherDevices: { total: 90, functional: 33, defective: 17, unserviceable: 40 },
+    accessories: { total: 90, functional: 17, defective: 32, unserviceable: 41 },
+    components:  { total: 50, functional: 30, defective: 10, unserviceable: 10 },
+    
 
    
+      licenses: {
+      total: 60,
+      expiringIn1Month: 20,
+      expiringIn2Months: 25,
+      expiringIn3Months: 20,
+    },
+    consumables: { total: 200 },
+    propertyPlantEquipment: { total: 150 },
+    semiExpendableProperty: { total: 80 },
+    insuredProperty: { total: 100 },
+    defectiveProperty: { total: 60 },
+    custodian: { total: 50 },
+    unserviceableProperty: { total: 70 },
     
-   
     
     
     
-    propertyData: [
-      { property: '10605030-COMPST-TRC-2014-01-0007', type: 'Desktop', program: 'Residential Program', repaired: 4 },
-      { property: '10605030-COMPST-TRC-2023-01-0098', type: 'Desktop', program: 'Residential Program', repaired: 3 },
-    ],
+    
     otherTable: [
-      { category: 'Accessories', users: 50, toApprove: 5 },
-      { category: 'Components', users: 30, toApprove: 3 },
-      { category: 'Licenses', users: 20, toApprove: 2 },
-      { category: 'Consumables', users: 15, toApprove: 1 },
+     
+      
       { category: 'People', users: 10, toApprove: 3 },
+      
     ],
-    furnituresFixtures: [
-      { property: '10605030-FURN-TRC-2020-01-0001', type: 'Chair', program: 'Office', repaired: 2 },
-      { property: '10605030-FIXT-TRC-2019-01-0002', type: 'Table', program: 'Office', repaired: 1 },
-    ],
+    
+    
     newItems: {
       asset: 5,
       licenses: 3,
       accessory: 2,
       consumable: 1,
+      components: 5,
     },
   };
 
@@ -126,84 +144,90 @@ const Dashboard = () => {
       <div className={`dashboard-container ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <aside className="sidebar">
           <div className="sidebar-header">
-            <img className="dashboard-logo" src="/logosaproject.jpg" alt="DOH Logo" />
-            <div className="logo">DOH-TRC</div>
-            <button className="toggle-sidebar-btn" onClick={toggleSidebar}>
+            <img className="dashboard-logos" src="/logosaproject.jpg" alt="DOH Logo" />
+            <div className="logo-doh">DOH-TRC Argao</div>
+            <button className="toggle-sidebar-btns" onClick={toggleSidebar}>
               ☰
             </button>
           </div>
-          <nav className="menu">
-            <Link
-              to="#"
-              className={`menu-item ${activeView === 'dashboard' ? 'active' : ''}`}
-              onClick={() => {
-                setCurrentView('dashboard');
-                setActiveView('dashboard');
-              }}
-            >
-              <img src="/layout.png" alt="Dashboard" className="menu-icon" />
-              <span>Dashboard</span>
-            </Link>
-          <Link
-  to="#"
-  className={`menu-item ${activeView === 'assets' ? 'active' : ''}`}
-  onClick={() => {
-    setCurrentView('assets');
-    setActiveView('assets');
-  }}
->
-  <Package className="menu-icon" color="black"  />       
-  <span>Asset Management</span>
-</Link>
-            <Link
-              to="#"
-              className={`menu-item ${activeView === 'generate' ? 'active' : ''}`}
-              onClick={() => {
-                setCurrentView('generate');
-                setActiveView('generate');
-              }}
-            >
-              <img src="/more.png" alt="Add Assets" className="menu-icon" />
-              <span>Add Asset</span>
-            </Link>
-            <Link
-              to="#"
-              className={`menu-item ${activeView === 'reports' ? 'active' : ''}`}
-              onClick={() => {
-                setCurrentView('reports');
-                setActiveView('reports');
-              }}
-            >
-              <img src="/alert.png" alt="QR-Scanner" className="menu-icon" />
-              <span>Reported Issues</span>
-            </Link>
-            <Link
-              to="#"
-              className={`menu-item ${activeView === 'reports-analytics' ? 'active' : ''}`}
-              onClick={() => {
-                setCurrentView('reports-analytics');
-                setActiveView('reports-analytics');
-              }}
-            >
-              <img src="/file.png" alt="QR-Scanner" className="menu-icon" />
-              <span>Reports / Analytics</span>
-            </Link>
-            <Link
-              to="#"
-              className={`menu-item ${activeView === 'qr' ? 'active' : ''}`}
-              onClick={() => {
-                setCurrentView('qr');
-                setActiveView('qr');
-              }}
-            >
-              <img src="/qr-code.png" alt="QR-Scanner" className="menu-icon" />
-              <span>QR Scanner</span>
-            </Link>
-            <Link to="/" className="menu-item logout">
-              <img src="/logout.png" alt="Logout" className="menu-icon" />
-              <span>Logout</span>
-            </Link>
-          </nav>
+        <nav className="menu">
+  <Link
+    to="#"
+    className={`menu-items ${activeView === 'dashboard' ? 'active' : ''}`}
+    onClick={() => {
+      setCurrentView('dashboard');
+      setActiveView('dashboard');
+    }}
+  >
+    <LayoutDashboard className="menu-icon" />
+    <span>Dashboard</span>
+  </Link>
+
+  <Link
+    to="#"
+    className={`menu-items ${activeView === 'assets' ? 'active' : ''}`}
+    onClick={() => {
+      setCurrentView('assets');
+      setActiveView('assets');
+    }}
+  >
+    <Package className="menu-icon" />
+    <span>Asset Management</span>
+  </Link>
+
+  <Link
+    to="#"
+    className={`menu-items ${activeView === 'generate' ? 'active' : ''}`}
+    onClick={() => {
+      setCurrentView('generate');
+      setActiveView('generate');
+    }}
+  >
+    <PlusCircle className="menu-icon" />
+    <span>Add Asset</span>
+  </Link>
+
+  <Link
+    to="#"
+    className={`menu-items ${activeView === 'reports' ? 'active' : ''}`}
+    onClick={() => {
+      setCurrentView('reports');
+      setActiveView('reports');
+    }}
+  >
+    <AlertCircle className="menu-icon" />
+    <span>Reported Issues</span>
+  </Link>
+
+  <Link
+    to="#"
+    className={`menu-items ${activeView === 'reports-analytics' ? 'active' : ''}`}
+    onClick={() => {
+      setCurrentView('reports-analytics');
+      setActiveView('reports-analytics');
+    }}
+  >
+    <FileBarChart2 className="menu-icon" />
+    <span>Reports / Analytics</span>
+  </Link>
+
+  <Link
+    to="#"
+    className={`menu-items ${activeView === 'qr' ? 'active' : ''}`}
+    onClick={() => {
+      setCurrentView('qr');
+      setActiveView('qr');
+    }}
+  >
+    <QrCode className="menu-icon" />
+    <span>QR Scanner</span>
+  </Link>
+
+  <Link to="/" className="menu-items logout">
+    <LogOut className="menu-icon" />
+    <span>Logout</span>
+  </Link>
+</nav>
         </aside>
 
         <div className="main-content">
@@ -309,9 +333,14 @@ const Dashboard = () => {
   { label: 'Printers', data: dashboardData.printers },
   { label: 'Servers',  data: dashboardData.servers  },
   { label: 'Other Devices', data: dashboardData.otherDevices },
+  { label: 'Accessories', data: dashboardData.accessories },
+  { label: 'Components', data: dashboardData.components },
+
+  
+  
 ].map((item, i) => {
   const total =
-    item.data.functional + item.data.defective + item.data.condemned;
+    item.data.functional + item.data.defective + item.data.unserviceable;
 
   return (
     <div className="asset-bar-card" key={i}>
@@ -341,21 +370,58 @@ const Dashboard = () => {
       </div>
 
       <div className="bar-row">
-        <span className="label">CONDEMNED</span>
+        <span className="label">UNSERVICEABLE</span>
         <div className="progress-bar bg-red">
           <div
             className="progress-fill"
-            style={{ width: `${(item.data.condemned / total) * 100}%` }}
+            style={{ width: `${(item.data.unserviceable / total) * 100}%` }}
           />
         </div>
-        <span className="value">{item.data.condemned}</span>
+        <span className="value">{item.data.unserviceable}</span>
       </div>
     </div>
   );
 })}
 
+    {/* ===== License Status Card ===== */}
+                <div className="asset-bar-card">
+                  <h3>Licenses</h3>
+                  <p className="total-count">Total: {dashboardData.licenses.total}</p>
+                 <div className="bar-row">
+                    <span className="label">EXPIRE IN 1 MONTH</span>
+                    <div className="progress-bar bg-green">
+                      <div
+                        className="progress-fill"
+                        style={{ width: `${(dashboardData.licenses.expiringIn1Month / dashboardData.licenses.total) * 100}%` }}
+                      />
+                    </div>
+                    <span className="value">{dashboardData.licenses.expiringIn1Month}</span>
+                  </div>
+                  <div className="bar-row">
+                    <span className="label">EXPIRE IN 2 MONTHS</span>
+                    <div className="progress-bar bg-yellow">
+                      <div
+                        className="progress-fill"
+                        style={{ width: `${(dashboardData.licenses.expiringIn2Months / dashboardData.licenses.total) * 100}%` }}
+                      />
+                    </div>
+                    <span className="value">{dashboardData.licenses.expiringIn2Months}</span>
+                  </div>
+                  <div className="bar-row">
+                    <span className="label">EXPIRE IN 3 MONTHS</span>
+                    <div className="progress-bar bg-red">
+                      <div
+                        className="progress-fill"
+                        style={{ width: `${(dashboardData.licenses.expiringIn3Months / dashboardData.licenses.total) * 100}%` }}
+                      />
+                    </div>
+                    <span className="value">{dashboardData.licenses.expiringIn3Months}</span>
+                  </div>
+                 
+                 
+                </div>
 
-  {/* ===== Furniture / Fixtures Table ===== */}
+{/* ===== Furniture / Fixtures Table ===== */}
 
   <div className="table-cards table3-card">
   <h3>People</h3>
@@ -394,39 +460,78 @@ const Dashboard = () => {
   </button>
 </div>
 
+
+ 
 </div>
-  <div className="table-cards table2-card">
-    <h3>Furnitures / Fixtures</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Property #</th><th>Type</th><th>Program</th><th>Repaired</th>
-        </tr>
-      </thead>
-      <tbody>
-        {dashboardData.furnituresFixtures.map((row, i) => (
-          <tr key={i}>
-            <td>{row.property}</td><td>{row.type}</td>
-            <td>{row.program}</td><td>{row.repaired}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
+<div className='dashboard-columns'>
+<div className='simple'>
+ {/* ===== Simplified Status Cards (without subcategories) ===== */}
+                <div className='simplecard'
+                >
+                  {[
+                    { label: 'Consumables', total: dashboardData.consumables.total, color: '#9575cd', icon: 'fas fa-tint', viewLink: 'assets' },
+                    { label: 'Property Plant & Equipment', total: dashboardData.propertyPlantEquipment.total, color: '#607d8b', icon: 'fas fa-building', viewLink: 'assets' },
+                    { label: 'Semi-Expendable Property', total: dashboardData.semiExpendableProperty.total, color: '		#fbc02d', icon: 'fas fa-box-open', viewLink: 'assets' },
+                    { label: 'Insured Property', total: dashboardData.insuredProperty.total, color: '#4db6ac', icon: 'fas fa-shield-alt', viewLink: 'assets' },
+                    { label: 'Defective Property', total: dashboardData.defectiveProperty.total, color: '#e91e63', icon: 'fas fa-tools', viewLink: 'assets' },
+                    { label: 'Custodian', total: dashboardData.custodian.total, color: '#8bc34a', icon: 'fas fa-user-shield', viewLink: 'assets' },
+                    { label: 'Unserviceable Property', total: dashboardData.unserviceableProperty.total, color: '#d81b60', icon: 'fas fa-exclamation-triangle', viewLink: 'assets' },
+                  ].map((item, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        backgroundColor: item.color,
+                        borderRadius: '10px',
+                        padding: '15px',
+                     
+                        color: 'white',
+                        width: '255px',
+                        height: '170px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        position: 'relative',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{item.total}</div>
+                        <i className={item.icon} style={{ fontSize: '24px', opacity: 0.8 }}></i>
+                      </div>
+                      <div style={{ fontSize: '16px', fontWeight: '500' }}>{item.label}</div>
+                      <div
+                        onClick={() => {
+                          setCurrentView(item.viewLink as any);
+                          setActiveView(item.viewLink as any);
+                        }}
+                        style={{ cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                      >
+                        <span>VIEW ALL</span>
+                        <i className="fas fa-arrow-right" style={{ fontSize: '10px' }}></i>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                </div>
+  
+ <div className='new-card'>
 
-
- {/* ===== New-Item Cards ===== */}
-{[
-  { title: 'New Asset',      value: dashboardData.newItems.asset,      class: 'asset'      },
-  { title: 'New Licenses',   value: dashboardData.newItems.licenses,   class: 'license'    },
-  { title: 'New Accessory',  value: dashboardData.newItems.accessory,  class: 'accessory'  },
-  { title: 'New Consumable', value: dashboardData.newItems.consumable, class: 'consumable' },
-].map((n, i) => (
-  <div className={`new-item-card ${n.class}`} key={i}>
-    <h3>{n.title}</h3>
-    <div className="card-content"><p>{n.value}</p></div>
-  </div>
-))}
+{/* ===== New-Item Cards ===== */}
+<div className="new-item-cards-container">
+  {[
+    { title: 'New Asset', class: 'asset' },
+    { title: 'New License', class: 'license' },
+    { title: 'New Accessory', class: 'accessory' },
+    { title: 'New Consumable', class: 'consumable' },
+    { title: 'New Component', class: 'component' },
+  ].map((n, i) => (
+    <div className={`new-item-card ${n.class}`} key={i}>
+      <h3>{n.title}</h3>
+    </div>
+  ))}
+</div>
+</div>
+</div>
 
 </div>
 
