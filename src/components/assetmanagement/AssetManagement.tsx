@@ -72,7 +72,7 @@ const [cards, setCards] = useState<Card[]>([
         <div className="modal-backdrop" onClick={handleCloseModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
  <div className="modal-image">
-              <img src="printer.jpg" alt="Asset" />
+              <img src="../../printer.jpg" alt="Asset" />
             </div>
             <div className="modal-details">
               <h2>Asset Details</h2>
