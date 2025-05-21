@@ -140,7 +140,7 @@ const [cards, setCards] = useState<Card[]>([
             <div className="card-top">
               <div className="card-top-left">
                 <div className={`card-icon ${card.iconClass}`}></div>
-                <button className="view-more-btns" onClick={() => handleViewMore(card)}>View More</button>
+                <button className="view-more-btn" onClick={() => handleViewMore(card)}>View More</button>
               </div>
               <div className="card-options">
                 <button className="options-btn" onClick={() => handleCardOptionsToggle(index)}>⋮</button>

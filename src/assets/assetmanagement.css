@@ -155,7 +155,7 @@ body {
 }
 
 .logo {
-    font-size: 12px;
+    font-size: 1.5rem;
     font-weight: bold;
     margin-left: 1rem;
     text-align: center;
@@ -464,25 +464,25 @@ body {
 }
 
 /* View More Button */
-.view-more-btns {
+.view-more-btn {
   background-color: #00695c;
   color: white;
   border: none;
-  padding: 5px 32px;
+  padding: 8px 35px;
   border-radius: 20px;
   cursor: pointer;
 }
 
-.collapsed .view-more-btns{
+.collapsed .view-more-btn{
   background-color: #00695c;
   color: white;
   border: none;
-  padding: 8px 20px;
+  padding: 8px 30px;
   border-radius: 20px;
   cursor: pointer;
 }
 
-.view-more-btns:hover{
+.view-more-btn:hover{
   background-color: #004d40;
 }
 .modal-backdrop {

@@ -87,7 +87,7 @@ const AssetHistory = () => {
               <th>Reported By</th>
               <th>Date Reported</th>
               <th>Status</th>
-              <th>Repair Type</th>
+              <th>Site of Action</th>
             </tr>
           </thead>
           <tbody>

@@ -29,6 +29,8 @@ const PersonnelDashboard = () => {
   const [openOptionsId, setOpenOptionsId] = useState<number | null>(null);
   const [showAll, setShowAll] = useState(false);
   const user = { name: 'Donna May' };
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [selectedHistoryAsset, setSelectedHistoryAsset] = useState<Card | null>(null);
   
   type Notification = {
     id: number;
@@ -117,6 +119,11 @@ const PersonnelDashboard = () => {
     return 'fas fa-info-circle';
   };
 
+  const handleShowHistory = (card: Card) => {
+  setSelectedHistoryAsset(card);
+  setShowHistoryModal(true);
+};
+
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
   };
@@ -190,7 +197,8 @@ const [showReportModal, setShowReportModal] = useState(false);
 
               <div className="buttons-container">
                 <button className="close-btn" onClick={handleCloseModal}>Close</button>
-                <button className="edits-button" onClick={() => setShowReportModal(true)}>Report</button>
+                <button className="edits-button" onClick={() => setShowReportModal(true)}><i className="fas fa-edit"></i> Report</button>
+                <button className="history-btn" onClick={() => handleShowHistory(selectedCard!)}><i className="fas fa-history"></i> History</button>
               </div>
             </div>
           </div>
@@ -406,7 +414,63 @@ const [showReportModal, setShowReportModal] = useState(false);
               )}
             </div>
           </header>
+               {showHistoryModal && selectedHistoryAsset && (
+      <div className="asset-modal-history">
+  <div className="asset-modal-history-content">
+    <h2>{selectedHistoryAsset.title} – History</h2>
+    <table className="history-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Action</th>
+          <th>Site of Action</th> 
+          <th>Handled By</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>2024-11-01</td>
+          <td>Assigned</td>
+          <td>In-house</td>
+          <td>It-Personnel-Alice Johnson</td>
+        </tr>
+        <tr>
+          <td>2025-01-15</td>
+          <td>Repaired</td>
+          <td>In-house</td>
+          <td>IT Support Personnel – Bob Smith</td>
+        </tr>
+        <tr>
+          <td>2025-02-20</td>
+          <td>Maintained</td>
+          <td>Outsourced</td>
+          <td>QuickFix Tech Solutions</td>
+        </tr>
+        <tr>
+          <td>2025-03-12</td>
+          <td>Renewed</td>
+          <td>In-house</td>
+          <td>IT Admin – Clara Reyes (Microsoft 365)</td>
+        </tr>
+        <tr>
+          <td>2025-04-02</td>
+          <td>Reported Issue (Battery)</td>
+          <td>In-House</td>
+          <td>It-Personnel – James Miller</td>
+        </tr>
+        <tr>
+          <td>2025-05-10</td>
+          <td>Repaired</td>
+          <td>Outsourced</td>
+          <td>BatteryPro Repair Services</td>
+        </tr>
+      </tbody>
+    </table>
+    <button onClick={() => setShowHistoryModal(false)}>Close</button>
+  </div>
+</div>
 
+)}
           <div className="content-here"> 
             {currentView === 'dashboard' && (
               <>

@@ -561,7 +561,8 @@ body {
 }
 
 .modal-details .close-btn,
-.modal-details .edits-button {
+.modal-details .edits-button,
+.modal-details .history-btn {
   flex: 1; /* Makes both buttons equal width in the container */
   max-width: 180px;
   padding: 12px 20px;
@@ -574,6 +575,9 @@ body {
 }
 .modal-details .close-btn {
   background-color: #c50e0e;
+}
+.modal-details .history-btn {
+  background-color: #508b5a;
 }
 
 .modal-details .edits-button {
