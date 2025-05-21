@@ -590,7 +590,7 @@ body {
 
 .modal-details .close-btn,
 .modal-details .edits-button {
-  flex: 1; /* Makes both buttons equal width in the container */
+  flex: 1; 
   max-width: 180px;
   padding: 12px 20px;
   border: none;

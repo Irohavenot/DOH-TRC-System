@@ -139,6 +139,55 @@ const Dashboard = () => {
     },
   };
 
+
+  const [showCards, setShowCards] = useState(false);
+
+  
+const items = [
+  {
+    label: 'Consumables',
+    total: dashboardData.consumables.total,
+    icon: 'fas fa-tint',
+    viewLink: 'consumables'
+  },
+  {
+    label: 'Property Plant & Equipment',
+    total: dashboardData.propertyPlantEquipment.total,
+    icon: 'fas fa-building',
+    viewLink: 'propertyPlant'
+  },
+  {
+    label: 'Semi-Expendable Property',
+    total: dashboardData.semiExpendableProperty.total,
+    icon: 'fas fa-box-open',
+    viewLink: 'semiExpendable'
+  },
+  {
+    label: 'Insured Property',
+    total: dashboardData.insuredProperty.total,
+    icon: 'fas fa-shield-alt',
+    viewLink: 'insuredProperty'
+  },
+  {
+    label: 'Defective Property',
+    total: dashboardData.defectiveProperty.total,
+    icon: 'fas fa-tools',
+    viewLink: 'defectiveProperty'
+  },
+  {
+    label: 'Custodian',
+    total: dashboardData.custodian.total,
+    icon: 'fas fa-user-shield',
+    viewLink: 'custodian'
+  },
+  {
+    label: 'Unserviceable Property',
+    total: dashboardData.unserviceableProperty.total,
+    icon: 'fas fa-exclamation-triangle',
+    viewLink: 'unserviceableProperty'
+  }
+];
+
   return (
     <div className="dashboard-body">
       <div className={`dashboard-container ${sidebarCollapsed ? 'collapsed' : ''}`}>
@@ -326,6 +375,7 @@ const Dashboard = () => {
           <div className="content-here">
             {currentView === 'dashboard' && (
           <div className="table-content">
+            <div className='tabless'>
 {/* ===== Asset Status Cards ===== */}
 {[
   { label: 'Desktops', data: dashboardData.desktops },
@@ -421,6 +471,8 @@ const Dashboard = () => {
                  
                 </div>
 
+              
+
 {/* ===== Furniture / Fixtures Table ===== */}
 
   <div className="table-cards table3-card">
@@ -450,7 +502,7 @@ const Dashboard = () => {
  {/* Centered view more */}
 <div className="view-more-container">
   <button
-    className="view-more-btns"
+    className="view-more-button"
     onClick={() => {
       setCurrentView('people');
       setActiveView('people');
@@ -459,61 +511,16 @@ const Dashboard = () => {
     View more →
   </button>
 </div>
-
+ 
 
  
 </div>
-<div className='dashboard-columns'>
-<div className='simple'>
- {/* ===== Simplified Status Cards (without subcategories) ===== */}
-                <div className='simplecard'
-                >
-                  {[
-                    { label: 'Consumables', total: dashboardData.consumables.total, color: '#9575cd', icon: 'fas fa-tint', viewLink: 'assets' },
-                    { label: 'Property Plant & Equipment', total: dashboardData.propertyPlantEquipment.total, color: '#607d8b', icon: 'fas fa-building', viewLink: 'assets' },
-                    { label: 'Semi-Expendable Property', total: dashboardData.semiExpendableProperty.total, color: '		#fbc02d', icon: 'fas fa-box-open', viewLink: 'assets' },
-                    { label: 'Insured Property', total: dashboardData.insuredProperty.total, color: '#4db6ac', icon: 'fas fa-shield-alt', viewLink: 'assets' },
-                    { label: 'Defective Property', total: dashboardData.defectiveProperty.total, color: '#e91e63', icon: 'fas fa-tools', viewLink: 'assets' },
-                    { label: 'Custodian', total: dashboardData.custodian.total, color: '#8bc34a', icon: 'fas fa-user-shield', viewLink: 'assets' },
-                    { label: 'Unserviceable Property', total: dashboardData.unserviceableProperty.total, color: '#d81b60', icon: 'fas fa-exclamation-triangle', viewLink: 'assets' },
-                  ].map((item, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        backgroundColor: item.color,
-                        borderRadius: '10px',
-                        padding: '15px',
-                     
-                        color: 'white',
-                        width: '255px',
-                        height: '170px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        position: 'relative',
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{item.total}</div>
-                        <i className={item.icon} style={{ fontSize: '24px', opacity: 0.8 }}></i>
-                      </div>
-                      <div style={{ fontSize: '16px', fontWeight: '500' }}>{item.label}</div>
-                      <div
-                        onClick={() => {
-                          setCurrentView(item.viewLink as any);
-                          setActiveView(item.viewLink as any);
-                        }}
-                        style={{ cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}
-                      >
-                        <span>VIEW ALL</span>
-                        <i className="fas fa-arrow-right" style={{ fontSize: '10px' }}></i>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                </div>
-  
+
+
+
+
+
+
  <div className='new-card'>
 
 {/* ===== New-Item Cards ===== */}
@@ -531,9 +538,66 @@ const Dashboard = () => {
   ))}
 </div>
 </div>
+
+
+
+
+ </div>
+
+<div className='dashboard-columns'>
+  <div className='simple'>
+
+    {/* Show More button aligned to the left */}
+    <div className='show-more-wrapper'>
+      <button onClick={() => setShowCards(!showCards)}>
+        {showCards ? 'Show Less' : 'Show More'}
+      </button>
+    </div>
+
+    <div className='simplecard'>
+      {showCards &&
+        items.map((item, i) => (
+          <div
+            key={i}
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '10px',
+              padding: '15px',
+              color: '#333',
+              
+              
+              gap: '2 rem',
+              
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              position: 'relative',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            }}
+          >
+            <div>
+              <div>{item.total}</div>
+              <i className={item.icon}></i>
+            </div>
+            <div>{item.label}</div>
+            <div
+              onClick={() => {
+                setCurrentView(item.viewLink as any);
+                setActiveView(item.viewLink as any);
+              }}
+            >
+              <span>VIEW ALL</span>
+              <i className="fas fa-arrow-right"></i>
+            </div>
+          </div>
+        ))}
+    </div>
+  </div>
 </div>
 
 </div>
+
+
 
 
             )}
