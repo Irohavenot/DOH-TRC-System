@@ -464,7 +464,7 @@ body {
 }
 
 /* View More Button */
-.view-more-btn {
+.view-more-btns {
   background-color: #00695c;
   color: white;
   border: none;
@@ -473,16 +473,16 @@ body {
   cursor: pointer;
 }
 
-.collapsed .view-more-btn{
+.collapsed .view-more-btns{
   background-color: #00695c;
   color: white;
   border: none;
-  padding: 8px 30px;
+  padding: 8px 25px;
   border-radius: 20px;
   cursor: pointer;
 }
 
-.view-more-btn:hover{
+.view-more-btns:hover{
   background-color: #004d40;
 }
 .modal-backdrop {
