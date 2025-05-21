@@ -3,15 +3,24 @@ import "../../assets/personnel.css";
 import "../../assets/notification.css";
 import WebQRScanner from "./qrscanner";
 import ProfilePage from "./ProfilePage";
+import ScanQr  from "./ScanQr";
 import AssetHistory from "./AssetHistory";
 import { Link } from 'react-router-dom';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { FaHistory } from 'react-icons/fa';
 import { Package } from 'lucide-react';
 
+import {
+  
+  
+  QrCode,
+  LogOut,
+} from 'lucide-react';
+
+
 const PersonnelDashboard = () => {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'qr' | 'generate' | 'reports' | 'reports-analytics' | 'profile' | 'history'>('dashboard'  );
-  const [activeView, setActiveView] = useState<'dashboard' | 'generate' | 'reports' | 'reports-analytics' | 'qr' | 'profile' | 'history'>('dashboard'); // Track active menu item
+  const [currentView, setCurrentView] = useState<'dashboard' | 'qr' | 'generate' | 'reports' | 'reports-analytics' | 'profile' | 'history' | 'qrscan'>('dashboard'  );
+  const [activeView, setActiveView] = useState<'dashboard' | 'generate' | 'reports' | 'reports-analytics' | 'qr' | 'profile' | 'history' | 'qrscan'>('dashboard'); // Track active menu item
   const [query, setQuery] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [filter, setFilter] = useState<'all' | 'permanent' | 'normal' | 'aboutToExpire' | 'expired'>('all');
@@ -258,7 +267,7 @@ const [showReportModal, setShowReportModal] = useState(false);
         <aside className="sidebar">
           <div className="sidebar-header">
             <img className="dashboard-logo" src="/logosaproject.jpg" alt="DOH Logo" />
-            <div className="logo">DOH-TRC</div>
+            <div className="logo">DOH-TRC Argao</div>
             <button className="toggle-sidebar-btn" onClick={toggleSidebar}>
               ☰
             </button>
@@ -272,22 +281,22 @@ const [showReportModal, setShowReportModal] = useState(false);
                 setActiveView('dashboard');
               }}
             >
-              <Package className="menu-icon" color="black"  /> 
+              <Package className="menu-icon"   /> 
               <span>Asset Management</span>
             </Link>
            
            
-            <Link
-              to="#"
-              className={`menu-item ${activeView === 'qr' ? 'active' : ''}`}
-              onClick={() => {
-                setCurrentView('qr');
-                setActiveView('qr');
-              }}
-            >
-              <img src="/qr-code.png" alt="QR-Scanner" className="menu-icon" />
-              <span>QR Scanner</span>
-            </Link>
+    <Link
+       to="#"
+       className={`menu-item ${activeView === 'qrscan' ? 'active' : ''}`}
+       onClick={() => {
+         setCurrentView('qrscan');
+         setActiveView('qrscan');
+       }}
+     >
+       <QrCode className="menu-icon" />
+       <span>QR Scanner</span>
+     </Link>
            
           <Link
   to="#"
@@ -297,13 +306,14 @@ const [showReportModal, setShowReportModal] = useState(false);
     setActiveView('history');
   }}
 >
-  <FaHistory className="menu-icon" color='black' />
+  <FaHistory className="menu-icon"  />
   <span>Asset History</span>
 </Link>
-            <Link to="/" className="menu-item logout">
-              <img src="/logout.png" alt="Logout" className="menu-icon" />
-              <span>Logout</span>
-            </Link>
+            <Link to="/" className="menu-item logouts">
+    <LogOut className="menu-icon" />
+    <span>Logout</span>
+  </Link>
+
           </nav>
         </aside>
 
@@ -455,6 +465,8 @@ const [showReportModal, setShowReportModal] = useState(false);
             {currentView === 'history' && <AssetHistory />}
 
             {currentView === 'profile' && <ProfilePage />}
+
+             {currentView === 'qrscan' && <ScanQr />}
             
             
           

@@ -227,11 +227,11 @@ margin-left: -1px;
 }
 .collapsed .menu-items.active:hover {
   background-color:white;
-  border-radius: 50%; /* Circular highlight */
+  border-radius: 50%; 
   color: black;
-  width: 40px; /* Adjust to fit the icon */
+  width: 40px; 
   height: 40px;
-  margin: 10px auto; /* Center the item */
+  margin: 10px auto; 
   display: flex;
   justify-content: center;
   align-items: center;

@@ -14,6 +14,7 @@ import ReportsAnalytics from './components/assetmanagement/ReportsAnalytics';
 import AssetHistory from './components/assetmanagement/AssetHistory';
 import PersonnelDashboard from './components/assetmanagement/PersonnelDashboard';
 import People from './components/assetmanagement/People';
+import ScanQR from './components/assetmanagement/ScanQr';
 
 const App: React.FC = () => {
   return (
@@ -26,12 +27,13 @@ const App: React.FC = () => {
           <Route path="/trial" element={<Trial />} />
           <Route path="/generate-qr" element={<QRCodeGenerator />} />
           <Route path="/scan-qr" element={<WebQRScanner />} />
-          <Route path="/profile" element={<ProfilePage />} />s
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/reports-analytics" element={<ReportsAnalytics />} />
           <Route path="/personnel" element={<PersonnelDashboard/>} />
           <Route path="/history" element={<AssetHistory/>} />
            <Route path="/people" element={<People/>} />
+           <Route path="/qrscan " element={<ScanQR/>} />
         </Routes>
       </div>
     </Router>
