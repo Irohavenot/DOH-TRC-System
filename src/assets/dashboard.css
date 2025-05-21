@@ -69,18 +69,18 @@ body {
   overflow-y: auto;
 }
 .main-header {
-  
-  
+  top: 0;
+  left: 18%;
+  right: 0;
+  height: 9%;
+  background-color: #E0F2F1;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  padding: 0 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 500;
 }
-
-
-
-
-
 
 .welcome-text {
   font-size: 1rem;
