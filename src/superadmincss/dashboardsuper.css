@@ -36,9 +36,9 @@ body {
   font-family: 'Roboto', sans-serif;
   min-height: 100vh;
 }
-.main-contents{
+.main-content-admin{
  
-  background-color: #6eb9ad;
+  background-color: #ffff;
   flex-grow: 1;
   padding: 30px 40px;
   overflow-y: auto;
@@ -100,6 +100,12 @@ body {
     margin-left: 60px;
   }
   .collapsed .dashboard-logos {
+  opacity: 0;
+  visibility: hidden;
+  width: 0;
+  height: 0;
+}
+ .collapsed .logos {
   opacity: 0;
   visibility: hidden;
   width: 0;
@@ -248,8 +254,9 @@ body {
 
 
 
-.people-table th{
+.people-table th, td{
     text-align: center;
+    color: #015c51;
 }
 
 /* Table Styling */
@@ -284,9 +291,9 @@ body {
 
 .button-approve {
   display: flex;
-  justify-content: center; /* center horizontally */
-  gap: 10px;               /* space between buttons */
-  width: 100%;             /* optional: make container full width */
+  justify-content: center; 
+  gap: 10px;               
+  width: 100%;             
 }
 
 td {
@@ -294,7 +301,7 @@ td {
 }
 
 
-/* Action Buttons in Pending Table */
+
 .button-approve .approve-btn {
 
   background-color: #2e7d32; 
@@ -331,6 +338,39 @@ td {
 
 
 
+.button-approves .yes {
+
+  background-color: #2e7d32; 
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  margin: 0 4px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.button-approve .yes:hover {
+  background-color: #1b5e20;
+}
+
+.button-approves .no {
+  background-color: #c62828; /* Red */
+  color: white;
+  border: none;
+   padding: 8px 15px;
+  margin: 0 4px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.button-approves .no:hover {
+  background-color: #b71c1c;
+}
+
 
  .button-approves .confirm-btn {
 
@@ -365,7 +405,7 @@ td {
   background-color: #b71c1c;
 }
 
-.modals {
+.modal-admin {
   position: fixed;
   inset: 0;
   width: 100vw;       
@@ -423,12 +463,13 @@ td {
 }
 .info-counters {
   margin: 1rem 0;
- font-size: 12px;
+ font-size: 15px;
   
 }
 
 .info-counters p {
   margin: 0.3rem 0;
+  color: #015c51;
 }
 
 

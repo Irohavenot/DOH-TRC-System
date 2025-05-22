@@ -3,6 +3,7 @@ import "../../superadmincss/dashboardsuper.css";
 import { Link } from 'react-router-dom';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import Profile from "./Profile";
+import Supply from "./Supply";
 import {
   LayoutDashboard,
   Boxes,
@@ -15,8 +16,8 @@ import {
 } from 'lucide-react';
 
 const DashboardSuperAdmin = () => {
-  const [currentView, setCurrentView] = useState<'dashadmin' | 'peoples' | 'profiled'>('dashadmin');
-  const [activeView, setActiveView] = useState<'dashadmin' | 'peoples' | 'profiled'>('dashadmin');
+  const [currentView, setCurrentView] = useState<'dashadmin' | 'peoples' | 'profiled' | 'supply'>('dashadmin');
+  const [activeView, setActiveView] = useState<'dashadmin' | 'peoples' | 'profiled' | 'supply'>('dashadmin');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const toggleSidebar = () => {
@@ -121,7 +122,7 @@ const DashboardSuperAdmin = () => {
     <div className="dashboard-bodys">
       <div className={`dashboard-containers ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <aside className="sidebar">
-          <div className="sidebar-headers">
+          <div className="sidebar-header">
             <img className="dashboard-logos" src="/logosaproject.jpg" alt="DOH Logo" />
             <div className="logos">DOH-TRC Argao</div>
             <button className="toggle-sidebar-btns" onClick={toggleSidebar}>☰</button>
@@ -141,10 +142,10 @@ const DashboardSuperAdmin = () => {
 
             <Link
               to="#"
-              className={`menu-items ${activeView === 'peoples' ? 'active' : ''}`}
+              className={`menu-items ${activeView === 'supply' ? 'active' : ''}`}
               onClick={() => {
-                setCurrentView('peoples');
-                setActiveView('peoples');
+                setCurrentView('supply');
+                setActiveView('supply');
               }}
             >
               <Boxes className="menu-icons" />
@@ -218,8 +219,9 @@ const DashboardSuperAdmin = () => {
           </nav>
         </aside>
 
-        <div className="main-contents">
-          <div className="content-heres">
+        <div className="main-content-admin">
+      
+      
             {currentView === 'dashadmin' && (
               <>
                 <div className="department-dropdown">
@@ -306,7 +308,7 @@ const DashboardSuperAdmin = () => {
 
                 {/* Approve Dropdown Modal */}
                 {approvingUser && (
-                  <div className="modals">
+                  <div className="modal-admin">
                     <div className="modal-contents">
                       <h3>Assign Department to {approvingUser.firstname}</h3>
                       <select
@@ -331,11 +333,13 @@ const DashboardSuperAdmin = () => {
 
                 {/* Reject Confirmation Modal */}
                 {rejectingUser && (
-                  <div className="modals">
+                  <div className="modal-admin">
                     <div className="modal-contents">
                       <p>Do you want to reject {rejectingUser.firstname}?</p>
-                      <button onClick={confirmReject}>Yes, Reject</button>
-                      <button onClick={() => setRejectingUser(null)}>Cancel</button>
+                       <div className='button-approves'>
+                      <button className='yes' onClick={confirmReject}>Yes, Reject</button>
+                      <button className='no' onClick={() => setRejectingUser(null)}>Cancel</button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -343,10 +347,11 @@ const DashboardSuperAdmin = () => {
             )}
 
             {currentView === 'profiled' && <Profile />}
+             {currentView === 'supply' && <Supply />}
           </div>
         </div>
       </div>
-    </div>
+    
   );
 };
 
