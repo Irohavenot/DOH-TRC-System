@@ -8,6 +8,9 @@ const AssetManagement = () => {
 
   const [expiryFilter, setExpiryFilter] = useState<ExpiryFilter>('all');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedDetails, setEditedDetails] = useState<{ [key: string]: string }>({});
+  const [showEditSuccess, setShowEditSuccess] = useState(false);
 
   interface Card {
     title: string;
@@ -52,7 +55,33 @@ const [cards, setCards] = useState<Card[]>([
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [openCardOptionsId, setOpenCardOptionsId] = useState<number | null>(null);
 
-  const handleViewMore = (card: Card) => setSelectedCard(card);
+  const handleViewMore = (card: Card) => {
+  setSelectedCard(card);
+  setEditedDetails({
+    assetName: card.title,
+    category: "Laptop",
+    status: "Active",
+    assignedPersonnel: "John Doe",
+    purchaseDate: "2023-04-21",
+    serialNumber: "SN123456",
+    licenseType: "OEM",
+    expirationDate: "2025-04-21"
+  });
+  setIsEditing(false);
+};
+const handleEditClick = () => {
+  setIsEditing(true);
+};
+
+const handleSaveClick = () => {
+  setIsEditing(false);
+  setShowEditSuccess(true);
+  setTimeout(() => setShowEditSuccess(false), 2000);
+};
+
+const handleInputChange = (field: string, value: string) => {
+  setEditedDetails(prev => ({ ...prev, [field]: value }));
+};
   const handleCloseModal = () => setSelectedCard(null);
   const handleCardOptionsToggle = (index: number) => {
     setOpenCardOptionsId(prev => (prev === index ? null : index));
@@ -84,22 +113,90 @@ const [cards, setCards] = useState<Card[]>([
                   </tr>
                 </thead>
                 <tbody>
-                  <tr><td><strong>Asset ID:</strong></td><td>12345</td></tr>
-                  <tr><td><strong>Asset Name:</strong></td><td>{selectedCard.title}</td></tr>
-                  <tr><td><strong>Category:</strong></td><td>Laptop</td></tr>
-                  <tr><td><strong>Status:</strong></td><td>Active</td></tr>
-                  <tr><td><strong>Assigned Personnel:</strong></td><td>John Doe</td></tr>
-                  <tr><td><strong>Purchase Date:</strong></td><td>2023-04-21</td></tr>
-                  <tr><td><strong>Serial Number:</strong></td><td>SN123456</td></tr>
-                  <tr><td><strong>License Type:</strong></td><td>OEM</td></tr>
-                  <tr><td><strong>Expiration Date:</strong></td><td>2025-04-21</td></tr>
-                </tbody>
+                    <tr><td><strong>Asset ID:</strong></td><td>12345</td></tr>
+                    <tr>
+                      <td><strong>Asset Name:</strong></td>
+                      <td>
+                        {isEditing ? (
+                          <input value={editedDetails.assetName} onChange={e => handleInputChange("assetName", e.target.value)} />
+                        ) : editedDetails.assetName}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>Category:</strong></td>
+                      <td>
+                        {isEditing ? (
+                          <input value={editedDetails.category} onChange={e => handleInputChange("category", e.target.value)} />
+                        ) : editedDetails.category}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>Status:</strong></td>
+                      <td>
+                        {isEditing ? (
+                          <input value={editedDetails.status} onChange={e => handleInputChange("status", e.target.value)} />
+                        ) : editedDetails.status}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>Assigned Personnel:</strong></td>
+                      <td>
+                        {isEditing ? (
+                          <input value={editedDetails.assignedPersonnel} onChange={e => handleInputChange("assignedPersonnel", e.target.value)} />
+                        ) : editedDetails.assignedPersonnel}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>Purchase Date:</strong></td>
+                      <td>
+                        {isEditing ? (
+                          <input type="date" value={editedDetails.purchaseDate} onChange={e => handleInputChange("purchaseDate", e.target.value)} />
+                        ) : editedDetails.purchaseDate}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>Serial Number:</strong></td>
+                      <td>
+                        {isEditing ? (
+                          <input value={editedDetails.serialNumber} onChange={e => handleInputChange("serialNumber", e.target.value)} />
+                        ) : editedDetails.serialNumber}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>License Type:</strong></td>
+                      <td>
+                        {isEditing ? (
+                          <input value={editedDetails.licenseType} onChange={e => handleInputChange("licenseType", e.target.value)} />
+                        ) : editedDetails.licenseType}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>Expiration Date:</strong></td>
+                      <td>
+                        {isEditing ? (
+                          <input type="date" value={editedDetails.expirationDate} onChange={e => handleInputChange("expirationDate", e.target.value)} />
+                        ) : editedDetails.expirationDate}
+                      </td>
+                    </tr>
+                  </tbody>
+
               </table>
 
               <div className="buttons-container">
-                <button className="close-btn" onClick={handleCloseModal}>Close</button>
-                <button className="edits-button">Edit</button>
-              </div>
+                  <button className="close-btn" onClick={handleCloseModal}>
+                    <i className="fas fa-xmark"></i> Close
+                  </button>
+                  {!isEditing ? (
+                    <button className="edits-button" onClick={handleEditClick}>
+                      <i className="fas fa-edit"></i> Edit
+                    </button>
+                  ) : (
+                    <button className="save-button" onClick={handleSaveClick}>
+                      <i className="fas fa-check"></i> Save
+                    </button>
+                  )}
+                </div>
+
             </div>
           </div>
         </div>
@@ -134,13 +231,19 @@ const [cards, setCards] = useState<Card[]>([
         </label>
       </div>
 
+      {showEditSuccess && (
+            <div className="edit-success-popup">
+              <i className="fas fa-check-circle"></i> Edit successful!
+            </div>
+          )}
+
       <div className="cards-grid">
         {filteredCards.map((card, index) => (
           <div className="card" key={index}>
             <div className="card-top">
               <div className="card-top-left">
                 <div className={`card-icon ${card.iconClass}`}></div>
-                <button className="view-more-btns" onClick={() => handleViewMore(card)}>View More</button>
+                <button className="view-more-btn" onClick={() => handleViewMore(card)}><i className="fas fa-eye"></i> View More</button>
               </div>
               <div className="card-options">
                 <button className="options-btn" onClick={() => handleCardOptionsToggle(index)}>⋮</button>

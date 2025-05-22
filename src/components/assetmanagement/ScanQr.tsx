@@ -1,7 +1,14 @@
 import {  useRef, useState } from "react";
 import "../../assets/scanqr.css";
-
+import React from "react";
 const ScanQr = () => {
+  interface Card {
+    title: string;
+    team: string;
+    timeLeft: string;
+    progress: number;
+    iconClass: string;
+  }
   const [result, setResult] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -9,7 +16,15 @@ const ScanQr = () => {
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-
+  const [selectedCard, setSelectedCard] = React.useState<Card | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [openCardOptionsId, setOpenCardOptionsId] = useState<number | null>(null);
+  const handleReportClick = (index: number) => {
+  const card = cards[index];
+  setSelectedCard(card);
+  setShowReportModal(true);     
+  setOpenCardOptionsId(null);    
+};
   const assetDetails = {
     assetId: "12345",
     title: "Printer",
@@ -22,6 +37,16 @@ const ScanQr = () => {
     expirationDate: "2025-04-21",
     imageUrl: "/printer.jpg",
   };
+    const [cards, setCards] = useState<Card[]>([
+      { title: "Router - Cisco 2901", team: "Medical Components", timeLeft: "No Expiration", progress: 34, iconClass: "icon-blue" },
+      { title: "UI Development Server", team: "Core UI", timeLeft: "2 Years Left", progress: 76, iconClass: "icon-green" },
+      { title: "MS Office 365 License", team: "Microsoft Office", timeLeft: "2 Days Left", progress: 4, iconClass: "icon-orange" },
+      { title: "Norton Security Suite", team: "Anti-Virus", timeLeft: "1 Month Left", progress: 90, iconClass: "icon-orange" },
+      { title: "Dell OptiPlex 7090", team: "Computer", timeLeft: "3 Weeks Left", progress: 65, iconClass: "icon-red" },
+      { title: "HP LaserJet M404", team: "Printer", timeLeft: "2 Month Left", progress: 96, iconClass: "icon-orange" },
+      { title: "Solar Panel Inverter", team: "Solar Electronics", timeLeft: "No Expiration", progress: 24, iconClass: "icon-blue" },
+      { title: "Arduino IoT Kit", team: "Electronics", timeLeft: "1 Weeks Left", progress: 70, iconClass: "icon-red" },
+    ]);
 
   const simulateCameraScan = async () => {
     setResult("");
@@ -139,13 +164,90 @@ const ScanQr = () => {
           <tr><td><strong>Expiration Date:</strong></td><td>2025-04-21</td></tr>
         </tbody>
       </table>
-                <button className="scanqr-close-btn" onClick={handleCloseModal}>Close</button>
-                <button className="scanqr-edit-btn">Report</button>
+      <div className="scanqr-modal-buttons-container">
+                <button className="scanqr-close-btn" onClick={handleCloseModal}><i className="fas fa-xmark"></i>  Close</button>
+                <button
+  className="scanqr-edit-btn"
+  onClick={() => {
+    setSelectedCard({
+      title: assetDetails.title,
+      team: assetDetails.category,
+      timeLeft: assetDetails.expirationDate,
+      progress: 100, // You can calculate this or keep a placeholder
+      iconClass: "icon-blue", // Optional, if used elsewhere
+    });
+    setShowReportModal(true);
+  }}
+><i className="fas fa-edit"></i>  Report
+</button>
+</div>
               </div>
             </div>
           </div>
         </div>
       )}
+{showReportModal && selectedCard && (
+  <div className="modal-backdrops" onClick={() => setShowReportModal(false)}>
+    <div className="scanqr-modals" onClick={(e) => e.stopPropagation()}>
+      <div className="scanqr-modal-detailed">
+        <h2>Submit Report</h2>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            alert('Report submitted!');
+            setShowReportModal(false);
+          }}
+        >
+          <div style={{ marginBottom: '1rem' }}>
+            <label>Asset Name:</label><br />
+            <input
+              type="text"
+              value={selectedCard.title}
+              readOnly
+              className="readonly-input"
+            />
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label>Issue Type:</label><br />
+            <select required defaultValue="">
+              <option value="" disabled>Select an issue</option>
+              <option value="Not Working">Not Working</option>
+              <option value="Hardware Issue">Hardware Issue</option>
+              <option value="Software Issue">Software Issue</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Description:</label><br />
+            <textarea
+              rows={5}
+              cols={70}
+              required
+              placeholder="Describe the issue in detail..."
+            />
+          </div>
+
+          <div className="buttons-containers">
+            <button
+              type="button"
+              className="close-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowReportModal(false);
+              }}
+            >
+              Cancel
+            </button>
+            <button type="submit" className="submit-report-btn">Submit</button>
+            
+            
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };
