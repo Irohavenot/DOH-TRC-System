@@ -13,11 +13,6 @@ import autoTable from "jspdf-autotable";
 import "../../assets/ReportsAnalytics.css";
 
 const ReportsAnalytics: React.FC = () => {
- 
-  
-
-
-  
 
   interface Issue {
     id: number;
@@ -26,19 +21,21 @@ const ReportsAnalytics: React.FC = () => {
     issueType: string;
     reportedBy: string;
     status: "Pending" | "In Progress" | "Resolved";
+    category: 
+      | "Laptops"
+      | "Desktops"
+      | "Printer"
+      | "Servers"
+      | "Furnitures and Fixtures"
+      | "Consumables"
+      | "Other Devices";
   }
-
-  
-  
-  
+  const [category, setCategory] = useState("");
   const [openOptionsId, setOpenOptionsId] = useState<number | null>(null);
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
   const [status, setStatus] = useState("");
   const [issueStatusFilter, setIssueStatusFilter] = useState<"All" | "Pending" | "In Progress" | "Resolved">("All");
-
-  
-  
 
   const issues: Issue[] = [
     {
@@ -48,6 +45,7 @@ const ReportsAnalytics: React.FC = () => {
       issueType: "Hardware Failure",
       reportedBy: "Donna M.",
       status: "Pending",
+      category: "Printer",
     },
     {
       id: 2,
@@ -56,6 +54,7 @@ const ReportsAnalytics: React.FC = () => {
       issueType: "Software Crash",
       reportedBy: "Ronzel G.",
       status: "In Progress",
+      category: "Laptops",
     },
     {
       id: 3,
@@ -64,6 +63,7 @@ const ReportsAnalytics: React.FC = () => {
       issueType: "Network Issue",
       reportedBy: "Shelonie D.",
       status: "Resolved",
+      category: "Other Devices",
     },
     {
       id: 4,
@@ -72,31 +72,14 @@ const ReportsAnalytics: React.FC = () => {
       issueType: "Display Issue",
       reportedBy: "John D.",
       status: "Pending",
+      category: "Other Devices",
     },
   ];
+
 
   const filteredIssues = issues.filter((issue) => {
     return issueStatusFilter === "All" || issue.status === issueStatusFilter;
   });
-
-  
-  
-
- 
-  
-
- 
-  
-
-    
-  
-  
-
-   
-    
- 
-  
-
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -115,7 +98,7 @@ const ReportsAnalytics: React.FC = () => {
   interface Asset {
     name: string;
     category: string;
-    status: "Active" | "Damaged" | "Under Maintenance";
+    status: "Functional" | "Defective" | "Unserviceable" 
     assignedTo: string;
     licenseType: string;
     licenseExpirationDate: string;
@@ -124,61 +107,126 @@ const ReportsAnalytics: React.FC = () => {
 
   const assets: Asset[] = [
     {
-      name: "Printer A",
-      category: "Printer",
-      status: "Active",
-      assignedTo: "Donna M.",
-      licenseType: "Monthly",
-      licenseExpirationDate: "2040-06-01",
-      assignedDate: "2024-05-01",
-    },
-    {
-      name: "Laptop B",
-      category: "Laptop",
-      status: "Under Maintenance",
-      assignedTo: "Ronzel G.",
-      licenseType: "Annual",
-      licenseExpirationDate: "2030-02-15",
-      assignedDate: "2024-02-15",
-    },
-    {
-      name: "Router X",
-      category: "Network",
-      status: "Damaged",
-      assignedTo: "Shelonie D.",
-      licenseType: "Monthly",
-      licenseExpirationDate: "2030-08-01",
-      assignedDate: "2024-01-10",
-    },
+    name: "Printer A",
+    category: "Printer",
+    status: "Functional",
+    assignedTo: "Donna M.",
+    licenseType: "Monthly",
+    licenseExpirationDate: "2040-06-01",
+    assignedDate: "2024-05-01",
+  },
+  {
+    name: "Laptop B",
+    category: "Laptops",
+    status: "Defective",
+    assignedTo: "Ronzel G.",
+    licenseType: "Annual",
+    licenseExpirationDate: "2030-02-15",
+    assignedDate: "2024-02-15",
+  },
+  {
+    name: "Router X",
+    category: "Other Devices",
+    status: "Unserviceable",
+    assignedTo: "Shelonie D.",
+    licenseType: "Monthly",
+    licenseExpirationDate: "2030-08-01",
+    assignedDate: "2024-01-10",
+  },
+  {
+    name: "Desktop D",
+    category: "Desktops",
+    status: "Functional",
+    assignedTo: "John D.",
+    licenseType: "Annual",
+    licenseExpirationDate: "2029-11-25",
+    assignedDate: "2024-03-05",
+  },
+  {
+    name: "Server Z1",
+    category: "Servers",
+    status: "Unserviceable",
+    assignedTo: "Mark V.",
+    licenseType: "Lifetime",
+    licenseExpirationDate: "2050-01-01",
+    assignedDate: "2024-01-20",
+  },
+  {
+    name: "Office Chair",
+    category: "Furnitures and Fixtures",
+    status: "Functional",
+    assignedTo: "Lara M.",
+    licenseType: "None",
+    licenseExpirationDate: "",
+    assignedDate: "2024-04-10",
+  },
+  {
+    name: "Ink Cartridge Set",
+    category: "Consumables",
+    status: "Defective",
+    assignedTo: "Rico T.",
+    licenseType: "None",
+    licenseExpirationDate: "",
+    assignedDate: "2024-05-18",
+  },
+  {
+    name: "Monitor X2",
+    category: "Desktops",
+    status: "Functional",
+    assignedTo: "Ana S.",
+    licenseType: "Annual",
+    licenseExpirationDate: "2035-12-30",
+    assignedDate: "2024-05-11",
+  },
+  {
+    name: "Laptop C",
+    category: "Laptops",
+    status: "Functional",
+    assignedTo: "Chris K.",
+    licenseType: "Monthly",
+    licenseExpirationDate: "2032-07-01",
+    assignedDate: "2024-06-01",
+  },
+  {
+    name: "Server R2",
+    category: "Servers",
+    status: "Defective",
+    assignedTo: "Evan H.",
+    licenseType: "Lifetime",
+    licenseExpirationDate: "2045-12-12",
+    assignedDate: "2024-03-20",
+  },
   ];
 
   const filteredAssets = assets.filter((asset) => {
-    const assetDate = new Date(asset.assignedDate);
-    const assetMonth = String(assetDate.getMonth() + 1).padStart(2, "0");
-    const assetYear = String(assetDate.getFullYear());
-    return (
-      (!month || month === assetMonth) &&
-      (!year || year === assetYear) &&
-      (!status || status === asset.status)
-    );
-  });
+  const assetDate = new Date(asset.assignedDate);
+  const assetMonth = String(assetDate.getMonth() + 1).padStart(2, "0");
+  const assetYear = String(assetDate.getFullYear());
+  return (
+    (!month || month === assetMonth) &&
+    (!year || year === assetYear) &&
+    (!status || status === asset.status) &&
+    (!category || asset.category === category)
+  );
+});
+
 
   const assetByMonth = Array.from({ length: 12 }, (_, i) => {
     const activeCount = filteredAssets.filter(
       (asset) =>
-        asset.status === "Active" &&
+        asset.status === "Functional" &&
         new Date(asset.assignedDate).getMonth() + 1 === i + 1
     ).length;
 
     const underMaintenanceCount = filteredAssets.filter(
       (asset) =>
-        asset.status === "Under Maintenance" &&
+        asset.status === "Unserviceable" &&
         new Date(asset.assignedDate).getMonth() + 1 === i + 1
     ).length;
 
     const damagedCount = filteredAssets.filter(
       (asset) =>
-        asset.status === "Damaged" &&
+        asset.status === "Defective" &&
         new Date(asset.assignedDate).getMonth() + 1 === i + 1
     ).length;
 
@@ -400,21 +448,33 @@ const loadImageAsBase64 = (url: string): Promise<string> => {
       <label htmlFor="status">Status:</label>
       <select id="status" value={status} onChange={(e) => setStatus(e.target.value)}>
         <option value="">All Status</option>
-        <option value="Active">Active</option>
-        <option value="Under Maintenance">Under Maintenance</option>
-        <option value="Damaged">Damaged</option>
+        <option value="Functional">Functional</option>
+        <option value="Unserviceable">Unserviceable</option>
+        <option value="Defective">Defective</option>
       </select>
     </div>
+    <div className="filter-group">
+  <label htmlFor="category">Category:</label>
+  <select id="category" value={category} onChange={(e) => setCategory(e.target.value)}>
+    <option value="">All Categories</option>
+    <option value="Laptops">Laptops</option>
+    <option value="Desktops">Desktops</option>
+    <option value="Printer">Printer</option>
+    <option value="Servers">Servers</option>
+    <option value="Furnitures and Fixtures">Furnitures and Fixtures</option>
+    <option value="Consumables">Consumables</option>
+    <option value="Other Devices">Other Devices</option>
+  </select>
+</div>
   </div>
-
-
-            {(month || year || status) && (
+            {(month || year || status || category) && (
               <div className="selected-filters">
                 <p>
                   Showing results for:{" "}
                   {month && `${new Date(0, parseInt(month) - 1).toLocaleString("default", { month: "long" })} `}
                   {year && `${year} `}
                   {status && `(Status: ${status})`}
+                  {category && `(Category: ${category})`}
                 </p>
               </div>
             )}
@@ -522,6 +582,7 @@ const loadImageAsBase64 = (url: string): Promise<string> => {
                     <th>Issue Type</th>
                     <th>Reported By</th>
                     <th>Status</th>
+                    <th>Category</th> {/* New column header */}
                   </tr>
                 </thead>
                 <tbody>
@@ -533,15 +594,17 @@ const loadImageAsBase64 = (url: string): Promise<string> => {
                         <td>{issue.issueType}</td>
                         <td>{issue.reportedBy}</td>
                         <td>{issue.status}</td>
+                        <td>{issue.category}</td> {/* New category data */}
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={5}>No issues found for selected filter.</td>
+                      <td colSpan={6}>No issues found for selected filter.</td> {/* Updated colspan */}
                     </tr>
                   )}
                 </tbody>
               </table>
+
             </div>
 
             <div id="printable-report" style={{ display: "none" }}>

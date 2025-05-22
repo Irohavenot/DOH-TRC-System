@@ -4,10 +4,6 @@
     flex-direction: column;
 
   }
-   .modal {
-    width: 90%;
-    padding: 2vh;
-  }
 
   .modal-table {
     font-size: 0.85rem;
@@ -69,13 +65,11 @@ body {
   left: 18%;
   right: 0;
   height: 11%;
-
-  background-color: #8ec4c2;
+  background-color: #F1FDFB;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0 5%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   z-index: 500;
 }
 
@@ -263,7 +257,7 @@ margin-left: -1px;
 }
 
 .menu-items.logout{
-   margin-top: 220px;
+   margin-top: 35%;
 }
 .menu-items.logout:hover {
   background-color: #052c28;
