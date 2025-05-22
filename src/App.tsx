@@ -17,6 +17,7 @@ import People from './components/assetmanagement/People';
 import ScanQR from './components/assetmanagement/ScanQr';
 import DashboardSuperAdmin from './components/superadmin/DashboardSuperAdmin';
 import Profile from './components/superadmin/Profile';
+import Supply from './components/superadmin/Supply';
 
 
 const App: React.FC = () => {
@@ -35,10 +36,11 @@ const App: React.FC = () => {
           <Route path="/reports-analytics" element={<ReportsAnalytics />} />
           <Route path="/personnel" element={<PersonnelDashboard/>} />
           <Route path="/history" element={<AssetHistory/>} />
-           <Route path="/people" element={<People/>} />
-           <Route path="/qrscan" element={<ScanQR/>} />
-           <Route path="/dashadmin" element={<DashboardSuperAdmin />} />
-            <Route path="/profiled" element={<Profile />} />  
+          <Route path="/people" element={<People/>} />
+          <Route path="/qrscan" element={<ScanQR/>} />
+          <Route path="/dashadmin" element={<DashboardSuperAdmin />} />s
+          <Route path="/profiled" element={<Profile />} /> 
+          <Route path="/supply" element={<Supply />} />  
         </Routes>
       </div>
     </Router>
