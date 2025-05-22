@@ -32,6 +32,13 @@ body {
   border-radius: 10px;
 }
 
+.logo-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+}
+
 .dashboard-bodys{
   font-family: 'Roboto', sans-serif;
   min-height: 100vh;
@@ -301,7 +308,11 @@ td {
 }
 
 
-
+h2{
+  font-size: 20px;
+  text-align: left;
+  margin-top: 5%;
+}
 .button-approve .approve-btn {
 
   background-color: #2e7d32; 

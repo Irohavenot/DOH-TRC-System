@@ -93,6 +93,16 @@ const SupplyUnit: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [selectedItemHistory, setSelectedItemHistory] = useState<any[]>([]);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [newCategory, setNewCategory] = useState('');
+  
+  const [showViewCategoriesModal, setShowViewCategoriesModal] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
+  const [categoriess, setCategories] = useState<string[]>([...categories]);
+
+
+
+
 
   const filteredData = sampleData.filter(item => {
     return (
@@ -127,9 +137,140 @@ const SupplyUnit: React.FC = () => {
     return `Filtered Results: ${parts.join(' - ')} (${filteredData.length})`;
   };
 
+
+
+const handleEditCategory = (cat: string) => {
+  const newName = prompt("Edit category name:", cat);
+  if (newName && newName.trim() !== "") {
+    const index = categories.indexOf(cat);
+    if (index > -1) {
+      const updated = [...categories];
+      updated[index] = newName.trim();
+      setCategories(updated); // update correct state
+    }
+  }
+  setCategoryToDelete(null);
+};
+
+
+  
   return (
+
+
+    
+    
     <div className="supply-unit-container">
-      <h2>Supply Unit Asset Data</h2>
+        <div className="header-with-button">
+  <h2>Supply Unit Asset Data</h2>
+  <div>
+    <button onClick={() => setShowCategoryModal(true)} className="add-category-btn">
+      + Add Category
+    </button>
+    <button onClick={() => setShowViewCategoriesModal(true)} className="view-category-btn">
+      View All Categories
+    </button>
+  </div>
+</div>
+
+
+
+{showViewCategoriesModal && (
+  <div className="modal-overlays-adminss">
+    <div className="modal-content-adminss">
+      <h3>All Categories</h3>
+
+      {/* List of Categories */}
+      <ul className="category-list">
+        {categoriess.map((cat, index) => (
+          <li key={index} className="category-item">
+            <span>{cat}</span>
+
+            <div className="dropdown-wrapper">
+              <div
+                className="dropdown-menu-trigger"
+                onClick={() =>
+                  setCategoryToDelete(categoryToDelete === cat ? null : cat)
+                }
+              >
+                ⋮
+              </div>
+
+              {/* Dropdown Options */}
+        {categoryToDelete === cat && (
+  <div className="dropdown-options">
+    <button className="dropdown-btn edit" onClick={() => handleEditCategory(cat)}>✏️ Edit</button>
+    <button
+      className="dropdown-btn delete"
+      onClick={() => {
+        const confirmDelete = window.confirm(`Are you sure you want to delete "${cat}"?`);
+        if (confirmDelete) {
+          const index = categories.indexOf(cat);
+          if (index > -1) {
+            const updated = [...categories];
+            updated.splice(index, 1);
+            setCategories(updated);
+          }
+        }
+      }}
+    >
+      🗑️ Delete
+    </button>
+  </div>
+)}
+
+
+
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <div className="modal-buttons-admins">
+        <button className="cls-btn-admins" onClick={() => setShowViewCategoriesModal(false)}>
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
+
+
+{/* Modal for Adding Category */}
+{showCategoryModal && (
+  <div className="modal-overlays-admin">
+    <div className="modal-content-admin">
+      <h3>Add New Category</h3>
+      <input
+        type="text"
+        placeholder="Enter new category"
+        value={newCategory}
+        onChange={(e) => setNewCategory(e.target.value)}
+      />
+      <div className="modal-buttons-admin">
+       <button className='add-admin'
+  onClick={() => {
+    if (newCategory.trim() !== '' && !categories.includes(newCategory)) {
+      const confirmAdd = window.confirm(`Are you sure you want to add "${newCategory}" as a new category?`);
+      if (confirmAdd) {
+        setCategories(prev => [...prev, newCategory]);
+        setNewCategory('');
+        setShowCategoryModal(false);
+      }
+    }
+  }}
+>
+  Add
+</button>
+
+        <button className="cls-btn-admins" onClick={() => setShowCategoryModal(false)}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       <div className="filters">
         <div className="dropdown">
@@ -205,8 +346,8 @@ const SupplyUnit: React.FC = () => {
 
       {/* Modal for Item History */}
       {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-contents">
+        <div className="modal-overlays">
+          <div className="modal-contented">
             <h3>Item Repair History</h3>
             <button className="cls-btn" onClick={() => setShowModal(false)}>Close</button>
             {selectedItemHistory.length > 0 ? (
@@ -215,7 +356,7 @@ const SupplyUnit: React.FC = () => {
                   <tr>
                     <th>Date</th>
                     <th>Issue</th>
-                    <th>Repair Type</th>
+                    <th>Site of Action</th>
                     <th>IT Personnel</th>
                   </tr>
                 </thead>

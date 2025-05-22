@@ -1,0 +1,176 @@
+/* Container for notifications */
+.notif-container {
+  padding: 1.5rem;
+}
+
+/* Title */
+.notif-admin {
+  margin-top: -95px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.notif-admin h2 {
+  font-size: 25px;
+  font-weight: bold;
+}
+
+/* Notification card box */
+.bg-white {
+  background-color: #ffffff;
+}
+
+.rounded-lg {
+  border-radius: 0.5rem;
+}
+
+.shadow {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.p-4 {
+  padding: 1rem;
+}
+
+.border-b {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Notification item */
+li {
+  transition: background-color 0.3s;
+  cursor: pointer;
+  position: relative;
+}
+
+.bg-yellow-50 {
+  background-color: #fffde7;
+}
+
+.bg-gray-100 {
+  background-color: #f5f5f5;
+}
+
+/* Notification content */
+.font-semibold {
+  font-weight: 600;
+}
+
+.text-lg {
+  font-size: 1.125rem;
+}
+
+.text-gray-700 {
+  color: #374151;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+}
+
+.text-gray-500 {
+  color: #6b7280;
+}
+
+.mt-1 {
+  margin-top: 0.25rem;
+}
+
+/* Flex utilities */
+.flex {
+  display: flex;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.items-start {
+  align-items: flex-start;
+}
+
+/* Dropdown button */
+.text-xl {
+  font-size: 1.25rem;
+}
+
+.px-2 {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+/* Dropdown menu */
+.absolute {
+  position: absolute;
+}
+
+.right-0 {
+  right: 0;
+}
+
+.mt-2 {
+  margin-top: 0.5rem;
+}
+
+.w-44 {
+  width: 11rem;
+}
+
+.border {
+  border: 1px solid #e5e7eb;
+}
+
+.rounded {
+  border-radius: 0.25rem;
+}
+
+.z-10 {
+  z-index: 10;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+}
+
+.text-gray-700 {
+  color: #374151;
+}
+
+.hover\:bg-gray-100:hover {
+  background-color: #f3f4f6;
+}
+
+.text-red-600 {
+  color: #dc2626;
+}
+
+/* Empty notification message */
+.notif-num {
+  font-size: 1rem;
+  color: #6b7280;
+  text-align: center;
+  padding: 1rem 0;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .notif-container {
+    padding: 1rem;
+  }
+
+  .notif-admin h2 {
+    font-size: 1.25rem;
+  }
+
+  .text-lg {
+    font-size: 1rem;
+  }
+
+  .text-sm {
+    font-size: 0.75rem;
+  }
+
+  .w-44 {
+    width: 10rem;
+  }
+}
