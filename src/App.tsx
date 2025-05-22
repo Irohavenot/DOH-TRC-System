@@ -15,6 +15,9 @@ import AssetHistory from './components/assetmanagement/AssetHistory';
 import PersonnelDashboard from './components/assetmanagement/PersonnelDashboard';
 import People from './components/assetmanagement/People';
 import ScanQR from './components/assetmanagement/ScanQr';
+import DashboardSuperAdmin from './components/superadmin/DashboardSuperAdmin';
+import Profile from './components/superadmin/Profile';
+
 
 const App: React.FC = () => {
   return (
@@ -33,7 +36,9 @@ const App: React.FC = () => {
           <Route path="/personnel" element={<PersonnelDashboard/>} />
           <Route path="/history" element={<AssetHistory/>} />
            <Route path="/people" element={<People/>} />
-           <Route path="/qrscan " element={<ScanQR/>} />
+           <Route path="/qrscan" element={<ScanQR/>} />
+           <Route path="/dashadmin" element={<DashboardSuperAdmin />} />
+            <Route path="/profiled" element={<Profile />} />  
         </Routes>
       </div>
     </Router>
