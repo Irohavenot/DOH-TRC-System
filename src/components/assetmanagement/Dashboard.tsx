@@ -195,7 +195,20 @@ const items = [
       <div className={`dashboard-container ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <aside className="sidebar">
           <div className="sidebar-header">
-            <img className="dashboard-logos" src="/logosaproject.jpg" alt="DOH Logo" />
+                  <Link
+                      to="#"
+                      onClick={() => {
+                        setCurrentView('dashboard');
+                        setActiveView('dashboard');
+                      }}
+                    >
+                      <img
+                        className="dashboard-logos"
+                        src="/logosaproject.jpg"
+                        alt="DOH Logo"
+                        style={{ cursor: 'pointer' }} // Optional: makes it feel clickable
+                      />
+                    </Link>
             <div className="logo-doh">DOH-TRC Argao</div>
             <button className="toggle-sidebar-btns" onClick={toggleSidebar}>
               ☰
@@ -297,6 +310,9 @@ const items = [
             )}
             {(currentView === 'dashboard') && (
               <h2 className="asset-overview-heading">Dashboard Overview</h2>
+            )}
+            {(currentView === 'generate') && (
+              <h2 className="asset-overview-heading">Add Asset</h2>
             )}
             {(currentView !== 'reports' && currentView !== 'assets') && (
               <div className="search-placeholder" style={{ width: '250px' }}></div>
@@ -596,11 +612,7 @@ const items = [
     </div>
   </div>
 </div>
-
 </div>
-
-
-
 
             )}
             {currentView === 'assets' && <AssetManagement />}

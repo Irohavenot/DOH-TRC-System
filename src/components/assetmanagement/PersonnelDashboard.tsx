@@ -31,13 +31,18 @@ const PersonnelDashboard = () => {
   const user = { name: 'Donna May' };
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [selectedHistoryAsset, setSelectedHistoryAsset] = useState<Card | null>(null);
-  
+    const [selectedCard, setSelectedCard] = React.useState<Card | null>(null);
+  const [openCardOptionsId, setOpenCardOptionsId] = useState<number | null>(null);
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+  type TypeFilter = 'all' | 'desktop' | 'printer' | 'server' | 'furniture' | 'consumable' | 'other';
   type Notification = {
     id: number;
     message: string;
     timestamp: string;
     isRead: boolean;
   };
+  type ExpiryFilter = 'all' | 'permanent' | 'normal' | 'aboutToExpire' | 'expired';
+  const [expiryFilter, setExpiryFilter] = useState<ExpiryFilter>('all');
   const [notifications, setNotifications] = useState<Notification[]>([
     { id: 1, message: 'License Expiring Soon', timestamp: '1h ago', isRead: false },
     { id: 2, message: 'New Asset Assigned', timestamp: '2d ago', isRead: true },
@@ -62,31 +67,34 @@ const PersonnelDashboard = () => {
     timeLeft: string;
     progress: number;
     iconClass: string;
+    paymentamt: string;
+    type: TypeFilter;
+    
   }
-  const [cards, setCards] = useState<Card[]>([
-    { title: "Router - Cisco 2901", team: "Medical Components", timeLeft: "No Expiration", progress: 34, iconClass: "icon-blue" },
-    { title: "UI Development Server", team: "Core UI", timeLeft: "2 Years Left", progress: 76, iconClass: "icon-green" },
-    { title: "MS Office 365 License", team: "Microsoft Office", timeLeft: "2 Days Left", progress: 4, iconClass: "icon-orange" },
-    { title: "Norton Security Suite", team: "Anti-Virus", timeLeft: "1 Month Left", progress: 90, iconClass: "icon-orange" },
-    { title: "Dell OptiPlex 7090", team: "Computer", timeLeft: "3 Weeks Left", progress: 65, iconClass: "icon-red" },
-    { title: "HP LaserJet M404", team: "Printer", timeLeft: "2 Month Left", progress: 96, iconClass: "icon-orange" },
-    { title: "Solar Panel Inverter", team: "Solar Electronics", timeLeft: "No Expiration", progress: 24, iconClass: "icon-blue" },
-    { title: "Arduino IoT Kit", team: "Electronics", timeLeft: "1 Weeks Left", progress: 70, iconClass: "icon-red" },
-  ]);
+const [cards, setCards] = useState<Card[]>([
+    { title: "Adobe Creative Cloud", team: "Design Tools", timeLeft: "11 Months Left", progress: 12, iconClass: "icon-orange", paymentamt: "$53/mo", type: 'consumable' },
+  { title: "UI Development Server", team: "Core UI", timeLeft: "2 Years Left", progress: 76, iconClass: "icon-green", paymentamt: "", type: 'server' },
+  { title: "MS Office 365 License", team: "Microsoft Office", timeLeft: "2 Days Left", progress: 4, iconClass: "icon-orange", paymentamt: "$53/mo", type: 'consumable' },
+  { title: "Norton Security Suite", team: "Anti-Virus", timeLeft: "1 Month Left", progress: 90, iconClass: "icon-orange", paymentamt: "$15/mo", type: 'consumable' },
+  { title: "Dell OptiPlex 7090", team: "Computer", timeLeft: "3 Weeks Left", progress: 65, iconClass: "icon-red", paymentamt: "", type: 'desktop' },
+  { title: "HP LaserJet M404", team: "Printer", timeLeft: "2 Months Left", progress: 96, iconClass: "icon-orange", paymentamt: "", type: 'printer' },
+  { title: "Zoom Pro Subscription", team: "Communication", timeLeft: "5 Months Left", progress: 40, iconClass: "icon-blue", paymentamt: "$12/mo", type: 'consumable' },
+  { title: "Arduino IoT Kit", team: "Electronics", timeLeft: "1 Week Left", progress: 70, iconClass: "icon-red", paymentamt: "", type: 'other' },
+]);
 
   const filteredCards = cards.filter((card) => {
-    switch (filter) {
-      case 'permanent':
-        return card.iconClass === 'icon-blue';
-      case 'normal':
-        return card.iconClass === 'icon-green';
-      case 'aboutToExpire':
-        return card.iconClass === 'icon-orange';
-      case 'expired':
-        return card.iconClass === 'icon-red';
-      default:
-        return true;
-    }
+    const matchesExpiry = (() => {
+      switch (expiryFilter) {
+        case 'permanent': return card.iconClass === 'icon-blue';
+        case 'normal': return card.iconClass === 'icon-green';
+        case 'aboutToExpire': return card.iconClass === 'icon-orange';
+        case 'expired': return card.iconClass === 'icon-red';
+        default: return true;
+      }
+    })();
+    const matchesType = typeFilter === 'all' || card.type === typeFilter;
+
+    return matchesExpiry && matchesType;
   });
 
   const toggleNotif = () => setShowNotif(!showNotif);
@@ -127,8 +135,7 @@ const PersonnelDashboard = () => {
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
   };
-  const [selectedCard, setSelectedCard] = React.useState<Card | null>(null);
-  const [openCardOptionsId, setOpenCardOptionsId] = useState<number | null>(null);
+
 
   const handleViewMore = (card: Card) => {
     setSelectedCard(card);
@@ -196,7 +203,7 @@ const [showReportModal, setShowReportModal] = useState(false);
               </table>
 
               <div className="buttons-container">
-                <button className="close-btn" onClick={handleCloseModal}>Close</button>
+                <button className="close-btn" onClick={handleCloseModal}><i className="fas fa-xmark"></i> Close</button>
                 <button className="edits-button" onClick={() => setShowReportModal(true)}><i className="fas fa-edit"></i> Report</button>
                 <button className="history-btn" onClick={() => handleShowHistory(selectedCard!)}><i className="fas fa-history"></i> History</button>
               </div>
@@ -274,7 +281,20 @@ const [showReportModal, setShowReportModal] = useState(false);
       <div className={`dashboard-container ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <aside className="sidebar">
           <div className="sidebar-header">
-            <img className="dashboard-logo" src="/logosaproject.jpg" alt="DOH Logo" />
+                              <Link
+                                  to="#"
+                                  onClick={() => {
+                                    setCurrentView('dashboard');
+                                    setActiveView('dashboard');
+                                  }}
+                                >
+                                  <img
+                                    className="dashboard-logos"
+                                    src="/logosaproject.jpg"
+                                    alt="DOH Logo"
+                                    style={{ cursor: 'pointer' }} // Optional: makes it feel clickable
+                                  />
+                                </Link>
             <div className="logo">DOH-TRC Argao</div>
             <button className="toggle-sidebar-btn" onClick={toggleSidebar}>
               ☰
@@ -475,13 +495,31 @@ const [showReportModal, setShowReportModal] = useState(false);
             {currentView === 'dashboard' && (
               <>
                 <h1>Asset Management</h1>
-                <div className="filter-tabs">
-                  <button onClick={() => setFilter('all')}>All <span>{cards.length}</span></button>
-                  <button onClick={() => setFilter('permanent')}>Permanent <span>2</span></button>
-                  <button onClick={() => setFilter('normal')}>Normal <span>1</span></button>
-                  <button onClick={() => setFilter('aboutToExpire')}>About To Expire <span>3</span></button>
-                  <button onClick={() => setFilter('expired')}>Expired <span>2</span></button>
-                </div>
+                      <div className="filter-dropdowns">
+        <label>
+          Filter by Type:
+          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}>
+            <option value="all">All</option>
+            <option value="desktop">Desktop and Laptops</option>
+            <option value="printer">Printers</option>
+            <option value="server">Servers</option>
+            <option value="furniture">Furnitures and Fixtures</option>
+            <option value="consumable">Consumables</option>
+            <option value="other">Other Devices</option>
+          </select>
+        </label>
+
+        <label>
+          Filter by Expiry:
+          <select value={expiryFilter} onChange={(e) => setExpiryFilter(e.target.value as ExpiryFilter)}>
+            <option value="all">All</option>
+            <option value="permanent">Permanent</option>
+            <option value="normal">Normal</option>
+            <option value="aboutToExpire">About to Expire</option>
+            <option value="expired">Expired</option>
+          </select>
+        </label>
+      </div>
 
                 <div className="cards-grid">
                   {filteredCards.map((card, index) => (
@@ -490,7 +528,7 @@ const [showReportModal, setShowReportModal] = useState(false);
                         <div className="card-top-left">
                           <div className={`card-icon ${card.iconClass}`}></div>
                           <button className="view-more-btn" onClick={() => handleViewMore(card)}>
-                            View More
+                           <i className="fas fa-eye"></i> View More
                           </button>
                         </div>
                         <div className="card-options">
@@ -498,22 +536,24 @@ const [showReportModal, setShowReportModal] = useState(false);
                             ⋮
                           </button>
                           {openCardOptionsId === index && (
-  <div className="card-options-menu">
-   <button className="edit-btn" onClick={() => handleReportClick(index)}>
-  <i className="fas fa-edit"></i> Report
-</button>
-
-    <button className="delete-btn" onClick={() => handleDeleteCard(index)}>
-      <i className="fas fa-trash-alt"></i> Delete Asset
-    </button>
-  </div>
-)}
-
+                        <div className="card-options-menu">
+                          <button className="history-btn" onClick={() => handleShowHistory(card)}>
+                            <i className="fas fa-history"></i> History</button>
+                        <button className="edit-btn" onClick={() => handleReportClick(index)}>
+                        <i className="fas fa-edit"></i> Report
+                      </button>
+                  <button className="delete-btn" onClick={() => handleDeleteCard(index)}>
+                    <i className="fas fa-trash-alt"></i> Delete Asset
+                  </button>
+                </div>)}
                         </div>
                       </div>
                       <h2>{card.title}</h2>
                       <p>{card.team}</p>
+                      <div className="card-footer">
                       <p>{card.timeLeft}</p>
+                      <p>{card.paymentamt}</p>
+                      </div>
                       <div className="card-footer">
                         <span>Donna May Magsucang</span>
                         <span>Serial Number: {card.progress}</span>

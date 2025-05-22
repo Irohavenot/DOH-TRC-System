@@ -139,8 +139,10 @@ const WebQRScanner = () => {
           <tr><td><strong>Expiration Date:</strong></td><td>2025-04-21</td></tr>
         </tbody>
       </table>
-                <button className="scanqr-close-btn" onClick={handleCloseModal}>Close</button>
-                <button className="scanqr-edit-btn">Edit</button>
+      <div className="scanqr-modal-buttons-container">
+                <button className="scanqr-close-btn" onClick={handleCloseModal}><i className="fas fa-xmark"></i> Close</button>
+                <button className="scanqr-edit-btn"><i className="fas fa-edit"></i> Edit</button>
+              </div>
               </div>
             </div>
           </div>
