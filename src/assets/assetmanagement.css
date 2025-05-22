@@ -502,7 +502,7 @@ body {
 .modal {
     padding: 3.5vh;
     background-color: white;
-    width: 57vh;
+    width: 30%;
     max-width: 800px;
     z-index: 10000;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -571,8 +571,8 @@ body {
 /* Modal details */
 .modal-details {
   flex-grow: 1;
-  margin-top: 20px;
-  margin-bottom: 20px;
+  margin-top: -3px;
+  margin-bottom: -7px;
   width: 100%;
 }
 
@@ -607,7 +607,58 @@ body {
 .modal-details .edits-button {
   background-color: #3498db;
 }
+.save-button {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  width: 40%;
+  font-size: 16px;
+}
   
  
+.edit-success-popup {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #4BB543; /* Green background */
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  font-size: 16px;
+  z-index: 9999; /* Ensure it's on top of most other elements */
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  animation: fadeInOut 3s ease-in-out forwards;
+}
+
+.edit-success-popup i {
+  font-size: 18px;
+}
+
+/* Optional fade-in-out animation */
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  10% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  90% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+}
 
   

@@ -167,20 +167,20 @@ const ScanQr = () => {
       <div className="scanqr-modal-buttons-container">
                 <button className="scanqr-close-btn" onClick={handleCloseModal}><i className="fas fa-xmark"></i>  Close</button>
                 <button
-  className="scanqr-edit-btn"
-  onClick={() => {
-    setSelectedCard({
-      title: assetDetails.title,
-      team: assetDetails.category,
-      timeLeft: assetDetails.expirationDate,
-      progress: 100, // You can calculate this or keep a placeholder
-      iconClass: "icon-blue", // Optional, if used elsewhere
-    });
-    setShowReportModal(true);
-  }}
-><i className="fas fa-edit"></i>  Report
-</button>
-</div>
+                    className="scanqr-edit-btn"
+                    onClick={() => {
+                      setSelectedCard({
+                        title: assetDetails.title,
+                        team: assetDetails.category,
+                        timeLeft: assetDetails.expirationDate,
+                        progress: 100, // You can calculate this or keep a placeholder
+                        iconClass: "icon-blue", // Optional, if used elsewhere
+                      });
+                      setShowReportModal(true);
+                    }}
+                  ><i className="fas fa-edit"></i>  Report
+                  </button>
+                  </div>
               </div>
             </div>
           </div>

@@ -56,7 +56,8 @@ const PersonnelDashboard = () => {
     { id: 10, message: 'New User Registered', timestamp: '1d ago', isRead: true },
     { id: 11, message: 'Asset Transfer Request', timestamp: '20h ago', isRead: false },
   ]);
-  
+  const [showReportSuccess, setShowReportSuccess] = useState(false);
+
   const filteredNotifications = notifications.filter(n =>
     notificationFilter === 'all' ? true : !n.isRead
   );
@@ -214,6 +215,14 @@ const [showReportModal, setShowReportModal] = useState(false);
 
 
       )}
+    {showReportSuccess && (
+  <div className="report-popup-backdrop">
+    <div className="report-popup-modal">
+      <i className="fas fa-check-circle success-icon"></i>
+      <p>Report submitted successfully!</p>
+    </div>
+  </div>
+)}
 
       {showReportModal && selectedCard && (
   <div className="modal-backdrops" onClick={() => setShowReportModal(false)}>
@@ -223,9 +232,11 @@ const [showReportModal, setShowReportModal] = useState(false);
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            alert('Report submitted!');
             setShowReportModal(false);
+            setShowReportSuccess(true);
+            setTimeout(() => setShowReportSuccess(false), 3000); // Auto-hide after 3s
           }}
+
         >
           <div style={{ marginBottom: '1rem' }}>
             <label>Asset Name:</label><br />
@@ -292,7 +303,7 @@ const [showReportModal, setShowReportModal] = useState(false);
                                     className="dashboard-logos"
                                     src="/logosaproject.jpg"
                                     alt="DOH Logo"
-                                    style={{ cursor: 'pointer' }} // Optional: makes it feel clickable
+                                    style={{ cursor: 'pointer' }} 
                                   />
                                 </Link>
             <div className="logo">DOH-TRC Argao</div>

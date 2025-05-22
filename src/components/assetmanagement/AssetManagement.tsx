@@ -11,7 +11,8 @@ const AssetManagement = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedDetails, setEditedDetails] = useState<{ [key: string]: string }>({});
   const [showEditSuccess, setShowEditSuccess] = useState(false);
-
+  const [selectedHistoryAsset, setSelectedHistoryAsset] = useState<Card | null>(null);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   interface Card {
     title: string;
     team: string;
@@ -78,6 +79,10 @@ const handleSaveClick = () => {
   setShowEditSuccess(true);
   setTimeout(() => setShowEditSuccess(false), 2000);
 };
+  const handleShowHistory = (card: Card) => {
+  setSelectedHistoryAsset(card);
+  setShowHistoryModal(true);
+};
 
 const handleInputChange = (field: string, value: string) => {
   setEditedDetails(prev => ({ ...prev, [field]: value }));
@@ -90,10 +95,13 @@ const handleInputChange = (field: string, value: string) => {
     setCards(prev => prev.filter((_, i) => i !== index));
     setOpenCardOptionsId(null);
   };
-  const handleEditCard = (index: number) => {
-    console.log(`Editing card at index ${index}`);
-    setOpenCardOptionsId(null);
-  };
+const handleEditCard = (index: number) => {
+  const card = cards[index];
+  handleViewMore(card);     // This sets selectedCard and default details
+  setIsEditing(true);       // Enable editing mode
+  setOpenCardOptionsId(null); // Optional: close the options menu
+};
+
 
   return (
     <div className="content-here">
@@ -195,8 +203,12 @@ const handleInputChange = (field: string, value: string) => {
                       <i className="fas fa-check"></i> Save
                     </button>
                   )}
-                </div>
-
+                  {!isEditing && (
+                    <button className="history-btn" onClick={() => handleShowHistory(selectedCard!)}>
+                      <i className="fas fa-history"></i> History
+                    </button>
+                  )}
+              </div>
             </div>
           </div>
         </div>
@@ -249,6 +261,8 @@ const handleInputChange = (field: string, value: string) => {
                 <button className="options-btn" onClick={() => handleCardOptionsToggle(index)}>⋮</button>
                 {openCardOptionsId === index && (
                   <div className="card-options-menu">
+                    <button className="history-btn" onClick={() => handleShowHistory(card)}>
+                            <i className="fas fa-history"></i> History</button>
                     <button className="edit-btn" onClick={() => handleEditCard(index)}>
                       <i className="fas fa-edit"></i> Edit Asset
                     </button>
@@ -268,6 +282,63 @@ const handleInputChange = (field: string, value: string) => {
             </div>
           </div>
         ))}
+                       {showHistoryModal && selectedHistoryAsset && (
+      <div className="asset-modal-history">
+  <div className="asset-modal-history-content">
+    <h2>{selectedHistoryAsset.title} – History</h2>
+    <table className="history-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Action</th>
+          <th>Site of Action</th> 
+          <th>Handled By</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>2024-11-01</td>
+          <td>Assigned</td>
+          <td>In-house</td>
+          <td>It-Personnel-Alice Johnson</td>
+        </tr>
+        <tr>
+          <td>2025-01-15</td>
+          <td>Repaired</td>
+          <td>In-house</td>
+          <td>IT Support Personnel – Bob Smith</td>
+        </tr>
+        <tr>
+          <td>2025-02-20</td>
+          <td>Maintained</td>
+          <td>Outsourced</td>
+          <td>QuickFix Tech Solutions</td>
+        </tr>
+        <tr>
+          <td>2025-03-12</td>
+          <td>Renewed</td>
+          <td>In-house</td>
+          <td>IT Admin – Clara Reyes (Microsoft 365)</td>
+        </tr>
+        <tr>
+          <td>2025-04-02</td>
+          <td>Reported Issue (Battery)</td>
+          <td>In-House</td>
+          <td>It-Personnel – James Miller</td>
+        </tr>
+        <tr>
+          <td>2025-05-10</td>
+          <td>Repaired</td>
+          <td>Outsourced</td>
+          <td>BatteryPro Repair Services</td>
+        </tr>
+      </tbody>
+    </table>
+    <button onClick={() => setShowHistoryModal(false)}>Close</button>
+  </div>
+</div>
+
+)}
       </div>
     </div>
   );
