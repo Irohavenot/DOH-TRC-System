@@ -464,16 +464,7 @@ body {
 }
 
 /* View More Button */
-.view-more-btns {
-  background-color: #00695c;
-  color: white;
-  border: none;
-  padding: 8px 30px;
-  border-radius: 20px;
-  cursor: pointer;
-}
-
-.collapsed .view-more-btns{
+.view-more-buttons {
   background-color: #00695c;
   color: white;
   border: none;
@@ -482,7 +473,16 @@ body {
   cursor: pointer;
 }
 
-.view-more-btns:hover{
+.collapsed .view-more-buttons{
+  background-color: #00695c;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+.view-more-buttons:hover{
   background-color: #004d40;
 }
 .modal-backdrop {

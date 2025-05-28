@@ -11,6 +11,8 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 import AssetManagement from './AssetManagement';
 import { Package } from 'lucide-react';
 import People from "./People";
+import Requests from "./Requests";
+import { Clipboard } from "react-feather"; 
 
 
 import {
@@ -23,8 +25,8 @@ import {
 } from 'lucide-react';
 
 const Dashboard = () => {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'qr' | 'generate' | 'reports' | 'reports-analytics' | 'profile' | 'assets' | 'people'>('dashboard');
-  const [activeView, setActiveView] = useState<'dashboard' | 'generate' | 'reports' | 'reports-analytics' | 'qr' | 'profile' | 'assets' | 'people'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'qr' | 'generate' | 'requestsdata' | 'reports' | 'reports-analytics' | 'profile' | 'assets' | 'people'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'generate' | 'reports' | 'requestsdata' |'reports-analytics' | 'qr' | 'profile' | 'assets' | 'people'>('dashboard');
   const [query, setQuery] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
@@ -287,9 +289,22 @@ const items = [
     <span>QR Scanner</span>
   </Link>
 
+<Link
+  to="#"
+  className={`menu-item ${activeView === 'requestsdata' ? 'active' : ''}`}
+  onClick={() => {
+    setCurrentView('requestsdata');
+    setActiveView('requestsdata');
+  }}
+>
+  <Clipboard className="menu-icon" />
+  <span>Request</span>
+</Link>
+
+
   <Link to="/" className="menu-items logout">
     <LogOut className="menu-icon" />
-    <span>Logout</span>
+    <span>Sign Out</span>
   </Link>
 </nav>
         </aside>
@@ -622,6 +637,7 @@ const items = [
             {currentView === 'reports' && <Reports />}
             {currentView === 'reports-analytics' && <ReportsAnalytics />}
             {currentView === 'people' && <People />}
+            {currentView === 'requestsdata' && <Requests />}
           </div>
         </div>
       </div>

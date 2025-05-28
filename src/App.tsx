@@ -15,6 +15,8 @@ import AssetHistory from './components/assetmanagement/AssetHistory';
 import PersonnelDashboard from './components/assetmanagement/PersonnelDashboard';
 import People from './components/assetmanagement/People';
 import ScanQR from './components/assetmanagement/ScanQr';
+import RequestConsumable from './components/assetmanagement/RequestConsumable';
+import Requests from './components/assetmanagement/Requests';
 import DashboardSuperAdmin from './components/superadmin/DashboardSuperAdmin';
 import Profile from './components/superadmin/Profile';
 import Supply from './components/superadmin/Supply';
@@ -50,6 +52,8 @@ const App: React.FC = () => {
           <Route path="/dental" element={<Dental />} /> 
           <Route path="/dde" element={<DDE />} /> 
           <Route path="/notif" element={<Notifications />} /> 
+          <Route path="/request-consumable" element={<RequestConsumable />} /> 
+          <Route path="/requestsdata" element={<Requests />} /> 
         </Routes>
       </div>
     </Router>
