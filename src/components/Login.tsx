@@ -38,7 +38,9 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
 
   return (
     <div className="form-card">
+      <div className="login-head">
       <h2>Log In</h2>
+      </div>
       <form onSubmit={handleLogin}>
         <input type="email" placeholder="Email" value={email} required onChange={(e) => setEmail(e.target.value)} />
         <input type="password" placeholder="Password" value={password} required onChange={(e) => setPassword(e.target.value)} />

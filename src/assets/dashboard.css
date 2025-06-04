@@ -256,9 +256,8 @@ margin-left: -1px;
   border-radius: 10px;
 }
 
-.menu-items.logout{
-   margin-top: 35%;
-}
+
+
 .menu-items.logout:hover {
   background-color: #052c28;
   border-radius: 10px;

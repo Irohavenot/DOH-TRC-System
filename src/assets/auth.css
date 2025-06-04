@@ -124,7 +124,7 @@
 }
   
   /* Form heading */
-  h2 {
+  .login-head h2 {
     margin-bottom: 1rem;
     color: #004d40;
     font-size: 1.8rem;

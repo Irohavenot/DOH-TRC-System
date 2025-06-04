@@ -5,10 +5,12 @@ import WebQRScanner from "./qrscanner";
 import ProfilePage from "./ProfilePage";
 import ScanQr  from "./ScanQr";
 import AssetHistory from "./AssetHistory";
+import RequestConsumable from "./RequestConsumable";
 import { Link } from 'react-router-dom';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { FaHistory } from 'react-icons/fa';
 import { Package } from 'lucide-react';
+import { Clipboard } from "react-feather"; 
 
 import {
   
@@ -19,8 +21,8 @@ import {
 
 
 const PersonnelDashboard = () => {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'qr' | 'generate' | 'reports' | 'reports-analytics' | 'profile' | 'history' | 'qrscan'>('dashboard'  );
-  const [activeView, setActiveView] = useState<'dashboard' | 'generate' | 'reports' | 'reports-analytics' | 'qr' | 'profile' | 'history' | 'qrscan'>('dashboard'); // Track active menu item
+  const [currentView, setCurrentView] = useState<'dashboard' | 'qr' | 'request-consumable' | 'generate' | 'reports' | 'reports-analytics' | 'profile' | 'history' | 'qrscan'>('dashboard'  );
+  const [activeView, setActiveView] = useState<'dashboard' | 'generate' | 'reports' | 'request-consumable' | 'reports-analytics' | 'qr' | 'profile' | 'history' | 'qrscan'>('dashboard'); // Track active menu item
   const [query, setQuery] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [filter, setFilter] = useState<'all' | 'permanent' | 'normal' | 'aboutToExpire' | 'expired'>('all');
@@ -348,9 +350,23 @@ const [showReportModal, setShowReportModal] = useState(false);
   <FaHistory className="menu-icon"  />
   <span>Asset History</span>
 </Link>
+
+
+<Link
+  to="#"
+  className={`menu-item ${activeView === 'request-consumable' ? 'active' : ''}`}
+  onClick={() => {
+    setCurrentView('request-consumable');
+    setActiveView('request-consumable');
+  }}
+>
+  <Clipboard className="menu-icon" />
+  <span>Request</span>
+</Link>
+
             <Link to="/" className="menu-item logouts">
     <LogOut className="menu-icon" />
-    <span>Logout</span>
+    <span>Sign Out</span>
   </Link>
 
           </nav>
@@ -582,6 +598,7 @@ const [showReportModal, setShowReportModal] = useState(false);
             {currentView === 'profile' && <ProfilePage />}
 
              {currentView === 'qrscan' && <ScanQr />}
+             {currentView === 'request-consumable' && <RequestConsumable />}
             
             
           

@@ -15,10 +15,16 @@ import AssetHistory from './components/assetmanagement/AssetHistory';
 import PersonnelDashboard from './components/assetmanagement/PersonnelDashboard';
 import People from './components/assetmanagement/People';
 import ScanQR from './components/assetmanagement/ScanQr';
+import RequestConsumable from './components/assetmanagement/RequestConsumable';
+import Requests from './components/assetmanagement/Requests';
 import DashboardSuperAdmin from './components/superadmin/DashboardSuperAdmin';
 import Profile from './components/superadmin/Profile';
 import Supply from './components/superadmin/Supply';
-
+import ClinicalLab from './components/superadmin/ClinicalLab';
+import Radiology from './components/superadmin/Radiology';
+import Dental from './components/superadmin/Dental';
+import DDE from './components/superadmin/DDE';
+import Notifications from './components/superadmin/Notifications';
 
 const App: React.FC = () => {
   return (
@@ -41,6 +47,13 @@ const App: React.FC = () => {
           <Route path="/dashadmin" element={<DashboardSuperAdmin />} />s
           <Route path="/profiled" element={<Profile />} /> 
           <Route path="/supply" element={<Supply />} />  
+          <Route path="/clinical" element={<ClinicalLab />} /> 
+          <Route path="/radiology" element={<Radiology />} /> 
+          <Route path="/dental" element={<Dental />} /> 
+          <Route path="/dde" element={<DDE />} /> 
+          <Route path="/notif" element={<Notifications />} /> 
+          <Route path="/request-consumable" element={<RequestConsumable />} /> 
+          <Route path="/requestsdata" element={<Requests />} /> 
         </Routes>
       </div>
     </Router>

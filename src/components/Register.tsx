@@ -19,7 +19,9 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
 
   return (
     <div className="form-card">
+      <div className="login-head">
       <h2>Create an Account</h2>
+      </div>
       <form onSubmit={handleRegister}>
         <input type="text" placeholder="First Name" value={firstName} required onChange={(e) => setFirstName(e.target.value)} />
         <input type="text" placeholder="Middle Initial" value={middleInitial} onChange={(e) => setMiddleInitial(e.target.value)} />

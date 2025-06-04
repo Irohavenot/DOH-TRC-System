@@ -4,6 +4,12 @@ import { Link } from 'react-router-dom';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import Profile from "./Profile";
 import Supply from "./Supply";
+import ClinicalLab from "./ClinicalLab";
+import Radiology from "./Radiology";
+import Dental from "./Dental";
+import DDE from "./DDE";
+import Notifications from "./Notifications";
+
 import {
   LayoutDashboard,
   Boxes,
@@ -16,8 +22,8 @@ import {
 } from 'lucide-react';
 
 const DashboardSuperAdmin = () => {
-  const [currentView, setCurrentView] = useState<'dashadmin' | 'peoples' | 'profiled' | 'supply'>('dashadmin');
-  const [activeView, setActiveView] = useState<'dashadmin' | 'peoples' | 'profiled' | 'supply'>('dashadmin');
+  const [currentView, setCurrentView] = useState<'dashadmin' | 'peoples' | 'profiled' | 'supply' | 'clinical' | 'radiology' | 'dental' | 'dde' | 'notif'>('dashadmin');
+  const [activeView, setActiveView] = useState<'dashadmin' | 'peoples' | 'profiled' | 'supply' | 'clinical' | 'radiology' | 'dental' | 'dde' | 'notif'>('dashadmin');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const toggleSidebar = () => {
@@ -123,7 +129,20 @@ const DashboardSuperAdmin = () => {
       <div className={`dashboard-containers ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <aside className="sidebar">
           <div className="sidebar-header">
-            <img className="dashboard-logos" src="/logosaproject.jpg" alt="DOH Logo" />
+           <Link
+                                 to="#"
+                                 onClick={() => {
+                                   setCurrentView('dashadmin');
+                                   setActiveView('dashadmin');
+                                 }}
+                               >
+                                 <img
+                                   className="dashboard-logos"
+                                   src="/logosaproject.jpg"
+                                   alt="DOH Logo"
+                                   style={{ cursor: 'pointer' }} // Optional: makes it feel clickable
+                                 />
+                               </Link>
             <div className="logos">DOH-TRC Argao</div>
             <button className="toggle-sidebar-btns" onClick={toggleSidebar}>☰</button>
           </div>
@@ -154,10 +173,10 @@ const DashboardSuperAdmin = () => {
 
             <Link
               to="#"
-              className={`menu-items ${activeView === 'peoples' ? 'active' : ''}`}
+              className={`menu-items ${activeView === 'clinical' ? 'active' : ''}`}
               onClick={() => {
-                setCurrentView('peoples');
-                setActiveView('peoples');
+                setCurrentView('clinical');
+                setActiveView('clinical');
               }}
             >
               <FlaskConical className="menu-icons" />
@@ -166,10 +185,10 @@ const DashboardSuperAdmin = () => {
 
             <Link
               to="#"
-              className={`menu-items ${activeView === 'peoples' ? 'active' : ''}`}
+              className={`menu-items ${activeView === 'radiology' ? 'active' : ''}`}
               onClick={() => {
-                setCurrentView('peoples');
-                setActiveView('peoples');
+                setCurrentView('radiology');
+                setActiveView('radiology');
               }}
             >
               <ScanLine className="menu-icons" />
@@ -178,10 +197,10 @@ const DashboardSuperAdmin = () => {
 
             <Link
               to="#"
-              className={`menu-items ${activeView === 'peoples' ? 'active' : ''}`}
+              className={`menu-items ${activeView === 'dental' ? 'active' : ''}`}
               onClick={() => {
-                setCurrentView('peoples');
-                setActiveView('peoples');
+                setCurrentView('dental');
+                setActiveView('dental');
               }}
             >
               <Syringe className="menu-icons" />
@@ -190,10 +209,10 @@ const DashboardSuperAdmin = () => {
 
             <Link
               to="#"
-              className={`menu-items ${activeView === 'peoples' ? 'active' : ''}`}
+              className={`menu-items ${activeView === 'dde' ? 'active' : ''}`}
               onClick={() => {
-                setCurrentView('peoples');
-                setActiveView('peoples');
+                setCurrentView('dde');
+                setActiveView('dde');
               }}
             >
               <Stethoscope className="menu-icons" />
@@ -202,10 +221,10 @@ const DashboardSuperAdmin = () => {
 
             <Link
               to="#"
-              className={`menu-items ${activeView === 'peoples' ? 'active' : ''}`}
+              className={`menu-items ${activeView === 'notif' ? 'active' : ''}`}
               onClick={() => {
-                setCurrentView('peoples');
-                setActiveView('peoples');
+                setCurrentView('notif');
+                setActiveView('notif');
               }}
             >
               <Bell className="menu-icons" />
@@ -347,7 +366,12 @@ const DashboardSuperAdmin = () => {
             )}
 
             {currentView === 'profiled' && <Profile />}
-             {currentView === 'supply' && <Supply />}
+            {currentView === 'supply' && <Supply />}
+            {currentView === 'clinical' && <ClinicalLab />}
+            {currentView === 'radiology' && <Radiology />}
+            {currentView === 'dental' && <Dental />}
+            {currentView === 'dde' && <DDE />}
+            {currentView === 'notif' && <Notifications/>}
           </div>
         </div>
       </div>

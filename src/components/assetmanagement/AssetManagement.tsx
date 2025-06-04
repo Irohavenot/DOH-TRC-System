@@ -255,7 +255,7 @@ const handleEditCard = (index: number) => {
             <div className="card-top">
               <div className="card-top-left">
                 <div className={`card-icon ${card.iconClass}`}></div>
-                <button className="view-more-btn" onClick={() => handleViewMore(card)}><i className="fas fa-eye"></i> View More</button>
+                <button className="view-more-buttons" onClick={() => handleViewMore(card)}><i className="fas fa-eye"></i> View More</button>
               </div>
               <div className="card-options">
                 <button className="options-btn" onClick={() => handleCardOptionsToggle(index)}>⋮</button>
