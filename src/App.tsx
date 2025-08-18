@@ -5,7 +5,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import AuthPage from './components/authpage';
 import Dashboard from './components/assetmanagement/Dashboard';
 import AssetManagement  from './components/assetmanagement/AssetManagement';
-import Trial from './components/trial';
 import QRCodeGenerator from './components/assetmanagement/qrcodegenerator';
 import WebQRScanner from './components/assetmanagement/qrscanner';
 import ProfilePage from './components/assetmanagement/ProfilePage';
@@ -25,16 +24,20 @@ import Radiology from './components/superadmin/Radiology';
 import Dental from './components/superadmin/Dental';
 import DDE from './components/superadmin/DDE';
 import Notifications from './components/superadmin/Notifications';
+import {ToastContainer} from 'react-toastify';
+import VerifyAccount from "./components/Verification";
+import Trial from './components/superadmin/trial';
 
+import 'react-toastify/dist/ReactToastify.css';
 const App: React.FC = () => {
   return (
     <Router>
       <div className="App">
         <Routes>
+          <Route path="/verify-account" element={<VerifyAccount />} />
           <Route path="/" element={<AuthPage />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/assets" element={<AssetManagement />} />
-          <Route path="/trial" element={<Trial />} />
           <Route path="/generate-qr" element={<QRCodeGenerator />} />
           <Route path="/scan-qr" element={<WebQRScanner />} />
           <Route path="/profile" element={<ProfilePage />} />
@@ -54,7 +57,9 @@ const App: React.FC = () => {
           <Route path="/notif" element={<Notifications />} /> 
           <Route path="/request-consumable" element={<RequestConsumable />} /> 
           <Route path="/requestsdata" element={<Requests />} /> 
+          <Route path="/trial" element={<Trial />} /> 
         </Routes>
+        <ToastContainer position="top-center" autoClose={3000} hideProgressBar={false} />
       </div>
     </Router>
   );

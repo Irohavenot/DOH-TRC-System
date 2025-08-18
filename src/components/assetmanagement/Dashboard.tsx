@@ -13,7 +13,7 @@ import { Package } from 'lucide-react';
 import People from "./People";
 import Requests from "./Requests";
 import { Clipboard } from "react-feather"; 
-
+import { useNavigate } from "react-router-dom";
 
 import {
   LayoutDashboard,
@@ -41,7 +41,15 @@ const Dashboard = () => {
     timestamp: string;
     isRead: boolean;
   };
+  const navigate = useNavigate();
 
+  const navItems = [
+    { title: "New Asset", category: "Asset" },
+    { title: "New License", category: "License" },
+    { title: "New Accessory", category: "Accessory" },
+    { title: "New Consumable", category: "Consumable" },
+    { title: "New Component", category: "Component" },
+  ];
   const [notifications, setNotifications] = useState<Notification[]>([
   { id: 1, message: 'License Expiring Soon', timestamp: '1h ago', isRead: false },
   { id: 2, message: 'New Asset Assigned', timestamp: '2d ago', isRead: true },
@@ -558,18 +566,17 @@ const items = [
 
 {/* ===== New-Item Cards ===== */}
 <div className="new-item-cards-container">
-  {[
-    { title: 'New Asset', class: 'asset' },
-    { title: 'New License', class: 'license' },
-    { title: 'New Accessory', class: 'accessory' },
-    { title: 'New Consumable', class: 'consumable' },
-    { title: 'New Component', class: 'component' },
-  ].map((n, i) => (
-    <div className={`new-item-card ${n.class}`} key={i}>
-      <h3>{n.title}</h3>
+      {navItems.map((item, i) => (
+        <div
+          className={`new-item-card ${item.category}`}
+          key={i}
+          onClick={() => navigate("/generate-qr", { state: { category: item.category } })}
+          style={{ cursor: "pointer" }} // make it feel clickable
+        >
+          <h3>{item.title}</h3>
+        </div>
+      ))}
     </div>
-  ))}
-</div>
 </div>
 
 
@@ -646,3 +653,34 @@ const items = [
 };
 
 export default Dashboard;
+/*
+//// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage"; 
+
+//Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBawioJ6qGT5ZiYI4U1AI_f3w0a6tylkHo",
+  authDomain: "asset-tracking-f8aeb.firebaseapp.com",
+  databaseURL: "https://asset-tracking-f8aeb-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "asset-tracking-f8aeb",
+  storageBucket: "asset-tracking-f8aeb.appspot.com", 
+  messagingSenderId: "840883319763",
+  appId: "1:840883319763:web:55d9774296ac421caa7526",
+  measurementId: "G-L0EZGB96MC"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+export const db = getFirestore(app);
+export const storage = getStorage(app); 
+export { auth, provider };
+export default app;
+*/

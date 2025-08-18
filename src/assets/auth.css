@@ -41,6 +41,11 @@
     flex-direction: column;
     position: relative;
   }
+  .register-row{
+    display: flex;
+    gap: 1rem;
+    flex-direction: row;
+  }
   
   /* Right panel */
   .auth-right {
@@ -132,7 +137,7 @@
   }
   
   /* Inputs */
-  input {
+  input, select {
     padding: 10px 14px;
     font-size: 16px;
     border-radius: 10px;
@@ -144,7 +149,7 @@
     box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 6px 0px;
   }
   
-  input:focus {
+  input:focus, select:focus {
     border-color: #00796b;
   }
   .rounded-logo {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import '../../assets/profile.css';
 
-const Profile = () => {
+const ProfilePage = () => {
   const [position, setPosition] = useState("Doctor");
   const [department, setDepartment] = useState("General Medicine");
   const [isEditing, setIsEditing] = useState(false);
@@ -168,4 +168,4 @@ const Profile = () => {
   );
 };
 
-export default Profile;
+export default ProfilePage;

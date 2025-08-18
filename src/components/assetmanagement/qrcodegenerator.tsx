@@ -1,16 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 import QrCreator from 'qr-creator';
 import jsPDF from 'jspdf';
-
+import { useLocation } from "react-router-dom";
+import { db, auth } from '../../firebase/firebase';
+import { addDoc, collection, getDocs, serverTimestamp, query, where } from 'firebase/firestore';
 const QRCodeGenerator = () => {
+  const location = useLocation();
+  const categoryFromState = location.state?.category || "";
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const qrRef = useRef<HTMLDivElement>(null);
   const [showModal, setShowModal] = useState(false);
   const [qrValue, setQrValue] = useState('');
+  const [itUsers, setItUsers] = useState<User[]>([]);
   const [assetDetails, setAssetDetails] = useState({
+    
     assetId: '',
     assetName: '',
-    category: '',
+    category: categoryFromState,
     status: '',
     personnel: '',
     purchaseDate: '',
@@ -18,7 +24,14 @@ const QRCodeGenerator = () => {
     licenseType: '',
     expirationDate: '',
   });
-
+  interface User {
+  id: string;
+  FirstName: string;
+  MiddleInitial?: string;
+  LastName: string;
+  Department?: string;
+  fullName?: string; // optional, since we build it
+}
   const generateQR = (value: string, container: HTMLElement) => {
     container.innerHTML = '';
     QrCreator.render(
@@ -34,22 +47,71 @@ const QRCodeGenerator = () => {
     );
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
-    setAssetDetails((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setAssetDetails((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAddAsset = () => {
-    const compiledDetails = JSON.stringify(assetDetails, null, 2);
+
+ useEffect(() => {
+  const fetchITUsers = async () => {
+    try {
+      const q = query(collection(db, "IT_Supply_Users"), where("Department", "==", "Supply Unit"));
+      const snapshot = await getDocs(q);
+
+      const users = snapshot.docs.map((doc) => {
+        const data = doc.data() as any;
+        return {
+          id: doc.id,
+          ...data,
+          fullName: `${data.FirstName} ${data.MiddleInitial ? data.MiddleInitial + "." : ""} ${data.LastName}`,
+        };
+      });
+
+      setItUsers(users);
+    } catch (error) {
+      console.error("Error fetching IT Supply users:", error);
+    }
+  };
+
+  fetchITUsers();
+}, []);
+
+  const generateAssetId = () => {
+    const timestamp = Date.now().toString(36); // base36 for shorter length
+    const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase();
+    return `ASSET-${timestamp}-${randomStr}`;
+  };
+const handleAddAsset = async () => {
+  try {
+    const assetId = generateAssetId(); // 🔑 auto-generate
+    const compiledDetails = JSON.stringify({ ...assetDetails, assetId }, null, 2);
     setQrValue(compiledDetails);
     setShowModal(true);
+
     setTimeout(() => {
       if (qrRef.current) generateQR(compiledDetails, qrRef.current);
     }, 100);
-  };
+
+    // 🔹 Save to Firestore
+    await addDoc(collection(db, 'IT_Assets'), {
+      ...assetDetails,
+      assetId, // <-- unique ID
+      createdBy: auth.currentUser?.email || null, // better than UID
+      createdAt: serverTimestamp(),
+      updatedBy: auth.currentUser?.email || null,
+      updatedAt: serverTimestamp(),
+      image: imagePreview || null,
+    });
+
+    console.log('✅ Asset added successfully');
+  } catch (err: any) {
+    console.error('❌ Error adding asset:', err.message);
+  }
+};
+
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
@@ -155,16 +217,32 @@ const handleDownload = () => {
   return (
     <div className="qr-generator-container">
       <div className="asset-form">
-        <h3>Asset Details</h3>
+        <h3>
+        Asset Details <br /> ({assetDetails.category || "Select Category"})
+        </h3>
+
         {imagePreview && (
   <div className="image-preview">
     <img src={imagePreview} alt="Uploaded" />
   </div>
 )}
         <div className="form-grid">
-          <input type="text" name="assetId" placeholder="Asset ID" onChange={handleInputChange} />
+          <input
+            type="text"
+            name="assetId"
+            placeholder="Asset ID (Auto Generated)"
+            value={assetDetails.assetId || ""}
+            readOnly
+            className="cursor-not-allowed bg-gray-100"
+          />
           <input type="text" name="assetName" placeholder="Asset Name" onChange={handleInputChange} />
-          <input type="text" name="category" placeholder="Category" onChange={handleInputChange} />
+          <input
+                type="text"
+                name="category"
+                placeholder="Category"
+                value={assetDetails.category} // ✅ prefilled
+                onChange={handleInputChange}
+              />
           <select name="status" onChange={handleInputChange} defaultValue="">
             <option value="" disabled hidden>Status</option>
             <option value="Optimal">Optimal</option>
@@ -173,7 +251,22 @@ const handleDownload = () => {
           </select>
 
 
-          <input type="text" name="personnel" placeholder="Assigned Personnel" onChange={handleInputChange} />
+          <div>
+                <label htmlFor="personnel">Assigned Personnel:</label>
+                <select
+                  id="personnel"
+                  name="personnel"
+                  value={assetDetails.personnel}
+                  onChange={handleInputChange}
+                >
+                  <option value="">-- Select IT Supply User --</option>
+                  {itUsers.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.fullName}
+                    </option>
+                  ))}
+                </select>
+    </div>
           <input type="date" name="purchaseDate" placeholder="Purchase Date" onChange={handleInputChange} />
           <input type="text" name="serialNo" placeholder="Serial No." onChange={handleInputChange} />
           <input type="text" name="licenseType" placeholder="License Type" onChange={handleInputChange} />
