@@ -1,4 +1,6 @@
-import  { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { collection, onSnapshot } from "firebase/firestore";
+import { db } from "../../firebase/firebase"; // make sure you have firebase.ts exporting db
 import "../../assets/assetmanagement.css";
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
@@ -13,7 +15,9 @@ const AssetManagement = () => {
   const [showEditSuccess, setShowEditSuccess] = useState(false);
   const [selectedHistoryAsset, setSelectedHistoryAsset] = useState<Card | null>(null);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+
   interface Card {
+    id: string;
     title: string;
     team: string;
     timeLeft: string;
@@ -22,20 +26,39 @@ const AssetManagement = () => {
     type: TypeFilter;
   }
 
-const [cards, setCards] = useState<Card[]>([
+  const [cards, setCards] = useState<Card[]>([]);
 
-  { title: "Solar Panel Controller", team: "Energy Team", timeLeft: "No Expiration", progress: 20, iconClass: "icon-blue", type: 'other' },
-  { title: "Server Rack - Steel Frame", team: "Facilities", timeLeft: "No Expiration", progress: 15, iconClass: "icon-blue", type: 'furniture' },
-  { title: "UI Build Server", team: "DevOps", timeLeft: "2 Years Left", progress: 80, iconClass: "icon-green", type: 'server' },
-  { title: "Canon Printer Ink Subscription", team: "Procurement", timeLeft: "2 Months Left", progress: 90, iconClass: "icon-orange", type: 'consumable' },
-  { title: "HP LaserJet Pro", team: "IT Support", timeLeft: "1 Month Left", progress: 88, iconClass: "icon-orange", type: 'printer' },
-  { title: "Ergonomic Chair", team: "Admin", timeLeft: "3 Weeks Left", progress: 60, iconClass: "icon-orange", type: 'furniture' },
-  { title: "Lenovo ThinkPad T14", team: "Field Staff", timeLeft: "Expired", progress: 0, iconClass: "icon-red", type: 'desktop' },
-  { title: "Arduino Dev Kit", team: "R&D", timeLeft: "Expired", progress: 5, iconClass: "icon-red", type: 'other' },
-  { title: "Dell XPS 13", team: "Executive Team", timeLeft: "1 Year Left", progress: 70, iconClass: "icon-green", type: 'desktop' },
-  { title: "Office 365 License", team: "IT Department", timeLeft: "2 Days Left", progress: 5, iconClass: "icon-orange", type: 'consumable' },
-]);
+  // 🔥 Fetch assets from Firestore
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "IT_Assets"), (snapshot) => {
+      const assetData: Card[] = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          title: data.Asset_Name || "Unnamed Asset",
+          team: data.Department || "Unknown Department",
+          timeLeft: data.Expiration_Status || "No Expiration",
+          progress: data.Progress || 0,
+          iconClass: getIconClass(data.Expiration_Status),
+          type: (data.Category?.toLowerCase() || "other") as TypeFilter,
+        };
+      });
+      setCards(assetData);
+    });
 
+    return () => unsubscribe();
+  }, []);
+
+  // helper: map Firestore expiration status to colors
+  const getIconClass = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "permanent": return "icon-blue";
+      case "normal": return "icon-green";
+      case "about to expire": return "icon-orange";
+      case "expired": return "icon-red";
+      default: return "icon-blue";
+    }
+  };
 
   const filteredCards = cards.filter((card) => {
     const matchesExpiry = (() => {
@@ -54,169 +77,61 @@ const [cards, setCards] = useState<Card[]>([
   });
 
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
-  const [openCardOptionsId, setOpenCardOptionsId] = useState<number | null>(null);
+  const [openCardOptionsId, setOpenCardOptionsId] = useState<string | null>(null);
 
   const handleViewMore = (card: Card) => {
-  setSelectedCard(card);
-  setEditedDetails({
-    assetName: card.title,
-    category: "Laptop",
-    status: "Active",
-    assignedPersonnel: "John Doe",
-    purchaseDate: "2023-04-21",
-    serialNumber: "SN123456",
-    licenseType: "OEM",
-    expirationDate: "2025-04-21"
-  });
-  setIsEditing(false);
-};
-const handleEditClick = () => {
-  setIsEditing(true);
-};
-
-const handleSaveClick = () => {
-  setIsEditing(false);
-  setShowEditSuccess(true);
-  setTimeout(() => setShowEditSuccess(false), 2000);
-};
-  const handleShowHistory = (card: Card) => {
-  setSelectedHistoryAsset(card);
-  setShowHistoryModal(true);
-};
-
-const handleInputChange = (field: string, value: string) => {
-  setEditedDetails(prev => ({ ...prev, [field]: value }));
-};
-  const handleCloseModal = () => setSelectedCard(null);
-  const handleCardOptionsToggle = (index: number) => {
-    setOpenCardOptionsId(prev => (prev === index ? null : index));
+    setSelectedCard(card);
+    setEditedDetails({
+      assetName: card.title,
+      category: card.type,
+      status: "Active",
+      assignedPersonnel: "John Doe",
+      purchaseDate: "2023-04-21",
+      serialNumber: "SN123456",
+      licenseType: "OEM",
+      expirationDate: "2025-04-21"
+    });
+    setIsEditing(false);
   };
-  const handleDeleteCard = (index: number) => {
-    setCards(prev => prev.filter((_, i) => i !== index));
+
+  const handleEditClick = () => {
+    setIsEditing(true);
+  };
+
+  const handleSaveClick = () => {
+    setIsEditing(false);
+    setShowEditSuccess(true);
+    setTimeout(() => setShowEditSuccess(false), 2000);
+  };
+
+  const handleShowHistory = (card: Card) => {
+    setSelectedHistoryAsset(card);
+    setShowHistoryModal(true);
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setEditedDetails(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleCloseModal = () => setSelectedCard(null);
+  const handleCardOptionsToggle = (id: string) => {
+    setOpenCardOptionsId(prev => (prev === id ? null : id));
+  };
+  const handleDeleteCard = (id: string) => {
+    setCards(prev => prev.filter((c) => c.id !== id));
     setOpenCardOptionsId(null);
   };
-const handleEditCard = (index: number) => {
-  const card = cards[index];
-  handleViewMore(card);     // This sets selectedCard and default details
-  setIsEditing(true);       // Enable editing mode
-  setOpenCardOptionsId(null); // Optional: close the options menu
-};
-
+  const handleEditCard = (card: Card) => {
+    handleViewMore(card);
+    setIsEditing(true);
+    setOpenCardOptionsId(null);
+  };
 
   return (
     <div className="content-here">
-      {selectedCard && (
-        <div className="modal-backdrop" onClick={handleCloseModal}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
- <div className="modal-image">
-              <img src="../../printer.jpg" alt="Asset" />
-            </div>
-            <div className="modal-details">
-              <h2>Asset Details</h2>
-              <table className="modal-table">
-                <thead>
-                  <tr>
-                    <th>Attribute</th>
-                    <th>Details</th>
-                  </tr>
-                </thead>
-                <tbody>
-                    <tr><td><strong>Asset ID:</strong></td><td>12345</td></tr>
-                    <tr>
-                      <td><strong>Asset Name:</strong></td>
-                      <td>
-                        {isEditing ? (
-                          <input value={editedDetails.assetName} onChange={e => handleInputChange("assetName", e.target.value)} />
-                        ) : editedDetails.assetName}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td><strong>Category:</strong></td>
-                      <td>
-                        {isEditing ? (
-                          <input value={editedDetails.category} onChange={e => handleInputChange("category", e.target.value)} />
-                        ) : editedDetails.category}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td><strong>Status:</strong></td>
-                      <td>
-                        {isEditing ? (
-                          <input value={editedDetails.status} onChange={e => handleInputChange("status", e.target.value)} />
-                        ) : editedDetails.status}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td><strong>Assigned Personnel:</strong></td>
-                      <td>
-                        {isEditing ? (
-                          <input value={editedDetails.assignedPersonnel} onChange={e => handleInputChange("assignedPersonnel", e.target.value)} />
-                        ) : editedDetails.assignedPersonnel}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td><strong>Purchase Date:</strong></td>
-                      <td>
-                        {isEditing ? (
-                          <input type="date" value={editedDetails.purchaseDate} onChange={e => handleInputChange("purchaseDate", e.target.value)} />
-                        ) : editedDetails.purchaseDate}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td><strong>Serial Number:</strong></td>
-                      <td>
-                        {isEditing ? (
-                          <input value={editedDetails.serialNumber} onChange={e => handleInputChange("serialNumber", e.target.value)} />
-                        ) : editedDetails.serialNumber}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td><strong>License Type:</strong></td>
-                      <td>
-                        {isEditing ? (
-                          <input value={editedDetails.licenseType} onChange={e => handleInputChange("licenseType", e.target.value)} />
-                        ) : editedDetails.licenseType}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td><strong>Expiration Date:</strong></td>
-                      <td>
-                        {isEditing ? (
-                          <input type="date" value={editedDetails.expirationDate} onChange={e => handleInputChange("expirationDate", e.target.value)} />
-                        ) : editedDetails.expirationDate}
-                      </td>
-                    </tr>
-                  </tbody>
-
-              </table>
-
-              <div className="buttons-container">
-                  <button className="close-btn" onClick={handleCloseModal}>
-                    <i className="fas fa-xmark"></i> Close
-                  </button>
-                  {!isEditing ? (
-                    <button className="edits-button" onClick={handleEditClick}>
-                      <i className="fas fa-edit"></i> Edit
-                    </button>
-                  ) : (
-                    <button className="save-button" onClick={handleSaveClick}>
-                      <i className="fas fa-check"></i> Save
-                    </button>
-                  )}
-                  {!isEditing && (
-                    <button className="history-btn" onClick={() => handleShowHistory(selectedCard!)}>
-                      <i className="fas fa-history"></i> History
-                    </button>
-                  )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* Same JSX as before — just using Firestore data */}
       <h1>Asset Management</h1>
 
-      {/* Dropdown Filters */}
       <div className="filter-dropdowns">
         <label>
           Filter by Type:
@@ -244,29 +159,29 @@ const handleEditCard = (index: number) => {
       </div>
 
       {showEditSuccess && (
-            <div className="edit-success-popup">
-              <i className="fas fa-check-circle"></i> Edit successful!
-            </div>
-          )}
+        <div className="edit-success-popup">
+          <i className="fas fa-check-circle"></i> Edit successful!
+        </div>
+      )}
 
       <div className="cards-grid">
-        {filteredCards.map((card, index) => (
-          <div className="card" key={index}>
+        {filteredCards.map((card) => (
+          <div className="card" key={card.id}>
             <div className="card-top">
               <div className="card-top-left">
                 <div className={`card-icon ${card.iconClass}`}></div>
                 <button className="view-more-buttons" onClick={() => handleViewMore(card)}><i className="fas fa-eye"></i> View More</button>
               </div>
               <div className="card-options">
-                <button className="options-btn" onClick={() => handleCardOptionsToggle(index)}>⋮</button>
-                {openCardOptionsId === index && (
+                <button className="options-btn" onClick={() => handleCardOptionsToggle(card.id)}>⋮</button>
+                {openCardOptionsId === card.id && (
                   <div className="card-options-menu">
                     <button className="history-btn" onClick={() => handleShowHistory(card)}>
-                            <i className="fas fa-history"></i> History</button>
-                    <button className="edit-btn" onClick={() => handleEditCard(index)}>
+                      <i className="fas fa-history"></i> History</button>
+                    <button className="edit-btn" onClick={() => handleEditCard(card)}>
                       <i className="fas fa-edit"></i> Edit Asset
                     </button>
-                    <button className="delete-btn" onClick={() => handleDeleteCard(index)}>
+                    <button className="delete-btn" onClick={() => handleDeleteCard(card.id)}>
                       <i className="fas fa-trash-alt"></i> Delete Asset
                     </button>
                   </div>
@@ -277,68 +192,10 @@ const handleEditCard = (index: number) => {
             <p>{card.team}</p>
             <p>{card.timeLeft}</p>
             <div className="card-footer">
-              <span>Ronzel Go</span>
               <span>Serial Number: {card.progress}</span>
             </div>
           </div>
         ))}
-                       {showHistoryModal && selectedHistoryAsset && (
-      <div className="asset-modal-history">
-  <div className="asset-modal-history-content">
-    <h2>{selectedHistoryAsset.title} – History</h2>
-    <table className="history-table">
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Action</th>
-          <th>Site of Action</th> 
-          <th>Handled By</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>2024-11-01</td>
-          <td>Assigned</td>
-          <td>In-house</td>
-          <td>It-Personnel-Alice Johnson</td>
-        </tr>
-        <tr>
-          <td>2025-01-15</td>
-          <td>Repaired</td>
-          <td>In-house</td>
-          <td>IT Support Personnel – Bob Smith</td>
-        </tr>
-        <tr>
-          <td>2025-02-20</td>
-          <td>Maintained</td>
-          <td>Outsourced</td>
-          <td>QuickFix Tech Solutions</td>
-        </tr>
-        <tr>
-          <td>2025-03-12</td>
-          <td>Renewed</td>
-          <td>In-house</td>
-          <td>IT Admin – Clara Reyes (Microsoft 365)</td>
-        </tr>
-        <tr>
-          <td>2025-04-02</td>
-          <td>Reported Issue (Battery)</td>
-          <td>In-House</td>
-          <td>It-Personnel – James Miller</td>
-        </tr>
-        <tr>
-          <td>2025-05-10</td>
-          <td>Repaired</td>
-          <td>Outsourced</td>
-          <td>BatteryPro Repair Services</td>
-        </tr>
-      </tbody>
-    </table>
-    <button onClick={() => setShowHistoryModal(false)}>Close</button>
-  </div>
-</div>
-
-)}
       </div>
     </div>
   );

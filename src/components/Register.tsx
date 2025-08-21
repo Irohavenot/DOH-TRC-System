@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { db } from "../firebase/firebase"; // Adjust path if needed
 import { toast } from "react-toastify";
 import { addDoc, collection, query, where, getDocs } from "firebase/firestore";
@@ -9,9 +9,19 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
   const [lastName, setLastName] = useState("");
   const [middleInitial, setMiddleInitial] = useState("");
   const [position, setPosition] = useState("");
+  const [role, setRole] = useState<"Medical" | "IT" | null>(null);
   const [username, setUsername] = useState("");
   const [idPicture, setIdPicture] = useState<File | null>(null);
 
+  useEffect(() => {
+    const storedRole = localStorage.getItem("registerRole") as
+      | "Medical"
+      | "IT"
+      | null;
+    if (storedRole) {
+      setRole(storedRole);
+    }
+  }, []);
   // Utility: Convert File to Base64
   const fileToBase64 = (file: File) => {
     return new Promise<string>((resolve, reject) => {
@@ -134,18 +144,34 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
               onChange={(e) => setLastName(e.target.value)}
             />
           </div>
-          <div>
-            <label>Position</label>
-            <select
-              value={position}
-              required
-              onChange={(e) => setPosition(e.target.value)}
-            >
-              <option value="" disabled>Position</option>
-              <option value="Supply Unit">Supply Unit</option>
-              <option value="IT Personnel">IT Personnel</option>
-            </select>
-          </div>
+           <div>
+      <label>Position</label>
+      <select
+        value={position}
+        required
+        onChange={(e) => setPosition(e.target.value)}
+      >
+        <option value="" disabled>
+          Position
+        </option>
+
+        {/* 🔹 Show Medical options if role = Medical */}
+        {role === "Medical" ? (
+          <>
+            <option value="Clinical">Clinical</option>
+            <option value="Radiology">Radiology</option>
+            <option value="Dental">Dental</option>
+            <option value="DDE">DDE</option>
+          </>
+        ) : (
+          // 🔹 Otherwise show IT options
+          <>
+            <option value="Supply Unit">Supply Unit</option>
+            <option value="IT Personnel">IT Personnel</option>
+          </>
+        )}
+      </select>
+    </div>
         </div>
 
         {/* Email */}

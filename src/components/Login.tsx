@@ -7,11 +7,12 @@ import {
   signInWithEmailAndPassword,
 } from "firebase/auth";
 import { collection, getDocs, query, where } from "firebase/firestore";
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
 
 export default function LoginForm({ toggle }: { toggle: () => void }) {
   const [identifier, setIdentifier] = useState(""); // username or email
   const [password, setPassword] = useState("");
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
   const navigate = useNavigate();
 
   // 🔹 Load saved identifier from localStorage on mount
@@ -21,6 +22,13 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
       setIdentifier(savedIdentifier);
     }
   }, []);
+
+  // 🔹 Handle Register Choice
+  const handleRegisterChoice = (role: "Medical" | "IT") => {
+    localStorage.setItem("registerRole", role); // store selection for Register page
+    setShowRegisterModal(false);
+    toggle(); // call parent toggle to switch to Register form
+  };
 
   // 🔹 Login with Email or Username
   const handleLogin = async (e: React.FormEvent) => {
@@ -62,13 +70,13 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
         toast.error("Please verify your email before logging in.");
         return;
       }
-          //success message aron nay space
+
       toast.success(
-            <>
-              Login successful! <br />
-              Welcome {user.displayName}
-            </>
-          );
+        <>
+          Login successful! <br />
+          Welcome {user.displayName}
+        </>
+      );
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Login error:", error);
@@ -158,8 +166,38 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
       </button>
 
       <div className="switch">
-        Don't have an account? <span onClick={toggle}>Register</span>
+        Don't have an account?{" "}
+        <span onClick={() => setShowRegisterModal(true)}>Register</span>
       </div>
+
+      {/* 🔹 Register Role Modal */}
+      {showRegisterModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Register As:</h3>
+            <div className="modal-buttons">
+              <button
+                className="role-btn"
+                onClick={() => handleRegisterChoice("Medical")}
+              >
+                Medical Department Personnel
+              </button>
+              <button
+                className="role-btn"
+                onClick={() => handleRegisterChoice("IT")}
+              >
+                IT Department Personnel
+              </button>
+            </div>
+            <button
+              className="close-btn"
+              onClick={() => setShowRegisterModal(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

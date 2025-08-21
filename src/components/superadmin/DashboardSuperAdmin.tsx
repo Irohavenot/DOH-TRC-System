@@ -126,12 +126,20 @@ const confirmReject = async () => {
     try {
       const userRef = doc(db, "IT_Supply_Users", rejectingUser.id);
 
+      // Example: current admin info (get from Firebase Auth or state/context)
+      const currentAdmin = {
+        id: auth.currentUser?.uid || "unknown",
+        email: auth.currentUser?.email || "unknown",
+        displayName: auth.currentUser?.displayName || "unknown",
+      };
+
       // 1. Save rejected user into a backup collection
       const rejectedRef = doc(collection(db, "Rejected_Users"));
       await setDoc(rejectedRef, {
         ...rejectingUser,
         Status: "rejected",
         RejectedAt: new Date(),
+        RejectedBy: currentAdmin, // 👈 who rejected the user
       });
 
       // 2. Delete them from active collection
@@ -150,6 +158,7 @@ const confirmReject = async () => {
     }
   }
 };
+
 
   return (
     <div className="dashboard-bodys">

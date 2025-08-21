@@ -35,12 +35,13 @@ const Dashboard = () => {
   const [showAll, setShowAll] = useState(false);
   const user = { name: 'Ronzel Go' };
 
-  type Notification = {
-    id: number;
-    message: string;
-    timestamp: string;
-    isRead: boolean;
-  };
+type Notification = {
+  id: number;
+  message: string;
+  timestamp: string;
+  isRead: boolean;
+  type?: 'user' | 'application' | 'asset' | 'system';
+};
   const navigate = useNavigate();
 
   const navItems = [
@@ -129,14 +130,7 @@ const Dashboard = () => {
     defectiveProperty: { total: 60 },
     custodian: { total: 50 },
     unserviceableProperty: { total: 70 },
-    
-    
-    
-    
-    
     otherTable: [
-     
-      
       { category: 'People', users: 10, toApprove: 3 },
       
     ],
@@ -551,17 +545,8 @@ const items = [
   >
     View more →
   </button>
+</div> 
 </div>
- 
-
- 
-</div>
-
-
-
-
-
-
  <div className='new-card'>
 
 {/* ===== New-Item Cards ===== */}
@@ -579,11 +564,7 @@ const items = [
     </div>
 </div>
 
-
-
-
  </div>
-
 <div className='dashboard-columns'>
   <div className='simple'>
 
