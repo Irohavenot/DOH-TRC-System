@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">demoproject</string>
-    <string name="title_activity_main">demoproject</string>
-    <string name="package_name">com.demoproject.app</string>
-    <string name="custom_url_scheme">com.demoproject.app</string>
-</resources>

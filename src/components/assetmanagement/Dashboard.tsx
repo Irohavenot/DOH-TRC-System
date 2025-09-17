@@ -14,8 +14,10 @@ import People from "./People";
 import Requests from "./Requests";
 import { Clipboard } from "react-feather"; 
 import { useNavigate } from "react-router-dom";
-
-import {
+import { signOut } from "firebase/auth";
+import { auth } from "../../firebase/firebase";
+import { toast } from "react-toastify";
+import{
   LayoutDashboard,
   PlusCircle,
   AlertCircle,
@@ -193,6 +195,22 @@ const items = [
     viewLink: 'unserviceableProperty'
   }
 ];
+const [signingOut, setSigningOut] = useState(false);
+  const handleSignOut = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+  e.preventDefault();               // stop <Link> from navigating first
+  if (signingOut) return;           // avoid double clicks
+  setSigningOut(true);
+  try {
+    await signOut(auth);            // actually log out
+    toast.info("Signed out");
+    navigate("/", { replace: true }); // then navigate to login
+  } catch (err) {
+    console.error(err);
+    toast.error("Sign out failed.");
+  } finally {
+    setSigningOut(false);
+  }
+};
 
   return (
     <div className="dashboard-body">
@@ -304,10 +322,15 @@ const items = [
 </Link>
 
 
-  <Link to="/" className="menu-items logout">
-    <LogOut className="menu-icon" />
-    <span>Sign Out</span>
-  </Link>
+  <Link
+  to="/"
+  className="menu-items logout"
+  onClick={handleSignOut}
+  aria-disabled={signingOut}
+>
+  <LogOut className="menu-icon" />
+  <span>Sign Out</span>
+</Link>
 </nav>
         </aside>
 

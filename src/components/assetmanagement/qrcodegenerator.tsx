@@ -6,28 +6,76 @@ import { useLocation } from "react-router-dom";
 import { db, auth } from '../../firebase/firebase';
 import { addDoc, collection, getDocs, serverTimestamp, query, where } from 'firebase/firestore';
 
+const NON_EXPIRING = new Set(['Perpetual', 'OEM', 'Open Source']); // disables expiration
+
+// ───────────────────────────────────────────────────────────────────────────────
+// NEW: URL helpers so QR works on localhost, LAN IP/host, and production
+// .env examples:
+//   VITE_PUBLIC_BASE_URL=https://your-app.example.com
+//   VITE_QR_HASH_MODE=true   // set this if you use HashRouter (adds "/#")
+// ───────────────────────────────────────────────────────────────────────────────
+function getPublicBase(): string {
+  const envBase = import.meta.env.VITE_PUBLIC_BASE_URL?.toString().trim();
+  if (envBase) {
+    try {
+      const u = new URL(envBase);
+      // keep origin + optional subpath (no trailing slash)
+      return (u.origin + u.pathname).replace(/\/+$/, '');
+    } catch {
+      // if it's not a full URL, just trim trailing slash
+      return envBase.replace(/\/+$/, '');
+    }
+  }
+  return window.location.origin; // e.g., http://localhost:5173 or http://192.168.x.x:5173
+}
+
+function buildAssetUrl(assetId: string): string {
+  const base = getPublicBase();
+  const useHash = import.meta.env.VITE_QR_HASH_MODE === 'true';
+  const path = `/dashboard/${encodeURIComponent(assetId)}`;
+  return useHash ? `${base}/#${path}` : `${base}${path}`;
+}
+// ───────────────────────────────────────────────────────────────────────────────
+
 const QRCodeGenerator = () => {
   const location = useLocation();
   const categoryFromState = location.state?.category || "";
+
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const qrRef = useRef<HTMLDivElement>(null);
-  const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);      // QR modal
+  const [showConfirm, setShowConfirm] = useState(false);  // Confirm modal
   const [qrValue, setQrValue] = useState('');
   const [itUsers, setItUsers] = useState<User[]>([]);
-  const [categories, setCategories] = useState<string[]>([]); // 🔹 category state
+  const [categories, setCategories] = useState<string[]>([]);
+  const qrRef = useRef<HTMLDivElement>(null);
 
-  const [assetDetails, setAssetDetails] = useState({
-    assetId: '',
-    assetName: '',
-    category: categoryFromState,
-    status: '',
-    personnel: '',
-    purchaseDate: '',
-    serialNo: '',
-    licenseType: '',
-    expirationDate: '',
-    generateQR: true,
-  });
+  const [pendingReset, setPendingReset] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // simple toast state
+  const [toast, setToast] = useState<{ message: string; type?: 'error'|'success'|'info'} | null>(null);
+  const showToast = (message: string, type: 'error'|'success'|'info' = 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 2500);
+  };
+
+  const resetForm = () => {
+    setAssetDetails(prev => ({
+      assetId: '',
+      assetName: '',
+      category: prev.category, // keep last category (change to "" if you prefer)
+      status: '',
+      personnel: '',
+      purchaseDate: '',
+      serialNo: '',
+      licenseType: '',
+      expirationDate: '',
+      generateQR: true,
+    }));
+    setImagePreview(null);
+    setQrValue('');
+    if (qrRef.current) qrRef.current.innerHTML = '';
+  };
 
   interface User {
     id: string;
@@ -38,8 +86,27 @@ const QRCodeGenerator = () => {
     fullName?: string;
   }
 
-  // 🔹 Generate QR function
-  const generateQR = (value: string, container: HTMLElement) => {
+  const [assetDetails, setAssetDetails] = useState({
+    assetId: '',
+    assetName: '',
+    category: categoryFromState,
+    status: '',
+    personnel: '',             // store user id (string) or ""
+    purchaseDate: '',          // "YYYY-MM-DD" or ""
+    serialNo: '',
+    licenseType: '',
+    expirationDate: '',        // "YYYY-MM-DD" or ""
+    generateQR: true,
+  });
+
+  // ---- helpers ----
+  const generateAssetId = () => {
+    const timestamp = Date.now().toString(36);
+    const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase();
+    return `ASSET-${timestamp}-${randomStr}`;
+  };
+
+  const renderQRTo = (value: string, container: HTMLElement) => {
     container.innerHTML = '';
     QrCreator.render(
       {
@@ -54,23 +121,34 @@ const QRCodeGenerator = () => {
     );
   };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setAssetDetails((prev) => ({ ...prev, [name]: value }));
+  const makeQRDataUrl = (value: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement("canvas");
+      QrCreator.render(
+        {
+          text: value,
+          radius: 0.45,
+          ecLevel: "H",
+          fill: "#162a37",
+          background: null,
+          size: 250,
+        },
+        canvas as any
+      );
+      resolve((canvas as HTMLCanvasElement).toDataURL("image/png"));
+    });
   };
 
-  // 🔹 Fetch IT Supply Users
+  // ---- effects ----
   useEffect(() => {
-    const fetchITUsers = async () => {
+    // IT Supply Users
+    (async () => {
       try {
         const q = query(
           collection(db, "IT_Supply_Users"),
           where("Department", "==", "Supply Unit")
         );
         const snapshot = await getDocs(q);
-
         const users = snapshot.docs.map((doc) => {
           const data = doc.data() as any;
           return {
@@ -79,102 +157,165 @@ const QRCodeGenerator = () => {
             fullName: `${data.FirstName} ${data.MiddleInitial ? data.MiddleInitial + "." : ""} ${data.LastName}`,
           };
         });
-
         setItUsers(users);
-      } catch (error) {
-        console.error("Error fetching IT Supply users:", error);
+      } catch (e) {
+        console.error("Error fetching IT Supply users:", e);
+        showToast("Failed to load personnel list.", 'error');
       }
-    };
-
-    fetchITUsers();
+    })();
   }, []);
 
-  // 🔹 Fetch Asset Categories
   useEffect(() => {
-    const fetchCategories = async () => {
+    // Categories
+    (async () => {
       try {
         const snapshot = await getDocs(collection(db, "Asset_Categories"));
-        const categoryList: string[] = [];
+        const list: string[] = [];
         snapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.Category_Name) {
-            categoryList.push(data.Category_Name);
-          }
+          const data = doc.data() as any;
+          if (data.Category_Name) list.push(data.Category_Name);
         });
-        setCategories(categoryList);
-      } catch (error) {
-        console.error("Error fetching categories:", error);
+        setCategories(list);
+      } catch (e) {
+        console.error("Error fetching categories:", e);
+        showToast("Failed to load categories.", 'error');
       }
-    };
-
-    fetchCategories();
+    })();
   }, []);
 
-  // 🔹 Generate Asset ID
-  const generateAssetId = () => {
-    const timestamp = Date.now().toString(36);
-    const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase();
-    return `ASSET-${timestamp}-${randomStr}`;
+  // Disable/clear expiration if license becomes non-expiring
+  useEffect(() => {
+    if (NON_EXPIRING.has(assetDetails.licenseType) && assetDetails.expirationDate) {
+      setAssetDetails((prev) => ({ ...prev, expirationDate: '' }));
+    }
+  }, [assetDetails.licenseType]);
+
+  // ---- validation ----
+  const validate = (): boolean => {
+    if (!assetDetails.assetName.trim()) {
+      showToast('Asset Name is required.', 'error'); return false;
+    }
+    if (!assetDetails.category) {
+      showToast('Please select a Category.', 'error'); return false;
+    }
+    if (!assetDetails.status) {
+      showToast('Please select a Status.', 'error'); return false;
+    }
+    if (!assetDetails.licenseType) {
+      showToast('Please select a License Type.', 'error'); return false;
+    }
+    if (!assetDetails.personnel) {
+      showToast('Please assign a Personnel.', 'error'); return false;
+    }
+    if (!NON_EXPIRING.has(assetDetails.licenseType) && !assetDetails.expirationDate) {
+      showToast('Expiration Date is required for Subscription/Trial.', 'error'); return false;
+    }
+    return true;
   };
 
-  // 🔹 Add Asset
-const handleAddAsset = async () => {
-  try {
-    const assetId = generateAssetId();
-    let qrDataUrl: string | null = null;
+  // ---- confirm modal control ----
+  const openConfirm = () => {
+    if (!validate()) return;
+    setShowConfirm(true);
+  };
+  const closeConfirm = () => setShowConfirm(false);
 
-    // ✅ Create a URL instead of JSON
-    const assetUrl = `http://localhost:5173/dashboard/${assetId}`;
+  // ---- handlers ----
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value, type, checked } = e.target as any;
 
-    if (assetDetails.generateQR) {
-      qrDataUrl = await generateQRDataUrl(assetUrl); // QR encodes the URL
-      setQrValue(assetUrl);
-      setShowModal(true);
-
-      setTimeout(() => {
-        if (qrRef.current) generateQR(assetUrl, qrRef.current);
-      }, 100);
+    if (name === 'licenseType') {
+      setAssetDetails((prev) => ({
+        ...prev,
+        licenseType: value,
+        expirationDate: NON_EXPIRING.has(value) ? '' : prev.expirationDate,
+      }));
+      return;
     }
 
-    // Save to Firestore
-    await addDoc(collection(db, "IT_Assets"), {
-      ...assetDetails,
-      assetId,
-      createdBy: auth.currentUser?.email || null,
-      createdAt: serverTimestamp(),
-      updatedBy: auth.currentUser?.email || null,
-      updatedAt: serverTimestamp(),
-      image: imagePreview || null,
-      qrCode: qrDataUrl, // ✅ stores QR image for reference
-      assetUrl,          // ✅ store URL for direct linking
-    });
+    if (type === 'checkbox') {
+      setAssetDetails((prev) => ({ ...prev, [name]: checked }));
+    } else {
+      setAssetDetails((prev) => ({ ...prev, [name]: value }));
+    }
+  };
 
-    console.log("✅ Asset added successfully");
-  } catch (err: any) {
-    console.error("❌ Error adding asset:", err.message);
-  }
-};
+  // skipValidation: used when called from Confirm Add
+  const handleAddAsset = async (skipValidation = false) => {
+    if (isSubmitting) return;
+    try {
+      if (!skipValidation && !validate()) return;
 
-const generateQRDataUrl = (value: string): Promise<string> => {
-  return new Promise((resolve) => {
-    const canvas = document.createElement("canvas");
+      setIsSubmitting(true);
 
-    QrCreator.render(
-      {
-        text: value,
-        radius: 0.45,
-        ecLevel: "H",
-        fill: "#162a37",
-        background: null,
-        size: 250,
-      },
-      canvas
-    );
+      // Generate ID and URL
+      const assetId = generateAssetId();
 
-    resolve(canvas.toDataURL("image/png"));
-  });
-};
-  // 🔹 Print QR
+      // ───────────────────────────────────────────────────────────────────
+      // NEW: build the asset URL that works on localhost / LAN / prod
+      const assetUrl = buildAssetUrl(assetId);
+      // ───────────────────────────────────────────────────────────────────
+
+      // QR: only if opted in
+      let qrcode = "";
+      if (assetDetails.generateQR) {
+        qrcode = await makeQRDataUrl(assetUrl);
+        setQrValue(assetUrl);
+        setShowModal(true);
+        setTimeout(() => {
+          if (qrRef.current) renderQRTo(assetUrl, qrRef.current);
+        }, 0);
+      }
+
+      // renewdate: timestamp or null
+      const renewdate =
+        assetDetails.expirationDate ? new Date(assetDetails.expirationDate) : null;
+
+      // Prepare Firestore payload
+      const payload = {
+        assetId,
+        assetName: assetDetails.assetName || "",
+        assetUrl,
+        category: assetDetails.category || "",
+        createdAt: serverTimestamp(),
+        createdBy: auth.currentUser?.email || "",
+        expirationDate: assetDetails.expirationDate || "",
+        generateQR: !!assetDetails.generateQR,
+        image: imagePreview || "",
+        licenseType: assetDetails.licenseType || "",
+        personnel: assetDetails.personnel || "",
+        purchaseDate: assetDetails.purchaseDate || "",
+        qrcode,                 // Base64 string or ""
+        renewdate,              // Date or null (Firestore stores as Timestamp)
+        serialNo: assetDetails.serialNo || "",
+        status: assetDetails.status || "",
+        updatedAt: serverTimestamp(),
+        updatedBy: auth.currentUser?.email || "",
+      };
+
+      await addDoc(collection(db, "IT_Assets"), payload);
+      showToast('Asset added successfully.', 'success');
+
+      // reflect generated assetId in the read-only field (optional)
+      setAssetDetails((prev) => ({ ...prev, assetId }));
+
+      // decide when to reset
+      if (assetDetails.generateQR) {
+        setPendingReset(true);  // wait until QR modal closes
+      } else {
+        resetForm();
+      }
+    } catch (err: any) {
+      console.error("❌ Error adding asset:", err.message);
+      showToast(`Error adding asset: ${err.message}`, 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ---- print / download ----
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
     if (printWindow && qrRef.current) {
@@ -186,35 +327,14 @@ const generateQRDataUrl = (value: string): Promise<string> => {
           <head>
             <title>Print QR</title>
             <style>
-              body {
-                text-align: center;
-                font-family: sans-serif;
-                padding: 2rem;
-              }
-              .qr-wrapper {
-                text-align: center;
-                border: 1px solid #ddd;
-                padding: 1rem;
-                border-radius: 8px;
-              }
-              .qr-container {
-                margin: 1rem auto;
-              }
+              body { text-align: center; font-family: sans-serif; padding: 2rem; }
+              .qr-wrapper { text-align: center; border: 1px solid #ddd; padding: 1rem; border-radius: 8px; }
+              .qr-container { margin: 1rem auto; }
               .details-container {
-                display: flex;
-                justify-content: space-between;
-                width: 250px;
-                margin: 1rem auto 0;
-                font-size: 14px;
-                font-weight: bold;
+                display: flex; justify-content: space-between;
+                width: 250px; margin: 1rem auto 0; font-size: 14px; font-weight: bold;
               }
-              .details-container p {
-                margin: 0;
-                width: 49%;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-              }
+              .details-container p { margin: 0; width: 49%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
             </style>
           </head>
           <body>
@@ -223,8 +343,8 @@ const generateQRDataUrl = (value: string): Promise<string> => {
                 <img src="${qrDataUrl}" alt="QR Code" />
               </div>
               <div class="details-container">
-                <p><strong>Asset:</strong> ${assetDetails.assetName || 'Printer'}</p>
-                <p><strong>Serial:</strong> ${assetDetails.serialNo || '7778810SXL'}</p>
+                <p><strong>Asset:</strong> ${assetDetails.assetName || 'Asset'}</p>
+                <p><strong>Serial:</strong> ${assetDetails.serialNo || 'N/A'}</p>
               </div>
             </div>
           </body>
@@ -236,11 +356,10 @@ const generateQRDataUrl = (value: string): Promise<string> => {
       setTimeout(() => {
         printWindow.print();
         printWindow.close();
-      }, 500);
+      }, 300);
     }
   };
 
-  // 🔹 Download PDF
   const handleDownload = () => {
     const doc = new jsPDF();
     const canvas = qrRef.current?.querySelector('canvas');
@@ -260,8 +379,8 @@ const generateQRDataUrl = (value: string): Promise<string> => {
     const detailsY = 50 + qrHeight + 10;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    const assetText = `Asset: ${assetDetails.assetName || 'Printer'}`;
-    const serialText = `Serial: ${assetDetails.serialNo || '7778810SXL'}`;
+    const assetText = `Asset: ${assetDetails.assetName || 'Asset'}`;
+    const serialText = `Serial: ${assetDetails.serialNo || 'N/A'}`;
     const assetTextWidth = doc.getTextWidth(assetText);
     const serialTextWidth = doc.getTextWidth(serialText);
     const totalWidth = assetTextWidth + serialTextWidth + 10;
@@ -273,8 +392,17 @@ const generateQRDataUrl = (value: string): Promise<string> => {
     doc.save('asset-qr-code.pdf');
   };
 
+  const isExpirationDisabled = NON_EXPIRING.has(assetDetails.licenseType);
+
   return (
     <div className="qr-generator-container">
+      {/* Toast */}
+      {toast && (
+        <div className={`toast ${toast.type || 'info'}`}>
+          {toast.message}
+        </div>
+      )}
+
       <div className="asset-form">
         <h3>
           Asset Details <br /> ({assetDetails.category || "Select Category"})
@@ -287,7 +415,7 @@ const generateQRDataUrl = (value: string): Promise<string> => {
         )}
 
         <div className="form-grid">
-          {/* Asset ID */}
+          {/* Asset ID (auto-generated after adding) */}
           <div className="form-field">
             <label htmlFor="assetId">Asset ID</label>
             <input
@@ -310,10 +438,11 @@ const generateQRDataUrl = (value: string): Promise<string> => {
               name="assetName"
               placeholder="Enter asset name"
               onChange={handleInputChange}
+              value={assetDetails.assetName}
             />
           </div>
 
-          {/* Category Dropdown */}
+          {/* Category */}
           <div className="form-field">
             <label htmlFor="category">Category</label>
             <select
@@ -338,9 +467,9 @@ const generateQRDataUrl = (value: string): Promise<string> => {
               id="status"
               name="status"
               onChange={handleInputChange}
-              defaultValue=""
+              value={assetDetails.status}
             >
-              <option value="" disabled hidden>
+              <option value="" disabled>
                 Select Status
               </option>
               <option value="Functional">Functional</option>
@@ -376,6 +505,7 @@ const generateQRDataUrl = (value: string): Promise<string> => {
               id="purchaseDate"
               name="purchaseDate"
               onChange={handleInputChange}
+              value={assetDetails.purchaseDate}
             />
           </div>
 
@@ -388,6 +518,7 @@ const generateQRDataUrl = (value: string): Promise<string> => {
               name="serialNo"
               placeholder="Enter serial number"
               onChange={handleInputChange}
+              value={assetDetails.serialNo}
             />
           </div>
 
@@ -411,7 +542,7 @@ const generateQRDataUrl = (value: string): Promise<string> => {
             </select>
           </div>
 
-          {/* Expiration Date */}
+          {/* Expiration Date (disabled for non-expiring types) */}
           <div className="form-field">
             <label htmlFor="expirationDate">Expiration Date</label>
             <input
@@ -419,6 +550,10 @@ const generateQRDataUrl = (value: string): Promise<string> => {
               id="expirationDate"
               name="expirationDate"
               onChange={handleInputChange}
+              value={assetDetails.expirationDate}
+              disabled={isExpirationDisabled}
+              placeholder={isExpirationDisabled ? 'Not applicable' : ''}
+              className={isExpirationDisabled ? 'disabled' : ''}
             />
           </div>
 
@@ -433,44 +568,133 @@ const generateQRDataUrl = (value: string): Promise<string> => {
                 const file = e.target.files?.[0];
                 if (file) {
                   const reader = new FileReader();
-                  reader.onloadend = () => {
-                    setImagePreview(reader.result as string);
-                  };
+                  reader.onloadend = () => setImagePreview(reader.result as string);
                   reader.readAsDataURL(file);
                 }
               }}
             />
           </div>
-        {/* Questio to whether generate a QR or not */}
-          <div className="form-field">
-              <label htmlFor="generateQR">Generate QR Code?</label>
+        </div>
+
+        {/* Action Bar: centered Add + QR, Clear on right */}
+        <div className="action-bar">
+           <label htmlFor="generateQR" className="checkbox-inline">
               <input
                 type="checkbox"
                 id="generateQR"
                 name="generateQR"
                 checked={assetDetails.generateQR || false}
-                onChange={(e) =>
-                  setAssetDetails((prev) => ({ ...prev, generateQR: e.target.checked }))
-                }
+                onChange={handleInputChange}
               />
-            </div>
-        </div>
+              <span>Generate QR Code</span>
+            </label>
+          <div className="action-center">
 
-        <button className="add-btn" onClick={handleAddAsset}>
-          Add Asset
-        </button>
+            <button
+              className="add-btn"
+              onClick={openConfirm}
+              disabled={isSubmitting}
+              aria-label="Add Asset"
+            >
+              {isSubmitting ? 'Adding…' : 'Add Asset'}
+            </button>
+          </div>
+
+          <button
+            type="button"
+            className="clear-btn"
+            onClick={resetForm}
+            disabled={isSubmitting}
+            aria-label="Clear fields"
+            title="Clear all fields"
+          >
+            Clear Fields
+          </button>
+        </div>
       </div>
 
+      {/* Confirm Add Modal */}
+      {showConfirm && (
+        <div className="modal-overlay">
+          <div className="modal confirm-modal">
+            <h3>Add this Asset?</h3>
+
+            <div className="confirm-preview">
+              {imagePreview && (
+                <div className="confirm-image">
+                  <img src={imagePreview} alt="Asset preview" />
+                </div>
+              )}
+
+              <table className="confirm-table">
+                <tbody>
+                  <tr><th>Asset Name</th><td>{assetDetails.assetName || '—'}</td></tr>
+                  <tr><th>Category</th><td>{assetDetails.category || '—'}</td></tr>
+                  <tr><th>Status</th><td>{assetDetails.status || '—'}</td></tr>
+                  <tr>
+                    <th>Personnel</th>
+                    <td>{itUsers.find(u => u.id === assetDetails.personnel)?.fullName || '—'}</td>
+                  </tr>
+                  <tr><th>Purchase Date</th><td>{assetDetails.purchaseDate || '—'}</td></tr>
+                  <tr><th>Serial No.</th><td>{assetDetails.serialNo || '—'}</td></tr>
+                  <tr><th>License Type</th><td>{assetDetails.licenseType || '—'}</td></tr>
+                  <tr>
+                    <th>Expiration Date</th>
+                    <td>
+                      {NON_EXPIRING.has(assetDetails.licenseType)
+                        ? 'Not applicable'
+                        : (assetDetails.expirationDate || '—')}
+                    </td>
+                  </tr>
+                  <tr><th>Generate QR</th><td>{assetDetails.generateQR ? 'Yes' : 'No'}</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="confirm-actions">
+              <button
+                className="confirm-cancel"
+                onClick={closeConfirm}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                className="confirm-add"
+                onClick={async () => {
+                  closeConfirm();
+                  await handleAddAsset(true); // skipValidation because we already validated
+                }}
+                disabled={isSubmitting}
+              >
+                Confirm Add
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR Modal */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal">
             <h3>Generated QR Code</h3>
             <div ref={qrRef} className="qr-display" />
-
             <div className="button-group">
               <button onClick={handlePrint} className="print-btn">Print</button>
               <button onClick={handleDownload} className="download-btn">Download</button>
-              <button onClick={() => setShowModal(false)} className="close-btn">Close</button>
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  if (pendingReset) {
+                    resetForm();
+                    setPendingReset(false);
+                  }
+                }}
+                className="close-btn"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

@@ -1,168 +1,278 @@
- .qr-generator-container {
-          border: 1px solid #ccc;
-          border-radius: 12px;
-          padding: 2rem;
-          margin-top: 2rem;
-          max-width: 800px;
-          margin-left: auto;
-          margin-right: auto;
-          background: #f9f9f9;
-          align-items: center;
-        }
-
-        .asset-form {
-          margin-top: 1rem;
-        }
-
-        .asset-form h3 {
-          display: flex;
-          justify-content: center;
-          margin-bottom: 1rem;
-          text-align: center;
-        }
-                .image-preview {
-            display: flex;
-            margin-bottom: 1rem;
-            justify-content: center;
-            max-width: 75vh;
-            align-content: center;
-            flex-wrap: nowrap;
-          }
-
-          .image-preview img {
-            max-width: 100%;
-            max-height: 150px;
-            border-radius: 8px;
-            object-fit: contain;
-            margin-left: 200px;
-          }
-
-        .form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* two per row if space allows */
-  gap: 1.5rem;
-}
-
-.form-field {
+/* ============ Container ============ */
+.qr-generator-container {
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  padding: 2rem;
+  margin: 2rem auto 0;
+  max-width: 920px;
+  background: #f9f9f9;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
 }
 
-.form-field label {
-  margin-bottom: 0.4rem;
-  font-weight: 500;
+.asset-form { width: 100%; margin-top: 1rem; }
+.asset-form h3 {
+  display: flex; justify-content: center;
+  margin-bottom: 1rem; text-align: center;
 }
 
-.form-field input,
-.form-field select {
+/* ============ Image Preview ============ */
+.image-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1rem;
+  max-width: 100%;
+}
+.image-preview img {
+  display: block;
+  max-width: min(100%, 560px);
+  max-height: 220px;
+  border-radius: 8px;
+  object-fit: contain;
+  margin: 0;
+}
+
+/* ============ Form Grid (2 cols default) ============ */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+.form-field { display: flex; flex-direction: column; min-width: 0; }
+.form-field label { margin-bottom: 0.4rem; font-weight: 500; }
+.form-field input, .form-field select {
   padding: 0.6rem;
   border: 1px solid #ccc;
   border-radius: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.form-field input.disabled,
+.form-field input:disabled {
+  background: #f1f1f1;
+  color: #777;
+  cursor: not-allowed;
 }
 
-
-        .add-btn {
-          display: block;
-          margin: 2rem auto 0;
-          padding: 0.6rem 2rem;
-          background-color:#004d40;
-          color: white;
-          font-weight: bold;
-          border: none;
-          border-radius: 8px;
-          cursor: pointer;
-        }
-
-        .add-btn:hover {
-          background-color: #01332b;
-        }
-
-      /* Modal Overlay */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.6);
+/* ============ Action Bar ============ */
+.action-bar {
+  display: grid;
+  grid-template-columns: 1fr auto auto; /* spacer | center group | clear */
+  align-items: left;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  width: 100%;
+}
+.action-center {
+  justify-self: left;
   display: flex;
+  align-items: left;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Inline styled checkbox (beside Add) */
+.checkbox-inline {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 0.5rem;
+  user-select: none;
+  font-weight: 500;
+  cursor: pointer;
+}
+.checkbox-inline input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 18px; height: 18px;
+  border: 2px solid #004d40;
+  border-radius: 4px;
+  display: grid; place-content: center;
+  background: #fff;
+  transition: all 0.2s ease;
+}
+.checkbox-inline input[type="checkbox"]::before {
+  content: "✔";
+  font-size: 14px;
+  color: white;
+  transform: scale(0);
+  transition: transform 0.2s ease-in-out;
+}
+.checkbox-inline input[type="checkbox"]:checked {
+  background-color: #004d40;
+  border-color: #004d40;
+}
+.checkbox-inline input[type="checkbox"]:checked::before {
+  transform: scale(1);
+}
+
+/* Buttons */
+.add-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0.75rem 2rem;
+  background-color:#004d40;
+  color: white; font-weight: bold;
+  border: none; border-radius: 8px; cursor: pointer;
+  min-width: 180px;
+}
+.add-btn:hover { background-color: #01332b; }
+
+/* Clear button on the right */
+.clear-btn {
+  justify-self: end;
+  padding: 0.6rem 1rem;
+  background: #e9eef0;
+  color: #043150;
+  border: 1px solid #c9d3d8;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.clear-btn:hover { background: #dce4e8; }
+
+/* ============ Modal (shared) ============ */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex; align-items: center; justify-content: center;
   z-index: 1000;
 }
-
-/* Modal Box */
 .modal {
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  text-align: center;
-  width: 350px;
-  max-width: 90%;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-/* QR Code Display Area */
-.qr-display {
-  margin: 1.5rem auto;
-}
-
-.button-group {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center; /* center buttons horizontally */
-  gap: 1rem;
-  
-  /* Optional: center the whole button-group container horizontally */
-  margin-left: auto;
-  margin-right: auto;
-  width: fit-content; /* para mo-fit siya sa buttons */
-}
-
-
-
-/* Common Button Styles */
-.print-btn,
-.close-btn,
-.download-btn {
-  width: 250px; /* fixed equal width */
-  padding: 0.75rem 0;
-  border: none;
-  border-radius: 8px;
-  font-weight: bold;
-  font-size: 15px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
+  background: white; padding: 1.5rem;
+  border-radius: 12px; text-align: center;
+  width: 420px; max-width: calc(100% - 2rem);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   box-sizing: border-box;
-  text-align: center;
 }
 
-/* Print Button */
-.print-btn {
-  background-color: #043150;
-  color: white;
+/* ===== Confirm modal ===== */
+.confirm-modal { width: 560px; max-width: calc(100% - 2rem); }
+.confirm-preview { margin: 1rem 0 1.25rem; }
+.confirm-image { display: flex; justify-content: center; margin-bottom: 0.75rem; }
+.confirm-image img {
+  max-width: 240px; max-height: 160px; object-fit: contain; border-radius: 8px;
 }
-.print-btn:hover {
-  background-color: #021727;
+.confirm-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #e6e6e6;
+  border-radius: 8px; overflow: hidden;
+  font-size: 14px;
+}
+.confirm-table th, .confirm-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  text-align: left;
+}
+.confirm-table th { background: #f8f9fa; width: 38%; white-space: nowrap; }
+.confirm-actions {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.confirm-cancel,
+.confirm-add {
+  padding: 0.7rem 0.9rem;
+  border: none; border-radius: 8px; font-weight: 700; cursor: pointer;
+}
+.confirm-cancel { background: #eaeaea; color: #333; }
+.confirm-cancel:hover { background: #dddddd; }
+.confirm-add { background: #004d40; color: #fff; }
+.confirm-add:hover { background: #01332b; }
+
+@media (max-width: 420px) {
+  .confirm-actions { grid-template-columns: 1fr; }
 }
 
-/* Close Button */
-.close-btn {
-  background-color: #a80404;
-  color: white;
+/* ===== QR modal specific ===== */
+.qr-display { margin: 1.25rem auto; }
+.qr-display canvas, .qr-display img { max-width: 100%; height: auto; }
+
+/* Buttons under QR */
+.button-group {
+  display: grid;
+  gap: 0.75rem;
+  margin-left: auto; margin-right: auto;
+  width: 100%; max-width: 320px;
+  grid-template-columns: 1fr; /* stack by default */
 }
-.close-btn:hover {
-  background-color: #6b0202;
+.print-btn, .close-btn, .download-btn {
+  width: 100%;
+  padding: 0.75rem 0;
+  border: none; border-radius: 8px;
+  font-weight: bold; font-size: 15px;
+  cursor: pointer; transition: background-color 0.25s ease;
+  box-sizing: border-box; text-align: center;
+}
+.print-btn { background-color: #043150; color: white; }
+.print-btn:hover { background-color: #021727; }
+.close-btn { background-color: #a80404; color: white; }
+.close-btn:hover { background-color: #6b0202; }
+.download-btn { background-color: #004d40; color: white; }
+.download-btn:hover { background-color: #00241e; }
+
+/* ============ Toast ============ */
+.toast {
+  position: fixed; top: 18px; right: 18px;
+  padding: 10px 14px; border-radius: 8px;
+  background: #333; color: #fff; z-index: 99999;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.2); font-size: 14px;
+  max-width: min(88vw, 420px); word-break: break-word;
+}
+.toast.error { background: #c0392b; }
+.toast.success { background: #16a085; }
+.toast.info { background: #34495e; }
+
+/* ============ Responsive Tweaks ============ */
+@media (max-width: 1024px) {
+  .qr-generator-container { max-width: 860px; padding: 1.5rem; }
+  .image-preview img { max-height: 200px; }
+}
+@media (max-width: 900px) {
+  .qr-generator-container { max-width: 720px; }
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr); /* still 2 cols on tablets */
+    gap: 1rem 1.25rem;
+  }
+  .modal { width: 380px; }
+  .button-group {
+    max-width: 100%;
+    grid-template-columns: repeat(3, 1fr); /* three in a row on wide screens */
+  }
+}
+@media (max-width: 700px) {
+  .form-grid { grid-template-columns: 1fr; } /* single col on mobile */
+}
+@media (max-width: 600px) {
+  .qr-generator-container { padding: 1.25rem; margin-top: 1.25rem; }
+  .asset-form h3 { font-size: 1.05rem; }
+  .form-grid { grid-template-columns: 1fr; gap: 0.9rem; }
+  .image-preview img { max-height: 180px; }
+  .modal { width: 92%; padding: 1.25rem; }
+  .button-group { grid-template-columns: repeat(2, 1fr); } /* 2 per row mid-size */
+  .action-bar {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  .action-center { justify-self: stretch; justify-content: center; }
+  .clear-btn, .add-btn { width: 100%; max-width: 420px; }
+}
+@media (max-width: 400px) {
+  .qr-generator-container { padding: 1rem; }
+  .modal { padding: 1rem; }
+  .print-btn, .close-btn, .download-btn { font-size: 14px; padding: 0.7rem 0; }
 }
 
-/* Download Button */
-.download-btn {
-  background-color: #004d40;
-  color: white;
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .add-btn, .print-btn, .close-btn, .download-btn,
+  .clear-btn, .confirm-add, .confirm-cancel {
+    transition: none;
+  }
 }
-.download-btn:hover {
-  background-color: #00241e;
-}
-
-

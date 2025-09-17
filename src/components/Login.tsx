@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { auth, provider, db } from "../firebase/firebase";
 import {
   signInWithPopup,
   sendEmailVerification,
   signInWithEmailAndPassword,
+  signInWithRedirect,
+  getRedirectResult,
 } from "firebase/auth";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { toast } from "react-toastify";
@@ -14,26 +16,71 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
   const [password, setPassword] = useState("");
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as any)?.from as Location | undefined;
 
-  // 🔹 Load saved identifier from localStorage on mount
+  // Compute where to go after successful auth
+  const targetAfterLogin =
+    from ? `${from.pathname}${from.search}${from.hash}` : "/dashboard";
+
+  // Load saved identifier on mount
   useEffect(() => {
-    const savedIdentifier = localStorage.getItem("lastIdentifier");
-    if (savedIdentifier) {
-      setIdentifier(savedIdentifier);
-    }
+    const saved = localStorage.getItem("lastIdentifier");
+    if (saved) setIdentifier(saved);
   }, []);
 
-  // 🔹 Handle Register Choice
-  const handleRegisterChoice = (role: "Medical" | "IT") => {
-    localStorage.setItem("registerRole", role); // store selection for Register page
-    setShowRegisterModal(false);
-    toggle(); // call parent toggle to switch to Register form
-  };
+  // Handle redirect-based Google sign-in result (mobile-friendly)
+  useEffect(() => {
+  (async () => {
+    try {
+      const result = await getRedirectResult(auth);
+      if (!result) return; // <-- important: no result, do nothing
+      const email = result.user.email;
 
-  // 🔹 Login with Email or Username
+      await postSignInChecks(email, /*isGoogle=*/true);
+      toast.success(`Signed in as ${email}`); // toast here once
+      navigate(targetAfterLogin, { replace: true });
+    } catch (e) {
+      console.error(e);
+    }
+  })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []); // run once
+
+  // Centralized checks after any successful sign-in
+  async function postSignInChecks(email: string | null | undefined, isGoogle = false) {
+  if (!email) {
+    toast.error("No email found on the account.");
+    throw new Error("missing-email");
+  }
+
+  localStorage.setItem("lastIdentifier", email);
+
+  if (isGoogle) {
+    const qUsers = query(collection(db, "IT_Supply_Users"), where("Email", "==", email));
+    const snap = await getDocs(qUsers);
+    if (snap.empty) {
+      toast.error("Google account not registered in system.");
+      await auth.signOut();
+      throw new Error("unregistered-google");
+    }
+  }
+
+  if (!auth.currentUser?.emailVerified) {
+    try {
+      await sendEmailVerification(auth.currentUser!);
+      toast.error("Email not verified. Verification email sent.");
+    } catch {
+      toast.error("Email not verified. Please check your inbox.");
+    }
+    throw new Error("email-not-verified");
+  }
+}
+
+
+  // Email/Username + Password login
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!identifier || !password) {
       toast.error("Please fill in all fields.");
       return;
@@ -42,84 +89,61 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
     try {
       let emailToLogin = identifier;
 
-      // Save to localStorage for next time
+      // Save early for UX
       localStorage.setItem("lastIdentifier", identifier);
 
-      // If it's not an email, treat as username
+      // If not an email, treat as username -> resolve email
       if (!identifier.includes("@")) {
-        const q = query(
+        const qUsers = query(
           collection(db, "IT_Supply_Users"),
           where("Username", "==", identifier)
         );
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) {
+        const snap = await getDocs(qUsers);
+        if (snap.empty) {
           toast.error("Username not found.");
           return;
         }
-        emailToLogin = snapshot.docs[0].data().Email;
+        emailToLogin = snap.docs[0].data().Email;
       }
 
-      // Sign in with email/password
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        emailToLogin,
-        password
-      );
-      const user = userCredential.user;
-      if (!user.emailVerified) {
-        toast.error("Please verify your email before logging in.");
-        return;
-      }
-
-      toast.success(
-        <>
-          Login successful! <br />
-          Welcome {user.displayName}
-        </>
-      );
-      navigate("/dashboard");
+      await signInWithEmailAndPassword(auth, emailToLogin, password);
+      await postSignInChecks(emailToLogin, /*isGoogle=*/false);
+      toast.success(`Signed in as ${emailToLogin}`);
+      navigate(targetAfterLogin, { replace: true });
     } catch (error: any) {
       console.error("Login error:", error);
       toast.error("Invalid credentials.");
     }
   };
 
-  // 🔹 Google Sign-In but only for registered emails
+  // Google sign-in with popup → redirect fallback
   const handleGoogleSignIn = async () => {
     try {
       const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      // Save email to localStorage for next time
-      if (user.email) {
-        localStorage.setItem("lastIdentifier", user.email);
-      }
-
-      // Check if email exists in Firestore
-      const q = query(
-        collection(db, "IT_Supply_Users"),
-        where("Email", "==", user.email)
-      );
-      const snapshot = await getDocs(q);
-
-      if (snapshot.empty) {
-        toast.error("Google account not registered in system.");
-        await auth.signOut();
+      const email = result.user.email;
+      await postSignInChecks(email, /*isGoogle=*/true);
+      toast.success(`Signed in as ${email}`);
+      navigate(targetAfterLogin, { replace: true });
+    } catch (e: any) {
+      // Common mobile/blocked popup cases → fallback to redirect
+      if (
+        e?.code === "auth/popup-blocked" ||
+        e?.code === "auth/operation-not-supported-in-this-environment" ||
+        e?.code === "auth/unauthorized-domain"
+      ) {
+        await signInWithRedirect(auth, provider);
         return;
       }
-
-      if (!user.emailVerified) {
-        await sendEmailVerification(user);
-        toast.error("Email not verified. Verification email sent.");
-        return;
-      }
-
-      toast.success(`Google Sign-In successful! Signed-in as ${user.email}`);
-      navigate("/dashboard");
-    } catch (error) {
-      console.error(error);
+      console.error(e);
       toast.error("Google Sign-In Failed.");
     }
+  };
+
+  // Register role modal handler
+  const handleRegisterChoice = (role: "Medical" | "IT") => {
+    localStorage.setItem("registerRole", role);
+    setShowRegisterModal(false);
+    toggle(); // switch to your Register form
   };
 
   return (
@@ -127,6 +151,7 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
       <div className="login-head">
         <h2>Log In</h2>
       </div>
+
       <form onSubmit={handleLogin}>
         <label>
           Username or Email:
@@ -170,29 +195,19 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
         <span onClick={() => setShowRegisterModal(true)}>Register</span>
       </div>
 
-      {/* 🔹 Register Role Modal */}
       {showRegisterModal && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>Register As:</h3>
             <div className="modal-buttons">
-              <button
-                className="role-btn"
-                onClick={() => handleRegisterChoice("Medical")}
-              >
+              <button className="role-btn" onClick={() => handleRegisterChoice("Medical")}>
                 Medical Department Personnel
               </button>
-              <button
-                className="role-btn"
-                onClick={() => handleRegisterChoice("IT")}
-              >
+              <button className="role-btn" onClick={() => handleRegisterChoice("IT")}>
                 IT Department Personnel
               </button>
             </div>
-            <button
-              className="close-btn"
-              onClick={() => setShowRegisterModal(false)}
-            >
+            <button className="close-btn" onClick={() => setShowRegisterModal(false)}>
               Cancel
             </button>
           </div>

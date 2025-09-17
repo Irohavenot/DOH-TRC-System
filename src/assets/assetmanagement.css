@@ -1,10 +1,16 @@
+
 /* dashboard.css */
 @media screen and (max-width: 768px) {
   .dashboard-container {
     flex-direction: column;
 
   }
-   .modal {
+  .cards-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  .view-more-modal {
+    position: relative;
     width: 90%;
     padding: 2vh;
   }
@@ -12,9 +18,32 @@
   .modal-table {
     font-size: 0.85rem;
   }
+  .modal-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* center the title */
+  position: relative;      /* for the fab to anchor within */
+  margin-bottom: 12px;
+}
 body {
   margin: 0;
   padding: 0;
+}
+.view-more-modal {
+  position: relative;      /* add this */
+  padding: 3.5vh;
+  background-color: white;
+  width: 57vh;
+  max-width: 800px;
+  z-index: 10000;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-height: 80vh;
+  overflow-y: auto;
+  border-radius: 10px;
 }
 
   .sidebar {
@@ -26,11 +55,6 @@ body {
     flex-direction: column;
     transition: width 0.3s;
   }
-
-
-
-  
-
 
   .search-container {
     width: 100%;
@@ -44,8 +68,25 @@ body {
   }
 
   .cards-grid {
-    grid-template-columns: 1fr; /* 1 column for smaller screens */
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Responsive grid */
+    gap: 1rem;
   }
+}
+.view-more-modal {
+  position: relative;      /* add this */
+  padding: 3.5vh;
+  background-color: white;
+  width: 57vh;
+  max-width: 800px;
+  z-index: 10000;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-height: 80vh;
+  overflow-y: auto;
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar {
@@ -76,12 +117,6 @@ body {
   align-items: center;
   margin-bottom: 15px;
 }
-
-
-
-
-
-
 .welcome-text {
   font-size: 1rem;
   font-weight: 500;
@@ -100,8 +135,6 @@ body {
   max-width: 400px;
   margin-bottom: 13px;
 }
-
-
 .search-icon {
   position: absolute;
   top: 50%;
@@ -282,7 +315,13 @@ body {
       opacity: 1;
     }
   }
-  
+  .filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin: 12px 0 20px;
+}
 
   
 
@@ -301,40 +340,37 @@ body {
     color: #007aff;
     transition: background 0.2s, color 0.2s;
   }
+  .filter-tabs button[aria-pressed="true"],
+.filter-tabs button.active {
+  background: #1876db;
+  color: #fff;
+}
+
+  .filter-tabs button span {
+    background: #007aff30; /* Light blue badge background */
+    color: #007aff;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    transition: background 0.2s, color 0.2s;
+  }
   
-.filter-dropdowns {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.filter-dropdowns {
-  display: flex;
-  gap: 2rem; /* space between filter blocks */
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.filter-dropdowns label {
-  display: flex;
-  align-items: center;
-  font-weight: bold;
-  gap: 0.5rem; /* space between label text and dropdown */
-}
-
-.filter-dropdowns select {
-  padding: 0.3rem 0.6rem;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  font-size: 1rem;
-  cursor: pointer;
-}
-
-
-  .cards-grid {
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  .filter-tabs button:hover {
+    background: #1876db;
+    color: white;
+  }
+  
+  .filter-tabs button:hover span {
+    background: white;
+    color: #007aff;
+  }
+  
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 20px;
-  width: 100%; /* Ensure it takes full available width */
+  width: 100%;
 }
   
   
@@ -349,6 +385,7 @@ body {
   flex-direction: column;
   gap: 10px;
   transition: transform 0.2s ease;
+  min-width: 0;
 }
 
 .card:hover {
@@ -358,6 +395,7 @@ body {
 .card-top {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   width: 100%; /* Ensures full width usage */
 }
 
@@ -395,7 +433,7 @@ body {
   margin: 0;
   color: #333;
 }
-
+.card h2, .card p, .card-footer { width: 100%; }
 .card p {
   margin: 0;
   color: #777;
@@ -464,25 +502,107 @@ body {
 }
 
 /* View More Button */
-.view-more-buttons {
+.view-more-btn {
   background-color: #00695c;
   color: white;
   border: none;
-  padding: 8px 25px;
+  padding: 8px 35px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+.view-qr-fab {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 999px;
+  background: #00695c;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(0,0,0,.15);
+  cursor: pointer;
+  transition: background .2s ease, transform .1s ease;
+  z-index: 2; /* was 1; raise it */
+}
+
+.view-qr-fab:hover { background: #004d40; }
+.view-qr-fab:active { transform: translateY(1px); }
+.view-qr-fab .fa-qrcode { font-size: 16px; }
+/* Centered overlay specifically for QRModal (sits ABOVE the View More modal) */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0,0,0,.5);
+  z-index: 10001; /* higher than .modal-backdrop(9999) and .modal(10000) */
+}
+
+/* Responsive QR modal box — override the generic .modal sizing */
+.qr-modal {
+  background-color: white;
+  width: min(400px, 92vw);
+  max-height: 90vh;
+  overflow: auto;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* center content */
+}
+
+/* Clean title alignment for QR modal */
+.qr-modal h3 {
+  margin: 0 0 10px;
+  text-align: center;
+}
+
+/* Center and scale QR image responsively */
+.qr-modal .qr-display {
+  width: min(320px, 80vw);
+  margin: 12px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-modal .qr-display img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Buttons wrap on small screens */
+.qr-modal .button-group {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+@media (max-width: 480px) {
+  .qr-modal { width: 96vw; padding: 12px; }
+  .qr-modal .button-group button { flex: 1 1 120px; }
+}
+
+.collapsed .view-more-btn{
+  background-color: #00695c;
+  color: white;
+  border: none;
+  padding: 8px 30px;
   border-radius: 20px;
   cursor: pointer;
 }
 
-.collapsed .view-more-buttons{
-  background-color: #00695c;
-  color: white;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 20px;
-  cursor: pointer;
-}
-
-.view-more-buttons:hover{
+.view-more-btn:hover{
   background-color: #004d40;
 }
 .modal-backdrop {
@@ -502,7 +622,7 @@ body {
 .modal {
     padding: 3.5vh;
     background-color: white;
-    width: 30%;
+    width: 57vh;
     max-width: 800px;
     z-index: 10000;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -571,8 +691,8 @@ body {
 /* Modal details */
 .modal-details {
   flex-grow: 1;
-  margin-top: -3px;
-  margin-bottom: -7px;
+  margin-top: 20px;
+  margin-bottom: 20px;
   width: 100%;
 }
 
@@ -590,7 +710,7 @@ body {
 
 .modal-details .close-btn,
 .modal-details .edits-button {
-  flex: 1; 
+  flex: 1; /* Makes both buttons equal width in the container */
   max-width: 180px;
   padding: 12px 20px;
   border: none;
@@ -607,58 +727,23 @@ body {
 .modal-details .edits-button {
   background-color: #3498db;
 }
-.save-button {
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  width: 40%;
-  font-size: 16px;
-}
   
  
-.edit-success-popup {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #4BB543; /* Green background */
-  color: white;
-  padding: 12px 24px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  font-size: 16px;
-  z-index: 9999; /* Ensure it's on top of most other elements */
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  animation: fadeInOut 3s ease-in-out forwards;
-}
-
-.edit-success-popup i {
-  font-size: 18px;
-}
-
-/* Optional fade-in-out animation */
-@keyframes fadeInOut {
-  0% {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-20px);
-  }
-  10% {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-  90% {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-  100% {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-20px);
-  }
-}
 
   
+.qr-btn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: #f8f8f8;
+}
+.qr-btn:hover { background: #eee; }
+.muted { color: #9aa0a6; }
+.modal-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* centers the title */
+  position: relative;      /* anchor for .view-qr-fab */
+  margin-bottom: 12px;
+}

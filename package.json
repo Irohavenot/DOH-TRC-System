@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 0.0.0.0 --port 5173 --strictPort",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -24,6 +24,7 @@
     "jsqr": "^1.4.0",
     "lucide-react": "^0.511.0",
     "qr-creator": "^1.0.0",
+    "qr-scanner": "^1.4.2",
     "qrcode.react": "^4.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -36,6 +37,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
+    "@types/node": "^24.4.0",
     "@types/qrcode.react": "^1.0.5",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
@@ -49,6 +51,7 @@
     "globals": "^15.15.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.24.1",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vite-plugin-mkcert": "^1.17.8"
   }
 }
