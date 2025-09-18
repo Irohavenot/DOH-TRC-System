@@ -15,8 +15,10 @@ import Requests from "./Requests";
 import { Clipboard } from "react-feather"; 
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
-import { auth } from "../../firebase/firebase";
+import { auth, db } from "../../firebase/firebase";
 import { toast } from "react-toastify";
+import { useCurrentUserFullName } from "../../hooks/useCurrentUserFullName"; 
+
 import{
   LayoutDashboard,
   PlusCircle,
@@ -27,6 +29,7 @@ import{
 } from 'lucide-react';
 
 const Dashboard = () => {
+  const { fullName, loading } = useCurrentUserFullName();
   const [currentView, setCurrentView] = useState<'dashboard' | 'qr' | 'generate' | 'requestsdata' | 'reports' | 'reports-analytics' | 'profile' | 'assets' | 'people'>('dashboard');
   const [activeView, setActiveView] = useState<'dashboard' | 'generate' | 'reports' | 'requestsdata' |'reports-analytics' | 'qr' | 'profile' | 'assets' | 'people'>('dashboard');
   const [query, setQuery] = useState('');
@@ -35,7 +38,6 @@ const Dashboard = () => {
   const [notificationFilter, setNotificationFilter] = useState<'all' | 'unread'>('all');
   const [openOptionsId, setOpenOptionsId] = useState<number | null>(null);
   const [showAll, setShowAll] = useState(false);
-  const user = { name: 'Ronzel Go' };
 
 type Notification = {
   id: number;
@@ -375,7 +377,7 @@ const [signingOut, setSigningOut] = useState(false);
                   setActiveView('profile');
                 }}
               >
-                {user.name}
+                {fullName || "User"}
               </span>
 
               {showNotif && (

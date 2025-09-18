@@ -1,12 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import "../../superadmincss/supply.css";
-
-const categories = [
-  'Desktops', 'Laptops', 'Printer', 'Server', 'Other Devices',
-  'Accessories', 'Components', 'Consumables',
-  'Property Plant & Equipment', 'Semi-Expendable Property',
-  'Insured Property', 'Defective Property', 'Unserviceable Property',
-];
+import { db } from "../../firebase/firebase";
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  query,
+  where,
+} from "firebase/firestore";
 
 const statuses = ['Functional', 'Defective', 'Unserviceable'];
 
@@ -17,6 +21,7 @@ const months = [
 
 const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
 
+// Sample data — you can replace this with real Firestore data later
 const sampleData = [
   {
     id: 1,
@@ -87,6 +92,9 @@ const sampleData = [
 ];
 
 const SupplyUnit: React.FC = () => {
+  const [categories, setCategories] = useState<string[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('');
@@ -95,15 +103,132 @@ const SupplyUnit: React.FC = () => {
   const [selectedItemHistory, setSelectedItemHistory] = useState<any[]>([]);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [newCategory, setNewCategory] = useState('');
-  
   const [showViewCategoriesModal, setShowViewCategoriesModal] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
-  const [categoriess, setCategories] = useState<string[]>([...categories]);
 
+  // 🔥 Fetch categories from Firestore
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "Asset_Categories"));
+        const list: string[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.Category_Name) list.push(data.Category_Name);
+        });
+        setCategories(list);
+      } catch (e) {
+        console.error("Error fetching categories:", e);
+        alert("Failed to load categories.");
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
 
+    fetchCategories();
+  }, []);
 
+  // 🔥 Add new category
+  const addNewCategory = async (name: string) => {
+    if (!name.trim()) {
+      alert("Category name cannot be empty.");
+      return false;
+    }
 
+    if (categories.includes(name.trim())) {
+      alert("Category already exists.");
+      return false;
+    }
 
+    try {
+      await addDoc(collection(db, "Asset_Categories"), {
+        Category_Name: name.trim(),
+        createdAt: new Date(),
+      });
+
+      setCategories(prev => [...prev, name.trim()]);
+      return true;
+    } catch (err) {
+      console.error("Failed to add category:", err);
+      alert("Failed to add category.");
+      return false;
+    }
+  };
+
+  // 🔥 Edit category
+  const editCategory = async (oldName: string, newName: string) => {
+    if (!newName.trim()) {
+      alert("New name cannot be empty.");
+      return false;
+    }
+
+    if (categories.includes(newName.trim())) {
+      alert("A category with that name already exists.");
+      return false;
+    }
+
+    try {
+      const q = await getDocs(
+        query(collection(db, "Asset_Categories"), where("Category_Name", "==", oldName))
+      );
+
+      if (!q.empty) {
+        const docRef = doc(db, "Asset_Categories", q.docs[0].id);
+        await updateDoc(docRef, { Category_Name: newName.trim() });
+
+        setCategories(prev =>
+          prev.map(cat => (cat === oldName ? newName.trim() : cat))
+        );
+        return true;
+      } else {
+        alert("Category not found in database.");
+        return false;
+      }
+    } catch (err) {
+      console.error("Failed to edit category:", err);
+      alert("Failed to update category.");
+      return false;
+    }
+  };
+
+  // 🔥 Delete category
+  const deleteCategory = async (name: string) => {
+    if (!window.confirm(`Are you sure you want to delete "${name}"?`)) {
+      return false;
+    }
+
+    try {
+      const q = await getDocs(
+        query(collection(db, "Asset_Categories"), where("Category_Name", "==", name))
+      );
+
+      if (!q.empty) {
+        const docRef = doc(db, "Asset_Categories", q.docs[0].id);
+        await deleteDoc(docRef);
+
+        setCategories(prev => prev.filter(cat => cat !== name));
+        return true;
+      } else {
+        alert("Category not found in database.");
+        return false;
+      }
+    } catch (err) {
+      console.error("Failed to delete category:", err);
+      alert("Failed to delete category.");
+      return false;
+    }
+  };
+
+  // 🔥 Handle edit UI
+  const handleEditCategory = (cat: string) => {
+    const newName = prompt("Edit category name:", cat);
+    if (newName && newName.trim() !== "") {
+      editCategory(cat, newName);
+    }
+    setCategoryToDelete(null);
+  };
+
+  // 🔥 Filtering logic
   const filteredData = sampleData.filter(item => {
     return (
       (selectedCategory === '' || item.category === selectedCategory) &&
@@ -137,183 +262,181 @@ const SupplyUnit: React.FC = () => {
     return `Filtered Results: ${parts.join(' - ')} (${filteredData.length})`;
   };
 
-
-
-const handleEditCategory = (cat: string) => {
-  const newName = prompt("Edit category name:", cat);
-  if (newName && newName.trim() !== "") {
-    const index = categories.indexOf(cat);
-    if (index > -1) {
-      const updated = [...categories];
-      updated[index] = newName.trim();
-      setCategories(updated); // update correct state
-    }
-  }
-  setCategoryToDelete(null);
-};
-
-
-  
   return (
-
-
-    
-    
     <div className="supply-unit-container">
-        <div className="header-with-button">
-  <h2>Supply Unit Asset Data</h2>
-  <div>
-    <button onClick={() => setShowCategoryModal(true)} className="add-category-btn">
-      + Add Category
-    </button>
-    <button onClick={() => setShowViewCategoriesModal(true)} className="view-category-btn">
-      View All Categories
-    </button>
-  </div>
-</div>
+      <div className="header-with-button">
+        <h2>Supply Unit Asset Data</h2>
+        <div>
+          <button
+            onClick={() => setShowCategoryModal(true)}
+            className="add-category-btn"
+          >
+            + Add Category
+          </button>
+          <button
+            onClick={() => setShowViewCategoriesModal(true)}
+            className="view-category-btn"
+          >
+            View All Categories
+          </button>
+        </div>
+      </div>
 
-
-
-{showViewCategoriesModal && (
-  <div className="modal-overlays-adminss">
-    <div className="modal-content-adminss">
-      <h3>All Categories</h3>
-
-      {/* List of Categories */}
-      <ul className="category-list">
-        {categoriess.map((cat, index) => (
-          <li key={index} className="category-item">
-            <span>{cat}</span>
-
-            <div className="dropdown-wrapper">
-              <div
-                className="dropdown-menu-trigger"
-                onClick={() =>
-                  setCategoryToDelete(categoryToDelete === cat ? null : cat)
-                }
+      {/* Modal for Adding Category */}
+      {showCategoryModal && (
+        <div className="modal-overlays-admin">
+          <div className="modal-content-admin">
+            <h3>Add New Category</h3>
+            <input
+              type="text"
+              placeholder="Enter new category"
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addNewCategory(newCategory)}
+            />
+            <div className="modal-buttons-admin">
+              <button
+                className="add-admin"
+                onClick={async () => {
+                  if (await addNewCategory(newCategory)) {
+                    setNewCategory("");
+                    setShowCategoryModal(false);
+                  }
+                }}
+                disabled={!newCategory.trim() || categories.includes(newCategory.trim())}
               >
-                ⋮
-              </div>
-
-              {/* Dropdown Options */}
-        {categoryToDelete === cat && (
-  <div className="dropdown-options">
-    <button className="dropdown-btn edit" onClick={() => handleEditCategory(cat)}>✏️ Edit</button>
-    <button
-      className="dropdown-btn delete"
-      onClick={() => {
-        const confirmDelete = window.confirm(`Are you sure you want to delete "${cat}"?`);
-        if (confirmDelete) {
-          const index = categories.indexOf(cat);
-          if (index > -1) {
-            const updated = [...categories];
-            updated.splice(index, 1);
-            setCategories(updated);
-          }
-        }
-      }}
-    >
-      🗑️ Delete
-    </button>
-  </div>
-)}
-
-
-
+                Add
+              </button>
+              <button
+                className="cls-btn-admins"
+                onClick={() => setShowCategoryModal(false)}
+              >
+                Cancel
+              </button>
             </div>
-          </li>
-        ))}
-      </ul>
+          </div>
+        </div>
+      )}
 
-      <div className="modal-buttons-admins">
-        <button className="cls-btn-admins" onClick={() => setShowViewCategoriesModal(false)}>
-          Close
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+      {/* Modal for Viewing All Categories */}
+      {showViewCategoriesModal && (
+        <div className="modal-overlays-adminss">
+          <div className="modal-content-adminss">
+            <h3>All Categories</h3>
+            <ul className="category-list">
+              {categories.map((cat, index) => (
+                <li key={index} className="category-item">
+                  <span>{cat}</span>
+                  <div className="dropdown-wrapper">
+                    <div
+                      className="dropdown-menu-trigger"
+                      onClick={() =>
+                        setCategoryToDelete(categoryToDelete === cat ? null : cat)
+                      }
+                    >
+                      ⋮
+                    </div>
+                    {categoryToDelete === cat && (
+                      <div className="dropdown-options">
+                        <button
+                          className="dropdown-btn edit"
+                          onClick={() => handleEditCategory(cat)}
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          className="dropdown-btn delete"
+                          onClick={() => deleteCategory(cat)}
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="modal-buttons-admins">
+              <button
+                className="cls-btn-admins"
+                onClick={() => setShowViewCategoriesModal(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-
-
-
-{/* Modal for Adding Category */}
-{showCategoryModal && (
-  <div className="modal-overlays-admin">
-    <div className="modal-content-admin">
-      <h3>Add New Category</h3>
-      <input
-        type="text"
-        placeholder="Enter new category"
-        value={newCategory}
-        onChange={(e) => setNewCategory(e.target.value)}
-      />
-      <div className="modal-buttons-admin">
-       <button className='add-admin'
-  onClick={() => {
-    if (newCategory.trim() !== '' && !categories.includes(newCategory)) {
-      const confirmAdd = window.confirm(`Are you sure you want to add "${newCategory}" as a new category?`);
-      if (confirmAdd) {
-        setCategories(prev => [...prev, newCategory]);
-        setNewCategory('');
-        setShowCategoryModal(false);
-      }
-    }
-  }}
->
-  Add
-</button>
-
-        <button className="cls-btn-admins" onClick={() => setShowCategoryModal(false)}>
-          Cancel
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
+      {/* Filters */}
       <div className="filters">
         <div className="dropdown">
           <label>Category:</label>
-          <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            disabled={loadingCategories}
+          >
             <option value="">-- Select Category --</option>
-            {categories.map((cat, index) => (
-              <option key={index} value={cat}>{cat}</option>
-            ))}
+            {loadingCategories ? (
+              <option disabled>Loading...</option>
+            ) : (
+              categories.map((cat, index) => (
+                <option key={index} value={cat}>
+                  {cat}
+                </option>
+              ))
+            )}
           </select>
         </div>
 
         <div className="dropdown">
           <label>Status:</label>
-          <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+          >
             <option value="">-- Select Status --</option>
             {statuses.map((status, index) => (
-              <option key={index} value={status}>{status}</option>
+              <option key={index} value={status}>
+                {status}
+              </option>
             ))}
           </select>
         </div>
 
         <div className="dropdown">
           <label>Month:</label>
-          <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+          >
             <option value="">-- Select Month --</option>
             {months.map((month, index) => (
-              <option key={index} value={month}>{month}</option>
+              <option key={index} value={month}>
+                {month}
+              </option>
             ))}
           </select>
         </div>
 
         <div className="dropdown">
           <label>Year:</label>
-          <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(e.target.value)}
+          >
             <option value="">-- Select Year --</option>
             {years.map((year, index) => (
-              <option key={index} value={year}>{year}</option>
+              <option key={index} value={year}>
+                {year}
+              </option>
             ))}
           </select>
         </div>
       </div>
 
+      {/* Results Table */}
       <div className="supply-table">
         <h3>{generateTitle()}</h3>
         {filteredData.length > 0 ? (
@@ -328,9 +451,14 @@ const handleEditCategory = (cat: string) => {
               </tr>
             </thead>
             <tbody>
-              {filteredData.map(item => (
+              {filteredData.map((item) => (
                 <tr key={item.id}>
-                  <td className="clickable" onClick={() => handleItemClick(item)}>{item.name}</td>
+                  <td
+                    className="clickable"
+                    onClick={() => handleItemClick(item)}
+                  >
+                    {item.name}
+                  </td>
                   <td>{item.category}</td>
                   <td>{item.status}</td>
                   <td>{item.month}</td>
@@ -344,12 +472,17 @@ const handleEditCategory = (cat: string) => {
         )}
       </div>
 
-      {/* Modal for Item History */}
+      {/* Item History Modal */}
       {showModal && (
         <div className="modal-overlays">
           <div className="modal-contented">
             <h3>Item Repair History</h3>
-            <button className="cls-btn" onClick={() => setShowModal(false)}>Close</button>
+            <button
+              className="cls-btn"
+              onClick={() => setShowModal(false)}
+            >
+              Close
+            </button>
             {selectedItemHistory.length > 0 ? (
               <table>
                 <thead>

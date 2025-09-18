@@ -21,7 +21,7 @@ import {
 // ──────────────────────────────────────────────────────────────────────────────
 const ASSETS_COLLECTION = "IT_Assets";
 
-QrScanner.WORKER_PATH = QrScannerWorkerPath;
+QrScanner.WORKER_PATH = '/qr-scanner-worker.min.js';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Types aligned to your payload
@@ -169,57 +169,60 @@ const WebQRScanner: React.FC = () => {
   }, []);
 
   const startCamera = async () => {
-    setErrMsg("");
-    setScanText("");
-    setAsset(null);
-    setShowModal(false);
-    setImagePreviewUrl(null);
+  setErrMsg("");
+  setScanText("");
+  setAsset(null);
+  setShowModal(false);
+  setImagePreviewUrl(null);
 
-    // Secure origin check for friendlier error
-    const isSecure =
-      window.isSecureContext ||
-      window.location.protocol === "https:" ||
-      window.location.hostname === "localhost";
-    if (!isSecure) {
-      setErrMsg(
-        "Camera requires HTTPS (or localhost). Please run the dev server over HTTPS (see notes)."
-      );
+  const isSecure =
+    window.isSecureContext ||
+    window.location.protocol === "https:" ||
+    window.location.hostname === "localhost";
+  if (!isSecure) {
+    setErrMsg("Camera requires HTTPS (or localhost).");
+    return;
+  }
+
+  try {
+    if (!videoRef.current) {
+      console.error("Video element not found!");
+      setErrMsg("Video element not ready. Try again.");
       return;
     }
 
-    try {
-      if (!videoRef.current) return;
+    console.log("Initializing QRScanner with worker:", QrScanner.WORKER_PATH);
 
-      scannerRef.current = new QrScanner(
-        videoRef.current,
-        (result) => {
-          const text = typeof result === "string" ? result : (result as any).data;
-          onScan(text || "");
-        },
-        {
-          preferredCamera: "environment",
-          highlightScanRegion: true,
-          highlightCodeOutline: true,
-          maxScansPerSecond: 8,
-        }
-      );
-
-      await scannerRef.current.start();
-      setCameraActive(true);
-    } catch (err: any) {
-      console.error("Camera start failed:", err);
-      let msg =
-        err?.name === "NotAllowedError"
-          ? "Permission denied for camera."
-          : err?.message || "Unable to access camera.";
-      // Add hint for insecure origins
-      if (msg.toLowerCase().includes("secure")) {
-        msg += " Use HTTPS or localhost.";
+    scannerRef.current = new QrScanner(
+      videoRef.current,
+      (result) => {
+        const text = typeof result === "string" ? result : (result as any).data;
+        onScan(text || "");
+      },
+      {
+        preferredCamera: "environment",
+        highlightScanRegion: true,
+        highlightCodeOutline: true,
+        maxScansPerSecond: 8,
       }
-      setErrMsg(msg);
-      setCameraActive(false);
+    );
+
+    await scannerRef.current.start();
+    setCameraActive(true);
+    console.log("Camera started successfully.");
+  } catch (err: any) {
+    console.error("Camera start failed:", err);
+    let msg =
+      err?.name === "NotAllowedError"
+        ? "Permission denied for camera. Please allow access in browser settings."
+        : err?.message || "Unable to access camera.";
+    if (msg.toLowerCase().includes("secure")) {
+      msg += " Use HTTPS or localhost.";
     }
-  };
+    setErrMsg(msg);
+    setCameraActive(false);
+  }
+};
 
   const stopCamera = () => {
     try {
@@ -311,13 +314,11 @@ const WebQRScanner: React.FC = () => {
         />
       </div>
 
-      {cameraActive && (
-        <div className="scanqr-preview-container">
-          <p className="scanqr-info">Camera Active... Scanning</p>
-          <p className="scanqr-info">Please point the camera at a QR code.</p>
-          <video ref={videoRef} className="scanqr-video" />
-        </div>
-      )}
+      <div className="scanqr-preview-container" style={{ display: cameraActive ? 'block' : 'none' }}>
+        <p className="scanqr-info">Camera Active... Scanning</p>
+        <p className="scanqr-info">Please point the camera at a QR code.</p>
+        <video ref={videoRef} className="scanqr-video" playsInline />
+      </div>
 
       {imagePreviewUrl && (
         <div className="scanqr-preview-container">

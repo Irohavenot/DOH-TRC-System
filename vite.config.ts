@@ -1,15 +1,15 @@
 // vite.config.ts
-import { defineConfig } from 'vite'
+import { defineConfig, type UserConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import mkcert from 'vite-plugin-mkcert'
 
-const LAN_IP = '192.168.254.188' // your PC's IP (update if it changes)
+const LAN_IP = '192.168.1.13' // your PC's IP (update if it changes)
 
 export default defineConfig({
   plugins: [react(), mkcert({ hosts: ['localhost', '127.0.0.1', LAN_IP] })],
   server: {
     host: LAN_IP,        // bind to a single LAN address (not 0.0.0.0)
-    https: true,
+    https: {},
     strictPort: true,
     // helps HMR connect correctly from phones
     hmr: { host: LAN_IP, protocol: 'wss' },
