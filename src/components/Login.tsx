@@ -38,7 +38,7 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
       const email = result.user.email;
 
       await postSignInChecks(email, /*isGoogle=*/true);
-      toast.success(`Signed in as ${email}`); // toast here once
+      toast.success(`Signed in using ${email}`); // toast here once
       navigate(targetAfterLogin, { replace: true });
     } catch (e) {
       console.error(e);
@@ -122,7 +122,7 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
       const result = await signInWithPopup(auth, provider);
       const email = result.user.email;
       await postSignInChecks(email, /*isGoogle=*/true);
-      toast.success(`Signed in as ${email}`);
+      toast.success(`Signed in using ${email}`);
       navigate(targetAfterLogin, { replace: true });
     } catch (e: any) {
       // Common mobile/blocked popup cases → fallback to redirect

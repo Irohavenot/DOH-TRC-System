@@ -18,6 +18,7 @@ import { signOut } from "firebase/auth";
 import { auth, db } from "../../firebase/firebase";
 import { toast } from "react-toastify";
 import { useCurrentUserFullName } from "../../hooks/useCurrentUserFullName"; 
+import DashboardSuperAdmin from '../superadmin/DashboardSuperAdmin';
 
 import{
   LayoutDashboard,
@@ -219,20 +220,32 @@ const [signingOut, setSigningOut] = useState(false);
       <div className={`dashboard-container ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <aside className="sidebar">
           <div className="sidebar-header">
-                  <Link
-                      to="#"
+                 {/* Programmatic navigation for logo (accessible) */}
+                    <div
                       onClick={() => {
                         setCurrentView('dashboard');
                         setActiveView('dashboard');
+                        navigate('/dashadmin');
                       }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setCurrentView('dashboard');
+                          setActiveView('dashboard');
+                          navigate('/dashadmin');
+                        }
+                      }}
+                      style={{ cursor: 'pointer', display: 'inline-block' }}
+                      aria-label="Go to dashadmin"
                     >
                       <img
                         className="dashboard-logos"
                         src="/logosaproject.jpg"
                         alt="DOH Logo"
-                        style={{ cursor: 'pointer' }} // Optional: makes it feel clickable
                       />
-                    </Link>
+                    </div>
+
             <div className="logo-doh">DOH-TRC Argao</div>
             <button className="toggle-sidebar-btns" onClick={toggleSidebar}>
               ☰
@@ -461,7 +474,7 @@ const [signingOut, setSigningOut] = useState(false);
         <span className="label">FUNCTIONAL</span>
         <div className="progress-bar bg-green">
           <div
-            className="progress-fill"
+            className="progress-fill" 
             style={{ width: `${(item.data.functional / total) * 100}%` }}
           />
         </div>

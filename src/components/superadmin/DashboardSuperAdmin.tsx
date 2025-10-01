@@ -17,6 +17,7 @@ import Radiology from "./Radiology";
 import Dental from "./Dental";
 import DDE from "./DDE";
 import Notifications from "./Notifications";
+import { useNavigate } from 'react-router-dom';
 
 import {
   LayoutDashboard,
@@ -41,7 +42,9 @@ interface User {
   IDPictureBase64?: string;
 }
 
+
 const DashboardSuperAdmin = () => {
+  const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<'dashadmin' | 'peoples' | 'profiled' | 'supply' | 'clinical' | 'radiology' | 'dental' | 'dde' | 'notif'>('dashadmin');
   const [activeView, setActiveView] = useState<'dashadmin' | 'peoples' | 'profiled' | 'supply' | 'clinical' | 'radiology' | 'dental' | 'dde' | 'notif'>('dashadmin');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -166,20 +169,32 @@ const confirmReject = async () => {
         {/* Sidebar */}
         <aside className="sidebar">
           <div className="sidebar-header">
-            <Link
-              to="#"
-              onClick={() => {
-                setCurrentView('dashadmin');
-                setActiveView('dashadmin');
-              }}
-            >
-              <img
-                className="dashboard-logos"
-                src="/logosaproject.jpg"
-                alt="DOH Logo"
-                style={{ cursor: 'pointer' }}
-              />
-            </Link>
+            {/* Programmatic navigation for logo (go to /dashboard) */}
+                <div
+                  onClick={() => {
+                    setCurrentView('dashadmin');
+                    setActiveView('dashadmin');
+                    navigate('/dashboard');
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      setCurrentView('dashadmin');
+                      setActiveView('dashadmin');
+                      navigate('/dashboard');
+                    }
+                  }}
+                  style={{ cursor: 'pointer', display: 'inline-block' }}
+                  aria-label="Go to dashboard"
+                >
+                  <img
+                    className="dashboard-logos"
+                    src="/logosaproject.jpg"
+                    alt="DOH Logo"
+                  />
+                </div>
+
             <div className="logos">DOH-TRC Argao</div>
             <button className="toggle-sidebar-btns" onClick={toggleSidebar}>☰</button>
           </div>

@@ -1,237 +1,394 @@
-/* Container */
+/* =========================
+   ProfilePage - Responsive CSS (Updated)
+   ========================= */
+
+:root{
+  --bg-page: #f1f5f9;
+  --card-bg: #fff;
+  --muted: #718096;
+  --text: #1a202c;
+  --accent: #0f766e;
+  --accent-2: #3182ce;
+  --border: #cbd5e0;
+  --soft: #f7fafc;
+  --card-radius: 16px;
+  --gap-sm: 8px;
+  --gap-md: 16px;
+  --gap-lg: 24px;
+  --label-col: 160px; /* desktop label column width */
+  --max-card-width: 980px;
+}
+
+/* ===== Base: page container ===== */
 .profile-container {
-  padding: 3rem 1rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: #f1f5f9;
   min-height: 100vh;
+  padding: clamp(16px, 4vw, 40px);
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+  display: grid;
+  place-items: center;
+  background: var(--bg-page);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Profile Card */
+/* ===== Card ===== */
 .profile-card {
-  background: #ffffff;
-  padding: 2.5rem;
-  border-radius: 16px;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
-  width: 100%;
-  max-width: 500px;
-  text-align: center;
-  transition: all 0.3s ease;
+  width: min(var(--max-card-width), 100%);
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  box-shadow: 0 12px 28px rgba(2, 29, 55, 0.08);
+  padding: clamp(18px, 3.2vw, 28px);
+  transition: transform .15s ease, box-shadow .15s ease;
+  max-width: 1000px;
+  box-sizing: border-box;
 }
 
-/* Image Section */
-.profile-img-wrapper {
-  display: flex;
-  flex-direction: column;
+/* subtle float on hover for large screens */
+@media (hover:hover) and (min-width: 1024px) {
+  .profile-card:hover { transform: translateY(-3px); box-shadow: 0 18px 42px rgba(2,29,55,0.09); }
+}
+
+/* ===== Header (image + name + username + status) ===== */
+/* header uses two columns: image + titleblock */
+.profile-header {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: clamp(12px, 2vw, 20px);
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: clamp(14px, 2vw, 20px);
 }
 
+/* stack header on small screens */
+@media (max-width: 768px) {
+  .profile-header {
+    grid-template-columns: 1fr;
+    text-align: center;
+    justify-items: center;
+  }
+}
+
+/* image wrapper */
+.profile-img-wrapper {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
 .profile-img {
-  width: 110px;
-  height: 110px;
+  width: clamp(84px, 12vw, 128px);
+  height: clamp(84px, 12vw, 128px);
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid #e2e8f0;
+  box-shadow: 0 6px 18px rgba(0,0,0,.06);
 }
 
+/* change photo button */
 .profile-change-photo-btn {
-  margin-top: 0.8rem;
-  padding: 0.4rem 1.2rem;
+  padding: 0.45rem 1rem;
   font-size: 0.85rem;
   background-color: #edf2f7;
   color: #333;
   border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.profile-change-photo-btn:hover {
-  background-color: #e2e8f0;
-}
-
-/* Headings */
-.profile-card h2 {
-  font-size: 1.4rem;
-  margin: 1rem 0 0.3rem;
-  color: #1a202c;
-}
-
-.profile-position {
-  font-style: italic;
-  color: #718096;
-  margin-bottom: 1.5rem;
-}
-
-/* Details Section */
-.profile-details {
-  text-align: left;
-}
-
-.profile-label {
-  font-weight: 600;
-  margin-top: 1.2rem;
-  color: #2d3748;
-  display: block;
-  font-size: 0.95rem;
-}
-
-.profile-details p,
-.profile-details input {
-  width: 100%;
-  margin-top: 0.5rem;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid #cbd5e0;
   border-radius: 8px;
-  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background .15s ease, transform .12s ease;
+}
+.profile-change-photo-btn:hover { background-color: #e2e8f0; transform: translateY(-1px); }
+
+/* title block: name / username / badge
+   We keep the name and badge in a horizontal row (titleline) so badge won't stretch.
+*/
+.profile-titleblock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start; /* left align on desktop */
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.profile-details input {
-  background-color: #ffffff;
+/* titleline holds the heading and badge on the same row */
+.profile-titleline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+  width: 100%;
 }
 
+/* name area: left part */
+.profile-name-area {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0; /* allow truncation if necessary */
+}
+
+/* heading */
+.profile-card h2 {
+  margin: 0;
+  font-size: clamp(1.1rem, 2.4vw, 1.6rem);
+  color: var(--text);
+  line-height: 1.05;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* username (subtext) */
+.profile-username {
+  margin: 0;
+  color: var(--muted);
+  font-size: clamp(.9rem, 1.6vw, .95rem);
+  word-break: break-word;
+  opacity: 0.95;
+}
+
+/* ===== Badge styling (fixed) ===== */
+/* badge will size to content and never stretch across the card */
+.profile-status-badge {
+  display: inline-block;
+  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  background: #e6fffa;
+  color: #0f766e;
+  border: 1px solid #b2f5ea;
+  align-self: left;  /* keep compact */
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* Small screens: center the titleline so badge remains tidy */
+@media (max-width: 768px) {
+  .profile-titleblock { align-items: center; text-align: center; }
+  .profile-titleline { flex-direction: column; gap: 8px; align-items: center; }
+  .profile-card h2 { white-space: normal; }
+}
+
+/* ===== Position line (optional) ===== */
+.profile-position-row { margin-top: 6px; }
+.profile-position {
+  display: inline-block;
+  padding: 6px 10px;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-style: italic;
+  color: #4a5568;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+/* ===== Details grid (label | field) ===== */
+.profile-details {
+  margin-top: clamp(14px, 2vw, 18px);
+  display: grid;
+  grid-template-columns: var(--label-col) 1fr;
+  column-gap: clamp(12px, 2vw, 18px);
+  row-gap: 14px;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Tablet tweaks */
+@media (max-width: 1024px) {
+  .profile-details { grid-template-columns: 140px 1fr; column-gap: 14px; }
+}
+
+/* mobile: single column stack */
+@media (max-width: 768px) {
+  .profile-details { grid-template-columns: 1fr; }
+}
+
+/* label styles */
+.profile-label {
+  margin: 0;
+  text-align: right;         /* right-align labels on desktop */
+  font-weight: 700;
+  color: #2d3748;
+  font-size: clamp(0.9rem, 1.6vw, 0.95rem);
+  align-self: center;
+  padding-right: 8px;
+  box-sizing: border-box;
+}
+
+/* small sub-labels (appear above inputs) */
+.profile-label.small {
+  font-weight: 600;
+  font-size: .86rem;
+  text-align: left;
+  display: block;
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+
+/* on mobile, main labels become left-aligned above inputs */
+@media (max-width: 768px) {
+  .profile-label { text-align: left; padding-right: 0; margin-bottom: 6px; }
+}
+
+/* field styles (inputs/share baseline) */
+.profile-details p,
+.profile-details input,
+.profile-details select,
+.profile-details textarea {
+  width: 100%;
+  margin: 0;
+  padding: clamp(10px, 2.2vw, 12px) clamp(12px, 2.4vw, 14px);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: clamp(0.92rem, 1.8vw, 0.95rem);
+  background-color: var(--card-bg);
+  color: var(--text);
+  line-height: 1.25;
+  box-sizing: border-box;
+}
+
+/* read-only look */
 .profile-details p {
-  background-color: #f7fafc;
+  background-color: var(--soft);
+  border-style: solid;
+  border-color: transparent;
 }
 
-/* Buttons */
+/* focus */
+.profile-input:focus,
+.profile-details select:focus,
+.profile-details textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.12);
+}
+
+/* field grouping helper: allows many subfields to occupy the right column */
+.field-group {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  gap: 10px;
+}
+
+/* name-row: show 3 name inputs in a row on wide screens, stack on smaller */
+.name-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+@media (max-width: 880px) {
+  .name-row { grid-template-columns: 1fr; }
+}
+
+/* ===== Controls / actions ===== */
 .profile-actions {
-  margin-top: 2.5rem;
+  margin-top: clamp(18px, 2.8vw, 22px);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
 }
 
 .profile-actions button {
-  margin: 0.5rem;
-  padding: 0.75rem 1.6rem;
+  padding: clamp(12px, 2.5vw, 14px) 1.1rem;
   border: none;
   border-radius: 10px;
-  font-size: 1rem;
+  font-size: clamp(.95rem, 1.8vw, 1rem);
   color: #fff;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: transform .12s ease, background-color .2s ease;
 }
+.profile-actions button:hover { transform: translateY(-1px); }
 
-.profile-edit-btn {
-  background-color: #38a169;
-}
+.profile-edit-btn { background-color: #38a169; }
+.profile-edit-btn:hover { background-color: #2f855a; }
+.profile-apply-btn { background-color: var(--accent-2); }
+.profile-apply-btn:hover { background-color: #2b6cb0; }
+.profile-disable-btn { background-color: #e53e3e; }
+.profile-disable-btn:hover { background-color: #c53030; }
 
-.profile-edit-btn:hover {
-  background-color: #2f855a;
-}
-
-.profile-apply-btn {
-  background-color: #3182ce;
-}
-
-.profile-apply-btn:hover {
-  background-color: #2b6cb0;
-}
-
-.profile-disable-btn {
-  background-color: #e53e3e;
-}
-
-.profile-disable-btn:hover {
-  background-color: #c53030;
-}
-
-/* Modal Styles */
+/* ===== Verification modal / popup ===== */
 .profile-modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: grid; place-items: center;
   z-index: 99;
+  padding: 16px;
 }
-
 .profile-modal {
-  background: #ffffff;
-  padding: 2rem;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 360px;
+  background: var(--card-bg);
+  width: min(540px, 96vw);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+  padding: clamp(16px, 3vw, 24px);
   text-align: center;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
+.profile-modal h3 { margin: 0 0 .4rem; font-size: clamp(1.05rem, 2.4vw, 1.25rem); color: var(--text); }
+.profile-modal-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 1.2rem; }
+@media (max-width: 420px) { .profile-modal-buttons { grid-template-columns: 1fr; } }
+.profile-confirm-btn, .profile-cancel-btn { border: none; border-radius: 10px; padding: .65rem 1rem; font-weight: 700; cursor: pointer; transition: background .15s ease, transform .12s ease; font-size: clamp(.95rem, 1.8vw, 1rem); }
 
-/* Verification Input */
+/* ===== Badge / title editing helpers ===== */
+/* hide certain main labels during editing (apply .hide-on-edit to the top-level Name and Address labels) */
+.profile-card.editing .profile-label.hide-on-edit { display: none !important; }
+
+/* Alternative: if you'd rather keep them visible but larger, comment the rule above
+   and use the rule below instead (uncomment it). */
+/*
+.profile-card.editing .profile-label.hide-on-edit {
+  display: block;
+  font-size: 1.02rem;
+  color: #153e36;
+  font-weight: 800;
+}
+*/
+
+/* when editing, make all labels slightly stronger color for emphasis */
+.profile-card.editing .profile-label { color: #153e36; }
+
+/* ===== Verification code input (styling) ===== */
 .profile-verification-input {
-  font-size: 1.4rem;
-  letter-spacing: 0.6rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: clamp(18px, 3.2vw, 26px);
+  letter-spacing: .6rem;
   padding: 0.6rem;
-  margin: 1.2rem 0;
+  margin: 1rem 0;
   width: 100%;
   text-align: center;
-  border: 1px solid #cbd5e0;
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background-color: #f7fafc;
+  background-color: var(--soft);
+}
+@media (max-width: 360px) { .profile-verification-input { letter-spacing: .35rem; } }
+
+/* Resend link */
+.profile-resend-text { margin-top: .8rem; font-size: .9rem; color: #4a5568; }
+.profile-resend-btn { margin-top: 6px; background: none; border: none; color: var(--accent-2); cursor: pointer; text-decoration: underline; font-size: .95rem; }
+.profile-resend-btn:hover { color: #2b6cb0; }
+
+/* Loading overlay */
+.loading-overlay { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(255,255,255,0.6); z-index: 60; }
+
+/* very small screens */
+@media (max-width: 360px) {
+  :root { --label-col: 120px; }
+  .profile-card { padding: 12px; border-radius: 12px; }
+  .profile-img { width: 72px; height: 72px; }
+  .profile-details { row-gap: 10px; }
 }
 
-/* Confirm + Cancel */
-.profile-confirm-btn {
-  background-color: #3182ce;
-  color: white;
-  padding: 0.6rem 1.2rem;
-  border: none;
-  border-radius: 8px;
-  margin-top: 1rem;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
+/* reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
 
-.profile-confirm-btn:hover {
-  background-color: #2c5282;
-}
-
-.profile-cancel-btn {
-  background-color: #718096;
-  color: white;
-  padding: 0.6rem 1.2rem;
-  border: none;
-  border-radius: 8px;
-  margin-top: 1rem;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.profile-cancel-btn:hover {
-  background-color: #4a5568;
-}
-
-/* Modal buttons side by side */
-.profile-modal-buttons {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-
-/* Resend */
-.profile-resend-text {
-  margin-top: 1.2rem;
-  font-size: 0.9rem;
-  color: #4a5568;
-}
-
-.profile-resend-btn {
-  margin-top: 0.5rem;
-  background: none;
-  border: none;
-  color: #3182ce;
-  cursor: pointer;
-  text-decoration: underline;
-  font-size: 0.9rem;
-}
-
-.profile-resend-btn:hover {
-  color: #2b6cb0;
-}
+/* Utilities */
+.align-left { text-align: left; }
+.text-muted { color: var(--muted); font-size: .95rem; }
+.small-note { font-size: .88rem; color: #4a5568; margin-top: 6px; }

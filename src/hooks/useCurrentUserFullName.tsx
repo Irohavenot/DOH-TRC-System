@@ -26,7 +26,7 @@ export const useCurrentUserFullName = () => {
         if (!snapshot.empty) {
           const userData = snapshot.docs[0].data();
           const firstName = userData.FirstName || "";
-          const middleInitial = userData.MiddleInitial ? `${userData.MiddleInitial}.` : "";
+          const middleInitial = userData.MiddleInitial ? `${userData.MiddleInitial}` : "";
           const lastName = userData.LastName || "";
 
           const name = [firstName, middleInitial, lastName].filter(Boolean).join(" ");

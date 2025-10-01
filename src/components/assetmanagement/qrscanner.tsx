@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import QrScanner from "qr-scanner";
+// Vite returns a URL string for the worker file
 import QrScannerWorkerPath from "qr-scanner/qr-scanner-worker.min.js?url";
 import "../../assets/scanqr.css";
 
@@ -17,11 +18,12 @@ import {
 } from "firebase/firestore";
 
 // ──────────────────────────────────────────────────────────────────────────────
-// CONFIG: change to your real collection (e.g., "IT_Assets")
+// CONFIG
 // ──────────────────────────────────────────────────────────────────────────────
 const ASSETS_COLLECTION = "IT_Assets";
 
-QrScanner.WORKER_PATH = '/qr-scanner-worker.min.js';
+// Use the worker path provided by Vite (reliable in dev & prod)
+(QrScanner as any).WORKER_PATH = QrScannerWorkerPath;
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Types aligned to your payload
@@ -64,6 +66,7 @@ function fmtDate(val?: TSOrString): string {
 function yesNo(v?: boolean): string {
   return v ? "Yes" : "No";
 }
+
 
 function parseQRPayload(text: string): { assetId?: string; assetUrl?: string; fullText: string } {
   // JSON payload?
@@ -126,17 +129,14 @@ async function resolveAsset(text: string): Promise<AssetDoc | null> {
   const { assetId, assetUrl } = parseQRPayload(text);
   console.debug("Parsed QR →", { assetId, assetUrl });
 
-  // 1) If we have an assetId, try docId first (common pattern)
   if (assetId) {
     const byDoc = await fetchByDocId(assetId);
     if (byDoc) return byDoc;
 
-    // 2) Otherwise, try field query by assetId
     const byFieldId = await fetchByField("assetId", assetId);
     if (byFieldId) return byFieldId;
   }
 
-  // 3) Try by assetUrl if available
   if (assetUrl) {
     const byUrl = await fetchByField("assetUrl", assetUrl);
     if (byUrl) return byUrl;
@@ -148,10 +148,14 @@ async function resolveAsset(text: string): Promise<AssetDoc | null> {
 // ──────────────────────────────────────────────────────────────────────────────
 // Component
 // ──────────────────────────────────────────────────────────────────────────────
+
 const WebQRScanner: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const scannerRef = useRef<QrScanner | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+// what the user wants to do next when they hit "Scan Another"
+  const [nextAction, setNextAction] = useState<'camera' | 'upload' | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 
@@ -168,69 +172,71 @@ const WebQRScanner: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const startCamera = async () => {
-  setErrMsg("");
-  setScanText("");
-  setAsset(null);
-  setShowModal(false);
-  setImagePreviewUrl(null);
-
-  const isSecure =
-    window.isSecureContext ||
-    window.location.protocol === "https:" ||
-    window.location.hostname === "localhost";
-  if (!isSecure) {
-    setErrMsg("Camera requires HTTPS (or localhost).");
-    return;
-  }
-
-  try {
-    if (!videoRef.current) {
-      console.error("Video element not found!");
-      setErrMsg("Video element not ready. Try again.");
-      return;
-    }
-
-    console.log("Initializing QRScanner with worker:", QrScanner.WORKER_PATH);
-
-    scannerRef.current = new QrScanner(
-      videoRef.current,
-      (result) => {
-        const text = typeof result === "string" ? result : (result as any).data;
-        onScan(text || "");
-      },
-      {
-        preferredCamera: "environment",
-        highlightScanRegion: true,
-        highlightCodeOutline: true,
-        maxScansPerSecond: 8,
-      }
-    );
-
-    await scannerRef.current.start();
-    setCameraActive(true);
-    console.log("Camera started successfully.");
-  } catch (err: any) {
-    console.error("Camera start failed:", err);
-    let msg =
-      err?.name === "NotAllowedError"
-        ? "Permission denied for camera. Please allow access in browser settings."
-        : err?.message || "Unable to access camera.";
-    if (msg.toLowerCase().includes("secure")) {
-      msg += " Use HTTPS or localhost.";
-    }
-    setErrMsg(msg);
-    setCameraActive(false);
-  }
-};
-
-  const stopCamera = () => {
+  
+  const stopCamera = useCallback(() => {
     try {
       scannerRef.current?.stop();
       scannerRef.current?.destroy();
     } catch { /* ignore */ }
     scannerRef.current = null;
     setCameraActive(false);
+  }, []);
+
+  const startCamera = async () => {
+    setNextAction('camera');       
+    setErrMsg("");
+    setScanText("");
+    setAsset(null);
+    setShowModal(false);
+    setImagePreviewUrl(null);
+
+    const isSecure =
+      window.isSecureContext ||
+      window.location.protocol === "https:" ||
+      window.location.hostname === "localhost";
+    if (!isSecure) {
+      setErrMsg("Camera requires HTTPS (or localhost).");
+      return;
+    }
+
+    try {
+      if (!videoRef.current) {
+        console.error("Video element not found!");
+        setErrMsg("Video element not ready. Try again.");
+        return;
+      }
+
+      console.log("Initializing QRScanner with worker:", (QrScanner as any).WORKER_PATH);
+
+      scannerRef.current = new QrScanner(
+        videoRef.current,
+        (result) => {
+          const text = typeof result === "string" ? result : (result as any).data;
+          onScan(text || "");
+        },
+        {
+          preferredCamera: "environment",
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
+          maxScansPerSecond: 8,
+        }
+      );
+
+      await scannerRef.current.start();
+      setCameraActive(true);
+      console.log("Camera started successfully.");
+    } catch (err: any) {
+      console.error("Camera start failed:", err);
+      let msg =
+        err?.name === "NotAllowedError"
+          ? "Permission denied for camera. Please allow access in browser settings."
+          : err?.message || "Unable to access camera.";
+      if (String(msg).toLowerCase().includes("secure")) {
+        msg += " Use HTTPS or localhost.";
+      }
+      setErrMsg(msg);
+      setCameraActive(false);
+    }
   };
 
   const onScan = async (text: string) => {
@@ -265,6 +271,8 @@ const WebQRScanner: React.FC = () => {
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
     if (!file) return;
+
+    setNextAction('upload');  
     setErrMsg("");
     setScanText("");
     setAsset(null);
@@ -285,55 +293,107 @@ const WebQRScanner: React.FC = () => {
       console.error("Image scan failed:", err);
       setErrMsg(err?.message || "Could not read a QR from the image.");
       setImagePreviewUrl(null);
-    }
-  };
+      } finally {
+    // let user re-select the same file next time
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    // optional: revoke preview URL if you want to be extra tidy
+    URL.revokeObjectURL(previewUrl);
+  }
+};
 
   const handleCloseModal = () => setShowModal(false);
 
+  // Allow closing modal with Escape
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setShowModal(false);
+    }
+    if (showModal) window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showModal]);
+
   return (
     <div className="scanqr-container">
-      <h2 className="scanqr-title">QR Scanner</h2>
-      <p className="scanqr-instructions">Click the button below to open the camera or upload an image.</p>
+      <header className="scanqr-header">
+        <h2 className="scanqr-title">QR Scanner</h2>
+        <p className="scanqr-subtitle">Scan a QR code or upload an image to view asset details.</p>
+      </header>
 
-      <div className="scanqr-buttons">
+      <div className="scanqr-actions" role="group" aria-label="Scanner actions">
         {!cameraActive ? (
-          <button className="scanqr-scan-btn" onClick={startCamera}>
+          <button className="scanqr-btn scanqr-btn-primary" onClick={startCamera}>
             Open Camera
           </button>
         ) : (
-          <button className="scanqr-close-btn" onClick={stopCamera}>
+          <button className="scanqr-btn scanqr-btn-danger" onClick={stopCamera}>
             Stop Camera
           </button>
         )}
 
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleImageUpload}
-          className="scanqr-file-input"
-        />
+        <label className="scanqr-upload-btn"
+                onClick={() => {
+                  setNextAction('upload');             // <-- remember that user prefers upload
+                  // allow selecting same file again
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+          }}>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="scanqr-file-input"
+            aria-label="Upload image to scan"
+          />
+          Upload Image
+        </label>
       </div>
 
-      <div className="scanqr-preview-container" style={{ display: cameraActive ? 'block' : 'none' }}>
-        <p className="scanqr-info">Camera Active... Scanning</p>
-        <p className="scanqr-info">Please point the camera at a QR code.</p>
-        <video ref={videoRef} className="scanqr-video" playsInline />
-      </div>
-
-      {imagePreviewUrl && (
-        <div className="scanqr-preview-container">
-          <p className="scanqr-info">Image Preview... Scanning</p>
-          <img src={imagePreviewUrl} className="scanqr-image-preview" alt="Uploaded Preview" />
+      {errMsg && <div className="scanqr-alert scanqr-alert-error" role="alert">{errMsg}</div>}
+      {loading && <div className="scanqr-alert scanqr-alert-info">Resolving asset…</div>}
+      {scanText && !loading && (
+        <div className="scanqr-alert scanqr-alert-success">
+          <strong>Scan Result:</strong> <span className="scanqr-wrap">{scanText}</span>
         </div>
       )}
 
-      {loading && <p className="scanqr-info">Resolving asset…</p>}
-      {scanText && <p className="scanqr-result">Scan Result: {scanText}</p>}
-      {errMsg && <p className="scanqr-error">{errMsg}</p>}
+      <div className={`scanqr-preview ${cameraActive ? '' : 'is-hidden'}`}>
+          <div className="scanqr-video-wrap">
+            <video ref={videoRef} className="scanqr-video" playsInline />
+          </div>
+          <p className="scanqr-hint">
+            {cameraActive ? 'Point your camera at a QR code.' : 'Camera is off.'}
+          </p>
+        </div>
+
+
+      {imagePreviewUrl && (
+        <div className="scanqr-preview">
+          <div className="scanqr-image-wrap">
+            <img src={imagePreviewUrl} className="scanqr-image-preview" alt="Uploaded Preview" />
+          </div>
+          <p className="scanqr-hint">Scanning image…</p>
+        </div>
+      )}
 
       {showModal && asset && (
-        <div className="scanqr-modal-backdrop" onClick={handleCloseModal}>
-          <div className="scanqr-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="scanqr-modal-backdrop" onClick={handleCloseModal} aria-modal="true" role="dialog">
+          <div
+            className="scanqr-modal"
+            onClick={(e) => e.stopPropagation()}
+            aria-label="Asset details"
+            tabIndex={-1}
+          >
+            <div className="scanqr-modal-header">
+              <h3 className="scanqr-modal-title">{asset.assetName || "Asset Details"}</h3>
+              <button
+                className="scanqr-close-x"
+                onClick={handleCloseModal}
+                aria-label="Close details"
+              >
+                ×
+              </button>
+            </div>
+
             <div className="scanqr-modal-content">
               <div className="scanqr-modal-image">
                 {asset.image ? (
@@ -354,45 +414,114 @@ const WebQRScanner: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr><td><strong>Asset ID:</strong></td><td>{asset.assetId || ""}</td></tr>
-                    <tr><td><strong>Asset Name:</strong></td><td>{asset.assetName || ""}</td></tr>
-                    <tr><td><strong>Category:</strong></td><td>{asset.category || ""}</td></tr>
-                    <tr><td><strong>Status:</strong></td><td>{asset.status || ""}</td></tr>
-                    <tr><td><strong>Assigned Personnel:</strong></td><td>{asset.personnel || ""}</td></tr>
-                    <tr><td><strong>Purchase Date:</strong></td><td>{fmtDate(asset.purchaseDate)}</td></tr>
-                    <tr><td><strong>Serial Number:</strong></td><td>{asset.serialNo || ""}</td></tr>
-                    <tr><td><strong>License Type:</strong></td><td>{asset.licenseType || ""}</td></tr>
-                    <tr><td><strong>Expiration Date:</strong></td><td>{asset.expirationDate || ""}</td></tr>
-                    <tr><td><strong>Renewal Date:</strong></td><td>{fmtDate(asset.renewdate)}</td></tr>
-                    <tr><td><strong>Generate QR:</strong></td><td>{yesNo(asset.generateQR)}</td></tr>
                     <tr>
-                      <td><strong>Asset URL:</strong></td>
-                      <td>
+                      <td data-label="Attribute"><strong>Asset ID</strong></td>
+                      <td data-label="Details">{asset.assetId || ""}</td>
+                    </tr>
+                    <tr>
+                      <td data-label="Attribute"><strong>Asset Name</strong></td>
+                      <td data-label="Details">{asset.assetName || ""}</td>
+                    </tr>
+                    <tr>
+                      <td data-label="Attribute"><strong>Category</strong></td>
+                      <td data-label="Details">{asset.category || ""}</td>
+                    </tr>
+                    <tr>
+                      <td data-label="Attribute"><strong>Status</strong></td>
+                      <td data-label="Details">{asset.status || ""}</td>
+                    </tr>
+                    <tr>
+                      <td data-label="Attribute"><strong>Assigned Personnel</strong></td>
+                      <td data-label="Details">{asset.personnel || ""}</td>
+                    </tr>
+                    <tr>
+                      <td data-label="Attribute"><strong>Purchase Date</strong></td>
+                      <td data-label="Details">{fmtDate(asset.purchaseDate)}</td>
+                    </tr>
+                    <tr>
+                      <td data-label="Attribute"><strong>Serial Number</strong></td>
+                      <td data-label="Details">{asset.serialNo || ""}</td>
+                    </tr>
+                    <tr>
+                      <td data-label="Attribute"><strong>License Type</strong></td>
+                      <td data-label="Details">{asset.licenseType || ""}</td>
+                    </tr>
+                    <tr>
+                      <td data-label="Attribute"><strong>Expiration Date</strong></td>
+                      <td data-label="Details">{asset.expirationDate || ""}</td>
+                    </tr>
+                    <tr>
+                      <td data-label="Attribute"><strong>Renewal Date</strong></td>
+                      <td data-label="Details">{fmtDate(asset.renewdate)}</td>
+                    </tr>
+                    <tr>
+                      <td data-label="Attribute"><strong>Generate QR</strong></td>
+                      <td data-label="Details">{yesNo(asset.generateQR)}</td>
+                    </tr>
+                    <tr>
+                      <td data-label="Attribute"><strong>Asset URL</strong></td>
+                      <td data-label="Details">
                         {asset.assetUrl ? (
-                          <a href={asset.assetUrl} target="_blank" rel="noreferrer">{asset.assetUrl}</a>
+                          <a href={asset.assetUrl} target="_blank" rel="noreferrer" className="scanqr-link">
+                            {asset.assetUrl}
+                          </a>
                         ) : ("")}
                       </td>
                     </tr>
-                    <tr><td><strong>Created By:</strong></td><td>{asset.createdBy || ""}</td></tr>
-                    <tr><td><strong>Created At:</strong></td><td>{fmtDate(asset.createdAt)}</td></tr>
-                    <tr><td><strong>Updated By:</strong></td><td>{asset.updatedBy || ""}</td></tr>
-                    <tr><td><strong>Updated At:</strong></td><td>{fmtDate(asset.updatedAt)}</td></tr>
+                    <tr>
+                      <td data-label="Attribute"><strong>Created By</strong></td>
+                      <td data-label="Details">{asset.createdBy || ""}</td>
+                    </tr>
+                    <tr>
+                      <td data-label="Attribute"><strong>Created At</strong></td>
+                      <td data-label="Details">{fmtDate(asset.createdAt)}</td>
+                    </tr>
+                    <tr>
+                      <td data-label="Attribute"><strong>Updated By</strong></td>
+                      <td data-label="Details">{asset.updatedBy || ""}</td>
+                    </tr>
+                    <tr>
+                      <td data-label="Attribute"><strong>Updated At</strong></td>
+                      <td data-label="Details">{fmtDate(asset.updatedAt)}</td>
+                    </tr>
                   </tbody>
                 </table>
 
-                <div className="scanqr-modal-buttons-container">
-                  <button className="scanqr-close-btn" onClick={handleCloseModal}>
-                    <i className="fas fa-xmark"></i> Close
+                <div className="scanqr-modal-buttons">
+                  <button className="scanqr-btn scanqr-btn-light" onClick={handleCloseModal}>
+                    Close
                   </button>
                   <button
-                    className="scanqr-edit-btn"
+                    className="scanqr-btn scanqr-btn-success"
                     onClick={() => {
                       console.log("Edit asset", asset.docId ?? asset.assetId);
                       // navigate(`/assets/${asset.docId ?? asset.assetId}/edit`);
                     }}
                   >
-                    <i className="fas fa-edit"></i> Edit
+                    Edit
                   </button>
+                  <button
+                      className="scanqr-btn scanqr-btn-outline"
+                      onClick={() => {
+                        setShowModal(false);
+
+                        // give the modal a tick to close
+                        setTimeout(() => {
+                          if (nextAction === 'upload') {
+                            // re-arm file input so onChange fires even for the same file
+                            if (fileInputRef.current) {
+                              fileInputRef.current.value = '';
+                              fileInputRef.current.click();  // <-- open the file picker
+                            }
+                          } else {
+                            // default to camera
+                            startCamera();
+                          }
+                        }, 60);
+                      }}
+                    >
+                      Scan Another
+                    </button>
                 </div>
               </div>
             </div>

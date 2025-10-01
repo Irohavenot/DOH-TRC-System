@@ -7,7 +7,9 @@
     "dev": "vite --host 0.0.0.0 --port 5173 --strictPort",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:phil": "node scripts/build-phil-address.js",
+    "build:phil:fast": "SKIP_BRGY=1 node scripts/build-phil-address.js"
   },
   "dependencies": {
     "@capacitor/android": "^7.2.0",
@@ -54,4 +56,5 @@
     "vite": "^6.3.5",
     "vite-plugin-mkcert": "^1.17.8"
   }
+  
 }

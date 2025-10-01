@@ -216,12 +216,24 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
             Preview Image
           </button>
         )}
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setIdPicture(e.target.files?.[0] || null)}
-          required
-        />
+       <input
+            type="file"
+            accept="image/*"
+            required
+            onChange={(e) => {
+              const file = e.target.files?.[0] || null;
+              if (file) {
+                // Check MIME type (only image/*)
+                if (!file.type.startsWith("image/")) {
+                  toast.error("Only image files are allowed.");
+                  e.target.value = ""; // reset input
+                  setIdPicture(null);
+                  return;
+                }
+              }
+              setIdPicture(file);
+            }}
+          />
 
         {/* Submit */}
         <button type="submit" className="login-button">Register</button>
