@@ -19,7 +19,7 @@ import { auth, db } from "../../firebase/firebase";
 import { toast } from "react-toastify";
 import { useCurrentUserFullName } from "../../hooks/useCurrentUserFullName"; 
 import DashboardSuperAdmin from '../superadmin/DashboardSuperAdmin';
-
+import SearchInput from './SearchInput';
 import{
   LayoutDashboard,
   PlusCircle,
@@ -39,6 +39,7 @@ const Dashboard = () => {
   const [notificationFilter, setNotificationFilter] = useState<'all' | 'unread'>('all');
   const [openOptionsId, setOpenOptionsId] = useState<number | null>(null);
   const [showAll, setShowAll] = useState(false);
+  
 
 type Notification = {
   id: number;
@@ -50,8 +51,7 @@ type Notification = {
   const navigate = useNavigate();
 
   const navItems = [
-    { title: "New Asset", category: "Asset" },
-    { title: "New License", category: "License" },
+    { title: "New Asset", category: "Asset" },  
     { title: "New Accessory", category: "Accessory" },
     { title: "New Consumable", category: "Consumable" },
     { title: "New Component", category: "Component" },
@@ -352,17 +352,8 @@ const [signingOut, setSigningOut] = useState(false);
         <div className="main-content">
           <header className="main-header">
             {(currentView === 'reports' || currentView === 'assets') && (
-              <div className="search-container">
-                <img src="/search-interface-symbol.png" alt="Search" className="search-icon" />
-                <input
-                  type="text"
-                  value={query}
-                  onChange={handleSearch}
-                  placeholder="Search..."
-                  className="search-input"
-                />
-              </div>
-            )}
+  <SearchInput placeholder="Search assets or personnel..." />
+)}
             {(currentView === 'dashboard') && (
               <h2 className="asset-overview-heading">Dashboard Overview</h2>
             )}

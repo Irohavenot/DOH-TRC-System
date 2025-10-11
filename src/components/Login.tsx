@@ -7,78 +7,164 @@ import {
   signInWithEmailAndPassword,
   signInWithRedirect,
   getRedirectResult,
+  User,
 } from "firebase/auth";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, doc, updateDoc } from "firebase/firestore";
 import { toast } from "react-toastify";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEye } from '@fortawesome/free-solid-svg-icons';
+
+// 🔑 Define allowed status values
+type UserStatus = "email_pending" | "pending" | "approved" | "rejected";
+
+// 🔑 Define user document structure from Firestore
+interface ITSupplyUser {
+  id: string;
+  Email: string;
+  Username: string;
+  FirstName: string;
+  LastName: string;
+  MiddleInitial?: string;
+  Position?: string;
+  Department: string;
+  Status: UserStatus;
+  EmailVerified: boolean;
+  CreatedAt: any; // Firestore Timestamp or Date
+  AuthUID: string;
+  IDPictureBase64?: string;
+}
 
 export default function LoginForm({ toggle }: { toggle: () => void }) {
-  const [identifier, setIdentifier] = useState(""); // username or email
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as any)?.from as Location | undefined;
+  const [showPasswordTemp, setShowPasswordTemp] = useState(false);
 
-  // Compute where to go after successful auth
+  const togglePasswordVisibility = () => {
+    setShowPasswordTemp(true);
+    setTimeout(() => setShowPasswordTemp(false), 1000);
+  };
+
   const targetAfterLogin =
     from ? `${from.pathname}${from.search}${from.hash}` : "/dashboard";
 
-  // Load saved identifier on mount
   useEffect(() => {
     const saved = localStorage.getItem("lastIdentifier");
     if (saved) setIdentifier(saved);
   }, []);
 
-  // Handle redirect-based Google sign-in result (mobile-friendly)
   useEffect(() => {
-  (async () => {
-    try {
-      const result = await getRedirectResult(auth);
-      if (!result) return; // <-- important: no result, do nothing
-      const email = result.user.email;
+    (async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (!result) return;
+        await postSignInChecks(result.user, true);
+        toast.success(`Signed in using ${result.user.email}`);
+        navigate(targetAfterLogin, { replace: true });
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-      await postSignInChecks(email, /*isGoogle=*/true);
-      toast.success(`Signed in using ${email}`); // toast here once
-      navigate(targetAfterLogin, { replace: true });
-    } catch (e) {
-      console.error(e);
+  // 🔑 Type-safe: Fetch user doc by AuthUID
+  const findUserDocByAuthUID = async (uid: string): Promise<ITSupplyUser | null> => {
+    const q = query(collection(db, "IT_Supply_Users"), where("AuthUID", "==", uid));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return null;
+
+    const docData = snapshot.docs[0].data();
+    const id = snapshot.docs[0].id;
+
+    // Validate required fields
+    if (!docData.Email || !docData.AuthUID || !docData.hasOwnProperty('Status')) {
+      console.warn("User document missing required fields:", { id, ...docData });
+      return null;
     }
-  })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []); // run once
 
-  // Centralized checks after any successful sign-in
-  async function postSignInChecks(email: string | null | undefined, isGoogle = false) {
-  if (!email) {
-    toast.error("No email found on the account.");
-    throw new Error("missing-email");
-  }
+    // Ensure Status is valid
+    const validStatuses: UserStatus[] = ["email_pending", "pending", "approved", "rejected"];
+    const status = docData.Status as string;
+    if (!validStatuses.includes(status as UserStatus)) {
+      console.warn("Invalid Status value:", status);
+      return null;
+    }
 
-  localStorage.setItem("lastIdentifier", email);
+    return {
+      id,
+      Email: docData.Email,
+      Username: docData.Username,
+      FirstName: docData.FirstName,
+      LastName: docData.LastName,
+      MiddleInitial: docData.MiddleInitial,
+      Position: docData.Position,
+      Department: docData.Department || "",
+      Status: status as UserStatus, // ✅ Safe cast after validation
+      EmailVerified: docData.EmailVerified ?? false,
+      CreatedAt: docData.CreatedAt || new Date(),
+      AuthUID: docData.AuthUID,
+      IDPictureBase64: docData.IDPictureBase64,
+    };
+  };
 
-  if (isGoogle) {
-    const qUsers = query(collection(db, "IT_Supply_Users"), where("Email", "==", email));
-    const snap = await getDocs(qUsers);
-    if (snap.empty) {
-      toast.error("Google account not registered in system.");
+  // ✅ Updated: Centralized post-sign-in logic
+  async function postSignInChecks(currentUser: User, isGoogle = false) {
+    const { email, uid, emailVerified } = currentUser;
+
+    if (!email) {
+      toast.error("No email found on the account.");
       await auth.signOut();
-      throw new Error("unregistered-google");
+      throw new Error("missing-email");
     }
+
+    localStorage.setItem("lastIdentifier", email);
+
+    const userDoc = await findUserDocByAuthUID(uid);
+    if (!userDoc) {
+      toast.error(isGoogle 
+        ? "Google account not registered in system." 
+        : "Account not found in system."
+      );
+      await auth.signOut();
+      throw new Error("unregistered-user");
+    }
+
+    if (!emailVerified) {
+      try {
+        await sendEmailVerification(currentUser);
+        toast.error("Please verify your email first. A new verification email was sent.");
+      } catch {
+        toast.error("Email not verified. Please check your inbox.");
+      }
+      await auth.signOut();
+      throw new Error("email-not-verified");
+    }
+
+    // 🔄 Promote email_pending → pending on first verified login
+    if (userDoc.Status === "email_pending") {
+      const userRef = doc(db, "IT_Supply_Users", userDoc.id);
+      await updateDoc(userRef, {
+        Status: "pending",
+        EmailVerified: true,
+      });
+      toast.info("Email verified! Your registration is now pending admin approval.");
+      await auth.signOut();
+      throw new Error("awaiting-approval");
+    }
+
+    if (userDoc.Status !== "approved") {
+      toast.error("Your account is pending admin approval.");
+      await auth.signOut();
+      throw new Error("not-approved");
+    }
+
+    return userDoc;
   }
 
-  if (!auth.currentUser?.emailVerified) {
-    try {
-      await sendEmailVerification(auth.currentUser!);
-      toast.error("Email not verified. Verification email sent.");
-    } catch {
-      toast.error("Email not verified. Please check your inbox.");
-    }
-    throw new Error("email-not-verified");
-  }
-}
-
-
-  // Email/Username + Password login
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!identifier || !password) {
@@ -88,11 +174,8 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
 
     try {
       let emailToLogin = identifier;
-
-      // Save early for UX
       localStorage.setItem("lastIdentifier", identifier);
 
-      // If not an email, treat as username -> resolve email
       if (!identifier.includes("@")) {
         const qUsers = query(
           collection(db, "IT_Supply_Users"),
@@ -106,26 +189,32 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
         emailToLogin = snap.docs[0].data().Email;
       }
 
-      await signInWithEmailAndPassword(auth, emailToLogin, password);
-      await postSignInChecks(emailToLogin, /*isGoogle=*/false);
+      const userCredential = await signInWithEmailAndPassword(auth, emailToLogin, password);
+      await postSignInChecks(userCredential.user, false);
       toast.success(`Signed in as ${emailToLogin}`);
       navigate(targetAfterLogin, { replace: true });
     } catch (error: any) {
+      if ([
+        "missing-email",
+        "unregistered-user",
+        "email-not-verified",
+        "awaiting-approval",
+        "not-approved"
+      ].includes(error.message)) {
+        return;
+      }
       console.error("Login error:", error);
-      toast.error("Invalid credentials.");
+      toast.error("Invalid credentials or unexpected error.");
     }
   };
 
-  // Google sign-in with popup → redirect fallback
   const handleGoogleSignIn = async () => {
     try {
       const result = await signInWithPopup(auth, provider);
-      const email = result.user.email;
-      await postSignInChecks(email, /*isGoogle=*/true);
-      toast.success(`Signed in using ${email}`);
+      await postSignInChecks(result.user, true);
+      toast.success(`Signed in using ${result.user.email}`);
       navigate(targetAfterLogin, { replace: true });
     } catch (e: any) {
-      // Common mobile/blocked popup cases → fallback to redirect
       if (
         e?.code === "auth/popup-blocked" ||
         e?.code === "auth/operation-not-supported-in-this-environment" ||
@@ -134,16 +223,22 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
         await signInWithRedirect(auth, provider);
         return;
       }
-      console.error(e);
-      toast.error("Google Sign-In Failed.");
+      if (![
+        "unregistered-user",
+        "email-not-verified",
+        "not-approved",
+        "awaiting-approval"
+      ].some(msg => e?.message?.includes(msg))) {
+        console.error(e);
+        toast.error("Google Sign-In Failed.");
+      }
     }
   };
 
-  // Register role modal handler
   const handleRegisterChoice = (role: "Medical" | "IT") => {
     localStorage.setItem("registerRole", role);
     setShowRegisterModal(false);
-    toggle(); // switch to your Register form
+    toggle();
   };
 
   return (
@@ -166,13 +261,18 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
 
         <label>
           Password:
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            required
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <div className="password-wrapper">
+            <input
+              type={showPasswordTemp ? "text" : "password"}
+              placeholder="Password"
+              value={password}
+              required
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <span className="eye-icon" onClick={togglePasswordVisibility}>
+              <FontAwesomeIcon icon={faEye} />
+            </span>
+          </div>
         </label>
 
         <button className="login-button" type="submit">

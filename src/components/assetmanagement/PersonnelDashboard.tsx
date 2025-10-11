@@ -4,7 +4,7 @@ import "../../assets/notification.css";
 import WebQRScanner from "./qrscanner";
 import ProfilePage from "./ProfilePage";
 import ScanQr  from "./ScanQr";
-import AssetHistory from "./AssetHistory";
+import AssetHistory from "./HistoryModal";
 import RequestConsumable from "./RequestConsumable";
 import { Link } from 'react-router-dom';
 import '@fortawesome/fontawesome-free/css/all.min.css';
