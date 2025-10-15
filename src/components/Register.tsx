@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { db } from "../firebase/firebase"; // 🔑 Removed `auth` import
+import { db } from "../firebase/firebase"; 
 import { toast } from "react-toastify";
 import {
   addDoc,
@@ -8,7 +8,7 @@ import {
   where,
   getDocs,
 } from "firebase/firestore";
-// 🔑 Removed Firebase Auth imports
+
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye } from '@fortawesome/free-solid-svg-icons';
 
@@ -86,28 +86,20 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
       return;
     }
 
-    if (passwordErrors.length > 0) {
-      toast.error("Please fix password requirements.");
-      return;
-    }
+    // if (passwordErrors.length > 0) {
+    //   toast.error("Please fix password requirements.");
+    //   return;
+    // }
 
-    if (password !== confirmPassword) {
-      toast.error("Passwords do not match.");
-      return;
-    }
+    // if (password !== confirmPassword) {
+    //   toast.error("Passwords do not match.");
+    //   return;
+    // }
 
     try {
-      // 🔍 Check if email already used
-      const emailQuery = query(collection(db, "IT_Supply_Users"), where("Email", "==", email));
-      const emailSnapshot = await getDocs(emailQuery);
-      if (!emailSnapshot.empty) {
-        toast.error("This email is already in use.");
-        return;
-      }
-
-      // 🔍 Check if username already has a pending registration
       const pendingQuery = query(
         collection(db, "IT_Supply_Users"),
+        where("Email", "==", email),
         where("Username", "==", username),
         where("Status", "==", "pending")
       );
@@ -116,6 +108,22 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
         toast.warning("You already have a pending registration. Please wait for admin approval.");
         return;
       }
+      // 🔍 Check if email or username already used
+      const emailQuery = query(collection(db, "IT_Supply_Users"), where("Email", "==", email));
+      const emailSnapshot = await getDocs(emailQuery);
+      if (!emailSnapshot.empty) {
+        toast.error("This email is already in use.");
+        return;
+      }
+      const usernameQuery = query(collection(db, "IT_Supply_Users"), where("Username", "==", username));
+      const usernameSnapshot = await getDocs(usernameQuery);
+      if (!usernameSnapshot.empty) {
+        toast.error("This Username is already in use.");
+        return;
+      }
+
+      // 🔍 Check if username already has a pending registration
+
 
       toast.info("Submitting registration...");
 
@@ -134,7 +142,6 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
         Status: "pending", // 👈 Back to "pending" (not "email_pending")
         CreatedAt: new Date(),
         IDPictureBase64: idPicBase64,
-        // 🔑 NO AuthUID or EmailVerified fields
       });
 
       // 🔑 Optional: Send custom "Registration Received" email
@@ -203,6 +210,7 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
           </div>
           <div>
             <label>Position</label>
+            <p>(Please Refer to your DOH-TRC ID)</p>
             <select
               value={position}
               required
@@ -239,7 +247,7 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
         />
 
         {/* Password */}
-        <label>Password</label>
+        {/* <label>Password</label>
         <div className="password-wrapper">
           <input
             type={showPasswordTemp ? "text" : "password"}
@@ -251,9 +259,9 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
           <span className="eye-icon" onClick={togglePasswordVisibility}>
             <FontAwesomeIcon icon={faEye} />
           </span>
-        </div>
+        </div> */}
         {/* 🔒 Real-time password requirements */}
-        <div style={{ marginTop: "-10px", fontSize: "12px", color: "#555" }}>
+        {/* <div style={{ marginTop: "-10px", fontSize: "12px", color: "#555" }}>
           Password must contain:
           <ul style={{ margin: "4px 0 0 16px", paddingLeft: 0, listStyle: "none" }}>
             {["At least 8 characters", "Include uppercase letter", "Include lowercase letter", "Include numeric character"].map(
@@ -270,10 +278,10 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
               )
             )}
           </ul>
-        </div>
+        </div> */}
 
         {/* Confirm Password */}
-        <label>Confirm Password</label>
+        {/* <label>Confirm Password</label>
         <div className="password-wrapper">
           <input
             type={showConfirmPasswordTemp ? "text" : "password"}
@@ -290,7 +298,7 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
           <div style={{ color: "#d32f2f", fontSize: "12px", marginTop: "-13px" }}>
             ❌ Passwords do not match
           </div>
-        )}
+        )} */}
 
         {/* ID Picture */}
         <label>ID Picture (Required)</label>
@@ -325,22 +333,32 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
           </button>
         )}
         <input
-          type="file"
-          accept="image/*"
-          required
-          onChange={(e) => {
-            const file = e.target.files?.[0] || null;
-            if (file) {
-              if (!file.type.startsWith("image/")) {
-                toast.error("Only image files are allowed.");
-                e.target.value = "";
-                setIdPicture(null);
-                return;
-              }
-            }
-            setIdPicture(file);
-          }}
-        />
+              type="file"
+              accept="image/*"
+              required
+              onChange={(e) => {
+                const file = e.target.files?.[0] || null;
+                if (file) {
+                  // ✅ 1. Must be an image
+                  if (!file.type.startsWith("image/")) {
+                    toast.error("Only image files are allowed.");
+                    e.target.value = "";
+                    setIdPicture(null);
+                    return;
+                  }
+
+                  // ✅ 2. Limit file size to 1 MB (1 MB = 1024 * 1024 bytes)
+                  if (file.size > 1024 * 1024) {
+                    toast.error("Image file size cannot exceed 1MB. Please upload a smaller image.");
+                    e.target.value = "";
+                    setIdPicture(null);
+                    return;
+                  }
+                }
+                setIdPicture(file);
+              }}
+            />
+
 
         <button type="submit" className="login-button">
           Register

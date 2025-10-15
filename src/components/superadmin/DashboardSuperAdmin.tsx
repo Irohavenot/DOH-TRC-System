@@ -29,7 +29,7 @@ import {
   Bell,
   LogOut,
 } from 'lucide-react';
-
+import emailjs from '@emailjs/browser';
 interface User {
   id: string; // Firestore UID
   Email: string;
@@ -41,6 +41,9 @@ interface User {
   Status: string;
   IDPictureBase64?: string;
 }
+const EMAILJS_PUBLIC_KEY = 'oiiPTVJU2reQ831XC'; // ← Replace with your key!
+const EMAILJS_SERVICE_ID = 'service_nb6i81u';        // e.g., 'service_gmail'
+const EMAILJS_TEMPLATE_ID = 'template_6qph2gb';      // e.g., 'template_otp_login'
 
 
 const DashboardSuperAdmin = () => {
@@ -76,49 +79,95 @@ const DashboardSuperAdmin = () => {
   }, []);
 
   // Approve user
+
+
 const confirmApprove = async () => {
   if (!assignedDepartment) {
     alert("Please select a department.");
     return;
   }
 
-  if (approvingUser) {
-    try {
-      // 1. Create Auth account with a temporary random password
-      const tempPassword = Math.random().toString(36).slice(-8);
-      const userCred = await createUserWithEmailAndPassword(
-        auth,
-        approvingUser.Email,
-        tempPassword
-      );
+  if (!approvingUser) return;
 
-      // 2. Send reset link so the user sets their own password
-      await sendPasswordResetEmail(auth, approvingUser.Email);
+  // ✅ 1. Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(approvingUser.Email)) {
+    alert("❌ Invalid email format. Please check the user's email address.");
+    return;
+  }
 
-      // 3. Update Firestore with approval status + Auth UID
-      const userRef = doc(db, "IT_Supply_Users", approvingUser.id);
-      await updateDoc(userRef, {
+  try {
+    // 2️⃣ Generate temporary password
+    const tempPassword = Math.random().toString(36).slice(-8);
+
+    // 3️⃣ Create Firebase Auth account
+    const userCred = await createUserWithEmailAndPassword(
+      auth,
+      approvingUser.Email,
+      tempPassword
+    );
+
+    // 4️⃣ Update Firestore
+    const userRef = doc(db, "IT_Supply_Users", approvingUser.id);
+    await updateDoc(userRef, {
+      Status: "approved",
+      ActivationStatus: "pending",
+      Department: assignedDepartment,
+      AuthUID: userCred.user.uid,
+    });
+
+    // 5️⃣ Send email via EmailJS
+    emailjs.init({
+      publicKey: EMAILJS_PUBLIC_KEY,
+      blockHeadless: true,
+    });
+
+    const expireTime = new Date(Date.now() + 30 * 60 * 1000);
+    const timeString = expireTime.toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      to_email: approvingUser.Email,
+      passcode: tempPassword,
+      time: timeString,
+      login_url: "https://192.168.254.188:5173",
+      first_name: approvingUser.FirstName,
+    });
+
+    // 6️⃣ Update UI state
+    setPendingAccounts(prev => prev.filter(u => u.id !== approvingUser.id));
+    setApprovedAccounts(prev => [
+      ...prev,
+      {
+        ...approvingUser,
         Status: "approved",
         Department: assignedDepartment,
-        AuthUID: userCred.user.uid,
-      });
+        ActivationStatus: "pending",
+      },
+    ]);
 
-      // 4. Update local state
-      setPendingAccounts(prev =>
-        prev.filter(u => u.id !== approvingUser.id)
-      );
-      setApprovedAccounts(prev => [
-        ...prev,
-        { ...approvingUser, Status: "approved", Department: assignedDepartment }
-      ]);
+    setApprovingUser(null);
+    setAssignedDepartment("");
+    alert("✅ User approved and temporary password emailed!");
 
-      setApprovingUser(null);
-      setAssignedDepartment("");
+  } catch (error: any) {
+    console.error("Error approving user:", error);
 
-      alert("✅ User approved. A password reset email was sent.");
-    } catch (error: any) {
-      console.error("Error approving user:", error);
-      alert(`❌ Failed to approve user: ${error.message}`);
+    // ✅ Handle specific Firebase errors
+    if (error.code === "auth/invalid-email") {
+      alert("❌ The email address is invalid. Please update the user's email and try again.");
+    } else if (error.code === "auth/email-already-in-use") {
+      alert("❌ This email is already in use. The user may have been approved already.");
+    } else if (error.code === "auth/operation-not-allowed") {
+      alert("❌ Email/password sign-in is disabled in Firebase Authentication settings.");
+    } else if (error.code === "auth/weak-password") {
+      alert("❌ The generated password was too weak (unlikely, but possible). Please try again.");
+    } else {
+      // Generic error
+      alert(`❌ Failed to approve user: ${error.message || 'An unexpected error occurred.'}`);
     }
   }
 };

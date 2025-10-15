@@ -110,6 +110,8 @@ const ProfilePage: React.FC = () => {
   const [showVerificationPopup, setShowVerificationPopup] = useState(false);
   const [verificationAction, setVerificationAction] = useState<"edit" | "disable" | null>(null);
   const [enteredCode, setEnteredCode] = useState("");
+  const [docId, setDocId] = useState<string | null>(null);
+
 
   // simple cache
   const getCached = <T,>(key: string): T | null => {
@@ -131,17 +133,20 @@ const ProfilePage: React.FC = () => {
         const uidDocRef = doc(db, "IT_Supply_Users", user.uid);
         const docSnap = await getDoc(uidDocRef);
 
-        if (docSnap.exists()) {
-          mapFirestoreToForm(docSnap.data());
-        } else if (user.email) {
-          const q = query(collection(db, "IT_Supply_Users"), where("Email", "==", user.email));
-          const qSnap = await getDocs(q);
-          if (!qSnap.empty) {
-            mapFirestoreToForm(qSnap.docs[0].data());
+          if (docSnap.exists()) {
+            mapFirestoreToForm(docSnap.data());
+            setDocId(docSnap.id);
+          } else if (user.email) {
+            const q = query(collection(db, "IT_Supply_Users"), where("Email", "==", user.email));
+            const qSnap = await getDocs(q);
+            if (!qSnap.empty) {
+              const foundDoc = qSnap.docs[0];
+              mapFirestoreToForm(foundDoc.data());
+              setDocId(foundDoc.id);
+            } else {
+              toast.info("No profile document found for this user.");
+            }
           } else {
-            toast.info("No profile document found for this user.");
-          }
-        } else {
           toast.error("User email not available; cannot find profile.");
         }
 
@@ -526,7 +531,7 @@ const ProfilePage: React.FC = () => {
       }
 
       // Save to Firestore — IMPORTANT: do NOT overwrite Position here
-      const userRef = doc(db, "IT_Supply_Users", user.uid);
+      
       const payload: any = {
         Username: formData.username,
         FirstName: formData.firstName,
@@ -557,10 +562,15 @@ const ProfilePage: React.FC = () => {
         Status: formData.status || "active",
         IDPictureBase64: avatarBase64 || formData.idPictureBase64 || null,
       };
+      if (!docId) {
+        toast.error("Cannot update profile — user record not found.");
+        setLoading(false);
+        return;
+      }
 
-      const docSnap = await getDoc(userRef);
-      if (docSnap.exists()) await updateDoc(userRef, payload);
-      else await setDoc(userRef, payload);
+      const userRef = doc(db, "IT_Supply_Users", docId);
+      await updateDoc(userRef, payload);
+
 
       toast.success("Profile saved.");
       setIsEditing(false);
@@ -682,7 +692,15 @@ const ProfilePage: React.FC = () => {
 
           {/* Email */}
           <label className="profile-label">Email</label>
-          {isEditing ? <input name="email" type="email" value={formData.email} onChange={handleChange} className="profile-input" /> : <p>{formData.email}</p>}
+          <input
+                name="email"
+                type="email"
+                value={formData.email}
+                className="profile-input"
+                disabled
+                readOnly
+              />
+
 
           {/* Gender */}
           <label className="profile-label">Gender</label>

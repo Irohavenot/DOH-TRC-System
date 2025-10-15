@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import "../../assets/dashboard.css";
 import "../../assets/notification.css";
 import WebQRScanner from "./qrscanner";
@@ -14,7 +14,7 @@ import People from "./People";
 import Requests from "./Requests";
 import { Clipboard } from "react-feather"; 
 import { useNavigate } from "react-router-dom";
-import { signOut } from "firebase/auth";
+import { signOut, updatePassword } from "firebase/auth";
 import { auth, db } from "../../firebase/firebase";
 import { toast } from "react-toastify";
 import { useCurrentUserFullName } from "../../hooks/useCurrentUserFullName"; 
@@ -28,19 +28,31 @@ import{
   QrCode,
   LogOut,
 } from 'lucide-react';
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  doc, 
+  updateDoc 
+} from "firebase/firestore";
 
 const Dashboard = () => {
   const { fullName, loading } = useCurrentUserFullName();
   const [currentView, setCurrentView] = useState<'dashboard' | 'qr' | 'generate' | 'requestsdata' | 'reports' | 'reports-analytics' | 'profile' | 'assets' | 'people'>('dashboard');
   const [activeView, setActiveView] = useState<'dashboard' | 'generate' | 'reports' | 'requestsdata' |'reports-analytics' | 'qr' | 'profile' | 'assets' | 'people'>('dashboard');
-  const [query, setQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState<'all' | 'unread'>('all');
   const [openOptionsId, setOpenOptionsId] = useState<number | null>(null);
   const [showAll, setShowAll] = useState(false);
-  
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
 
+  
 type Notification = {
   id: number;
   message: string;
@@ -106,9 +118,14 @@ type Notification = {
   };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setQuery(e.target.value);
+    setSearchQuery(e.target.value);
     console.log('Searching:', e.target.value);
   };
+  interface UserDoc {
+  AuthUID: string;
+  ActivationStatus?: string;
+  // add other fields if needed
+}
 
   // Sample data for the dashboard
   const dashboardData = {
@@ -198,6 +215,42 @@ const items = [
     viewLink: 'unserviceableProperty'
   }
 ];
+const handleChangePassword = async () => {
+  if (newPassword !== confirmPassword) return;
+
+  const user = auth.currentUser;
+  if (!user) return;
+
+  setIsUpdating(true);
+
+  try {
+    await updatePassword(user, newPassword);
+
+    // Update Firestore
+    const q = query(collection(db, "IT_Supply_Users"), where("AuthUID", "==", user.uid));
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      const userRef = doc(db, "IT_Supply_Users", snapshot.docs[0].id);
+      await updateDoc(userRef, { ActivationStatus: "completed" });
+    }
+
+    toast.success("✅ Password updated successfully!");
+    setShowChangePasswordModal(false);
+    setNewPassword("");
+    setConfirmPassword("");
+  } catch (error: any) {
+    console.error("Error updating password:", error);
+    let msg = "Failed to update password.";
+    if (error.code === "auth/weak-password") {
+      msg = "Password is too weak. Use at least 6 characters.";
+    } else if (error.code === "auth/requires-recent-login") {
+      msg = "Session expired. Please log in again.";
+    }
+    toast.error(msg);
+  } finally {
+    setIsUpdating(false);
+  }
+};
 const [signingOut, setSigningOut] = useState(false);
   const handleSignOut = async (e: React.MouseEvent<HTMLAnchorElement>) => {
   e.preventDefault();               // stop <Link> from navigating first
@@ -214,7 +267,35 @@ const [signingOut, setSigningOut] = useState(false);
     setSigningOut(false);
   }
 };
+useEffect(() => {
+  // Listen to auth state changes (handles page reloads, delayed auth init, etc.)
+  const unsubscribe = auth.onAuthStateChanged(async (user) => {
+    if (!user) {
+      setShowChangePasswordModal(false);
+      return;
+    }
 
+    try {
+      const q = query(collection(db, "IT_Supply_Users"), where("AuthUID", "==", user.uid));
+      const snapshot = await getDocs(q);
+      
+      if (!snapshot.empty) {
+        const userData = snapshot.docs[0].data() as UserDoc;
+        if (userData.ActivationStatus === "pending") {
+          setShowChangePasswordModal(true);
+        } else {
+          setShowChangePasswordModal(false);
+        }
+      }
+    } catch (error) {
+      console.error("Error checking activation status:", error);
+      setShowChangePasswordModal(false);
+    }
+  });
+
+  // Cleanup listener on unmount
+  return () => unsubscribe();
+}, []);
   return (
     <div className="dashboard-body">
       <div className={`dashboard-container ${sidebarCollapsed ? 'collapsed' : ''}`}>
@@ -592,6 +673,7 @@ const [signingOut, setSigningOut] = useState(false);
       ))}
     </div>
 </div>
+{/* Change Password Modal */}
 
  </div>
 <div className='dashboard-columns'>
@@ -656,9 +738,72 @@ const [signingOut, setSigningOut] = useState(false);
             {currentView === 'people' && <People />}
             {currentView === 'requestsdata' && <Requests />}
           </div>
+          
         </div>
+        
+      </div>
+      {showChangePasswordModal && (
+  <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+    <div className="modal-content" style={{ backgroundColor: 'white', padding: '24px', borderRadius: '8px', width: '400px', maxWidth: '90vw' }}>
+      <h3 style={{ marginBottom: '16px' }}>🔐 Set Your Permanent Password</h3>
+      <p style={{ marginBottom: '16px' }}>For security, please change your temporary password.</p>
+
+      <div style={{ marginBottom: '12px' }}>
+        <label>New Password:</label>
+        <input
+          type="password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          style={{ width: '100%', padding: '8px', marginTop: '4px', border: '1px solid #ccc', borderRadius: '4px' }}
+          required
+        />
+      </div>
+
+      <div style={{ marginBottom: '16px' }}>
+        <label>Confirm Password:</label>
+        <input
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          style={{ width: '100%', padding: '8px', marginTop: '4px', border: '1px solid #ccc', borderRadius: '4px' }}
+          required
+        />
+      </div>
+
+      {newPassword !== confirmPassword && confirmPassword && (
+        <p style={{ color: 'red', fontSize: '14px', marginBottom: '12px' }}>Passwords do not match.</p>
+      )}
+
+      <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+        <button
+          onClick={() => setShowChangePasswordModal(false)}
+          disabled={isUpdating}
+          style={{ padding: '8px 16px', backgroundColor: '#ccc', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleChangePassword}
+          disabled={isUpdating || !newPassword || newPassword !== confirmPassword}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#0d6efd',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            opacity: isUpdating || !newPassword || newPassword !== confirmPassword ? 0.6 : 1
+          }}
+        >
+          {isUpdating ? 'Updating...' : 'Update Password'}
+        </button>
       </div>
     </div>
+  </div>
+)}
+    </div>
+    
+    
   );
 };
 

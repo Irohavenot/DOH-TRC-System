@@ -30,7 +30,10 @@ import DeletedAssets from './components/assetmanagement/DeletedAssets';
 
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+// App.tsx
+import initEmailJS from './utils/emailjs';
 
+initEmailJS(); // Initialize once
 // <-- import the SearchProvider you created -->
 import { SearchProvider } from "./context/SearchContext";
 

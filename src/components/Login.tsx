@@ -8,6 +8,7 @@ import {
   signInWithRedirect,
   getRedirectResult,
   User,
+  deleteUser,
 } from "firebase/auth";
 import { collection, getDocs, query, where, doc, updateDoc } from "firebase/firestore";
 import { toast } from "react-toastify";
@@ -129,20 +130,19 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
         ? "Google account not registered in system." 
         : "Account not found in system."
       );
-      await auth.signOut();
       throw new Error("unregistered-user");
     }
 
-    if (!emailVerified) {
-      try {
-        await sendEmailVerification(currentUser);
-        toast.error("Please verify your email first. A new verification email was sent.");
-      } catch {
-        toast.error("Email not verified. Please check your inbox.");
-      }
-      await auth.signOut();
-      throw new Error("email-not-verified");
-    }
+    // if (!emailVerified) {
+    //   try {
+    //     await sendEmailVerification(currentUser);
+    //     toast.error("Please verify your email first. A new verification email was sent.");
+    //   } catch {
+    //     toast.error("Email not verified. Please check your inbox.");
+    //   }
+    //   await auth.signOut();
+    //   throw new Error("email-not-verified");
+    // }
 
     // 🔄 Promote email_pending → pending on first verified login
     if (userDoc.Status === "email_pending") {
@@ -183,7 +183,7 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
         );
         const snap = await getDocs(qUsers);
         if (snap.empty) {
-          toast.error("Username not found.");
+          toast.error("User not Found.");
           return;
         }
         emailToLogin = snap.docs[0].data().Email;
@@ -208,33 +208,43 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
     }
   };
 
-  const handleGoogleSignIn = async () => {
+const handleGoogleSignIn = async () => {
+  try {
+    const result = await signInWithPopup(auth, provider);
     try {
-      const result = await signInWithPopup(auth, provider);
       await postSignInChecks(result.user, true);
       toast.success(`Signed in using ${result.user.email}`);
       navigate(targetAfterLogin, { replace: true });
-    } catch (e: any) {
-      if (
-        e?.code === "auth/popup-blocked" ||
-        e?.code === "auth/operation-not-supported-in-this-environment" ||
-        e?.code === "auth/unauthorized-domain"
-      ) {
-        await signInWithRedirect(auth, provider);
-        return;
+    } catch (err) {
+      // If postSignInChecks fails (e.g., unapproved), delete the auth account
+      try {
+        await deleteUser(result.user);
+        console.log("Unauthorized Google account deleted:", result.user.email);
+      } catch (delErr) {
+        console.warn("Failed to delete unauthorized account:", delErr);
       }
-      if (![
-        "unregistered-user",
-        "email-not-verified",
-        "not-approved",
-        "awaiting-approval"
-      ].some(msg => e?.message?.includes(msg))) {
-        console.error(e);
-        toast.error("Google Sign-In Failed.");
-      }
+      // Error message already shown by postSignInChecks
     }
-  };
-
+  } catch (e: any) {
+    if (
+      e?.code === "auth/popup-blocked" ||
+      e?.code === "auth/operation-not-supported-in-this-environment" ||
+      e?.code === "auth/unauthorized-domain"
+    ) {
+      await signInWithRedirect(auth, provider);
+      return;
+    }
+    if (![
+      "unregistered-user",
+      "email-not-verified",
+      "not-approved",
+      "awaiting-approval"
+    ].some(msg => e?.message?.includes(msg))) {
+      console.error(e);
+      toast.error("Google Sign-In Failed.");
+    }
+  }
+};
   const handleRegisterChoice = (role: "Medical" | "IT") => {
     localStorage.setItem("registerRole", role);
     setShowRegisterModal(false);
@@ -299,6 +309,8 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>Register As:</h3>
+            <p>(This only Shows the admin your Preferred Position)</p>
+            <p>(Please refer to your DOH-TRC ID to avoid mismatch)</p>
             <div className="modal-buttons">
               <button className="role-btn" onClick={() => handleRegisterChoice("Medical")}>
                 Medical Department Personnel
