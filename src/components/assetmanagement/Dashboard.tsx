@@ -36,6 +36,8 @@ import {
   doc, 
   updateDoc 
 } from "firebase/firestore";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEye } from '@fortawesome/free-solid-svg-icons';
 
 const Dashboard = () => {
   const { fullName, loading } = useCurrentUserFullName();
@@ -51,8 +53,31 @@ const Dashboard = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
 
-  
+// Validation helper
+const getPasswordErrors = (pwd: string): string[] => {
+  const errors: string[] = [];
+  if (pwd.length < 8) errors.push("At least 8 characters");
+  if (!/[A-Z]/.test(pwd)) errors.push("Include uppercase letter");
+  if (!/[a-z]/.test(pwd)) errors.push("Include lowercase letter");
+  if (!/\d/.test(pwd)) errors.push("Include numeric character");
+  // Add more if needed (e.g., special chars)
+  return errors;
+};
+
+// Derive passwordErrors from newPassword
+const passwordErrors = getPasswordErrors(newPassword);
+    const togglePasswordVisibility = () => {
+    setShowNewPassword(true);
+    setTimeout(() => setShowNewPassword(false), 1000);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmNewPassword(true);
+    setTimeout(() => setShowConfirmNewPassword(false), 1000);
+  };
 type Notification = {
   id: number;
   message: string;
@@ -61,7 +86,15 @@ type Notification = {
   type?: 'user' | 'application' | 'asset' | 'system';
 };
   const navigate = useNavigate();
+    if (passwordErrors.length > 0) {
+      toast.error("Please fix password requirements.");
+      return;
+    }
 
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
   const navItems = [
     { title: "New Asset", category: "Asset" },  
     { title: "New Accessory", category: "Accessory" },
@@ -216,6 +249,20 @@ const items = [
   }
 ];
 const handleChangePassword = async () => {
+  // Validate password
+  if (passwordErrors.length > 0) {
+    toast.error("Please fix password requirements.");
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    toast.error("Passwords do not match.");
+    return;
+  }
+
+  // ... rest of your logic
+
+
   if (newPassword !== confirmPassword) return;
 
   const user = auth.currentUser;
@@ -274,6 +321,7 @@ useEffect(() => {
       setShowChangePasswordModal(false);
       return;
     }
+    
 
     try {
       const q = query(collection(db, "IT_Supply_Users"), where("AuthUID", "==", user.uid));
@@ -749,26 +797,58 @@ useEffect(() => {
       <p style={{ marginBottom: '16px' }}>For security, please change your temporary password.</p>
 
       <div style={{ marginBottom: '12px' }}>
-        <label>New Password:</label>
-        <input
-          type="password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-          style={{ width: '100%', padding: '8px', marginTop: '4px', border: '1px solid #ccc', borderRadius: '4px' }}
-          required
-        />
-      </div>
+            <label>New Password:</label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showNewPassword ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                style={{ width: '100%', padding: '8px', marginTop: '4px', border: '1px solid #ccc', borderRadius: '4px' }}
+                required
+              />
+              <span
+                className="eye-icon"
+                onClick={togglePasswordVisibility}
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  cursor: 'pointer',
+                  color: '#666'
+                }}
+              >
+                <FontAwesomeIcon icon={faEye} />
+              </span>
+            </div>
+          </div>
 
       <div style={{ marginBottom: '16px' }}>
-        <label>Confirm Password:</label>
-        <input
-          type="password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          style={{ width: '100%', padding: '8px', marginTop: '4px', border: '1px solid #ccc', borderRadius: '4px' }}
-          required
-        />
-      </div>
+            <label>Confirm Password:</label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showConfirmNewPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                style={{ width: '100%', padding: '8px', marginTop: '4px', border: '1px solid #ccc', borderRadius: '4px' }}
+                required
+              />
+              <span
+                className="eye-icon"
+                onClick={toggleConfirmPasswordVisibility}
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  cursor: 'pointer',
+                  color: '#666'
+                }}
+              >
+                <FontAwesomeIcon icon={faEye} />
+              </span>
+            </div>
+          </div>
 
       {newPassword !== confirmPassword && confirmPassword && (
         <p style={{ color: 'red', fontSize: '14px', marginBottom: '12px' }}>Passwords do not match.</p>

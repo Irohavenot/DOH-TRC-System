@@ -36,15 +36,15 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
   const [showPasswordTemp, setShowPasswordTemp] = useState(false);
   const [showConfirmPasswordTemp, setShowConfirmPasswordTemp] = useState(false);
 
-  const togglePasswordVisibility = () => {
-    setShowPasswordTemp(true);
-    setTimeout(() => setShowPasswordTemp(false), 1000);
-  };
+  // const togglePasswordVisibility = () => {
+  //   setShowPasswordTemp(true);
+  //   setTimeout(() => setShowPasswordTemp(false), 1000);
+  // };
 
-  const toggleConfirmPasswordVisibility = () => {
-    setShowConfirmPasswordTemp(true);
-    setTimeout(() => setShowConfirmPasswordTemp(false), 1000);
-  };
+  // const toggleConfirmPasswordVisibility = () => {
+  //   setShowConfirmPasswordTemp(true);
+  //   setTimeout(() => setShowConfirmPasswordTemp(false), 1000);
+  // };
 
   const passwordErrors = validatePassword(password);
 

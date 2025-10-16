@@ -128,12 +128,12 @@ const confirmApprove = async () => {
       minute: '2-digit',
       hour12: true 
     });
-
+    const loginUrl = window.location.origin;
     await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
       to_email: approvingUser.Email,
       passcode: tempPassword,
       time: timeString,
-      login_url: "https://192.168.254.188:5173",
+      login_url: loginUrl,
       first_name: approvingUser.FirstName,
     });
 
