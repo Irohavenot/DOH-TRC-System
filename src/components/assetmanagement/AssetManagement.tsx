@@ -1,10 +1,10 @@
-// AssetManagement.tsx
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+// Enhanced AssetManagement.tsx with improved UI and multi-select filters
+// Replace your existing component with this enhanced version
+
+import React, { useEffect, useMemo, useState } from 'react';
 import "../../assets/assetmanagement.css";
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { db, auth } from '../../firebase/firebase';
-// Add this import
-import { useCurrentUserFullName } from '../../hooks/useCurrentUserFullName';
 import {
   collection,
   query,
@@ -14,21 +14,20 @@ import {
   updateDoc,
   deleteDoc,
   getDocs,
-  serverTimestamp,
-  arrayUnion,
   addDoc
 } from 'firebase/firestore';
 import QRModal from './QRModal';
 import { toast } from 'react-toastify';
-import QrCreator from 'qr-creator';
 import HistoryModal from './HistoryModal';
+import EditAssetModal from './EditAssetModal';
+import ReportAssetModal from './ReportAssetModal';
 
 const NON_EXPIRING = new Set(['Perpetual', 'OEM', 'Open Source']);
 
 type FilterKey = 'all' | 'permanent' | 'normal' | 'aboutToExpire' | 'expired';
 
 interface HistoryEntry {
-  changedAt?: any; // firestore.Timestamp
+  changedAt?: any;
   changedBy?: string;
   from?: string;
   to?: string;
@@ -49,6 +48,7 @@ interface Card {
   qrcode?: string | null;
   generateQR?: boolean;
   personnel?: string;
+  personnelId?: string;
   purchaseDate?: string;
   status?: string;
   licenseType?: string;
@@ -58,29 +58,18 @@ interface Card {
   updatedBy?: string;
   renewdate?: string;
   assetHistory?: HistoryEntry[];
-}
-
-function getPublicBase(): string {
-  const envBase = (import.meta as any).env?.VITE_PUBLIC_BASE_URL?.toString()?.trim();
-  if (envBase) {
-    try {
-      const u = new URL(envBase);
-      return (u.origin + u.pathname).replace(/\/+$/, '');
-    } catch {
-      return envBase.replace(/\/+$/, '');
-    }
-  }
-  return window.location.origin;
-}
-function buildAssetUrl(assetId: string) {
-  const base = getPublicBase();
-  const useHash = (import.meta as any).env?.VITE_QR_HASH_MODE === 'true';
-  const path = `/dashboard/${encodeURIComponent(assetId)}`;
-  return useHash ? `${base}/#${path}` : `${base}${path}`;
+  hasReports?: boolean;
+  reportCount?: number;
 }
 
 const AssetManagement: React.FC = () => {
-  const [filter, setFilter] = useState<FilterKey>('all');
+  // Status filter (single selection)
+  const [statusFilter, setStatusFilter] = useState<FilterKey>('all');
+  
+  // Multi-select filters
+  const [showMyAssets, setShowMyAssets] = useState(false);
+  const [showReported, setShowReported] = useState(false);
+  
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [openCardOptionsId, setOpenCardOptionsId] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -93,25 +82,69 @@ const AssetManagement: React.FC = () => {
   const [itUsers, setItUsers] = useState<Array<{ id: string; fullName: string; position?: string }>>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [rawAssets, setRawAssets] = useState<any[]>([]);
+  const [reportedAssets, setReportedAssets] = useState<Set<string>>(new Set());
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [historyAsset, setHistoryAsset] = useState<{ id: string; name: string; history: HistoryEntry[] } | null>(null);
 
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingAsset, setEditingAsset] = useState<any>(null);
+
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [reportingAsset, setReportingAsset] = useState<{ id: string; docId: string; name: string } | null>(null);
+
+  // Fetch reported assets
+  useEffect(() => {
+    const reportsRef = collection(db, "Asset_Reports");
+    const unsub = onSnapshot(
+      reportsRef,
+      (snap) => {
+        const reported = new Set<string>();
+        const reportCounts: Record<string, number> = {};
+        
+        snap.docs.forEach((doc) => {
+          const data = doc.data();
+          const assetDocId = data.assetDocId || data.assetId;
+          if (assetDocId) {
+            reported.add(assetDocId);
+            reportCounts[assetDocId] = (reportCounts[assetDocId] || 0) + 1;
+          }
+        });
+        
+        setReportedAssets(reported);
+        
+        // Update rawAssets with report counts
+        setRawAssets(prev => prev.map(asset => ({
+          ...asset,
+          hasReports: reported.has(asset.id),
+          reportCount: reportCounts[asset.id] || 0
+        })));
+      },
+      (err) => console.error("Error fetching reports:", err)
+    );
+    return () => unsub();
+  }, []);
+
+  // Fetch assets
   useEffect(() => {
     setLoading(true);
     const qRef = query(collection(db, "IT_Assets"), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(
       qRef,
       (snap) => {
-        const assets = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const assets = snap.docs.map((d) => ({ 
+          id: d.id, 
+          ...d.data(),
+          hasReports: reportedAssets.has(d.id)
+        }));
         setRawAssets(assets);
         setLoading(false);
       },
       (err) => { console.error("Error fetching IT_Assets:", err); setLoading(false); }
     );
     return () => unsub();
-  }, []);
+  }, [reportedAssets]);
 
-  // users
+  // Fetch users
   useEffect(() => {
     const unsub = onSnapshot(
       collection(db, "IT_Supply_Users"),
@@ -149,7 +182,7 @@ const AssetManagement: React.FC = () => {
     return () => unsub();
   }, []);
 
-  // categories
+  // Fetch categories
   useEffect(() => {
     (async () => {
       try {
@@ -201,6 +234,7 @@ const AssetManagement: React.FC = () => {
       qrcode: d.qrcode ?? null,
       generateQR: !!d.generateQR,
       personnel: personnelName,
+      personnelId: d.personnel,
       purchaseDate: d.purchaseDate || undefined,
       status: d.status || undefined,
       licenseType: d.licenseType || undefined,
@@ -210,150 +244,137 @@ const AssetManagement: React.FC = () => {
       updatedBy: updatedByName,
       renewdate: d.renewdate?.toDate ? new Date(d.renewdate.toDate()).toLocaleDateString() : (d.renewdate || undefined),
       assetHistory: d.assetHistory || [],
+      hasReports: d.hasReports || false,
+      reportCount: d.reportCount || 0,
     } as Card;
   }), [rawAssets, uidToNameMap, emailToNameMap]);
 
   const filteredCards = useMemo(() => {
-    if (filter === 'all') return cards;
-    return cards.filter((card) => {
-      switch (filter) {
-        case 'permanent': return card.iconClass === 'icon-blue';
-        case 'normal': return card.iconClass === 'icon-green';
-        case 'aboutToExpire': return card.iconClass === 'icon-orange';
-        case 'expired': return card.iconClass === 'icon-red';
-        default: return true;
-      }
-    });
-  }, [cards, filter]);
+    let result = [...cards];
+
+    // Apply status filter (single selection)
+    if (statusFilter !== 'all') {
+      result = result.filter((card) => {
+        switch (statusFilter) {
+          case 'permanent': return card.iconClass === 'icon-blue';
+          case 'normal': return card.iconClass === 'icon-green';
+          case 'aboutToExpire': return card.iconClass === 'icon-orange';
+          case 'expired': return card.iconClass === 'icon-red';
+          default: return true;
+        }
+      });
+    }
+
+    // Apply "My Assets" filter (multi-select)
+    if (showMyAssets) {
+      const currentUserId = auth.currentUser?.uid;
+      result = result.filter(card => card.personnelId === currentUserId);
+    }
+
+    // Apply "Reported" filter (multi-select)
+    if (showReported) {
+      result = result.filter(card => card.hasReports);
+    }
+
+    return result;
+  }, [cards, statusFilter, showMyAssets, showReported]);
 
   const counts = useMemo(() => {
-    let permanent = 0, normal = 0, aboutToExpire = 0, expired = 0;
+    let permanent = 0, normal = 0, aboutToExpire = 0, expired = 0, myAssets = 0, reported = 0;
+    const currentUserId = auth.currentUser?.uid;
+    
     for (const c of cards) {
       if (c.iconClass === 'icon-blue') permanent++;
       else if (c.iconClass === 'icon-green') normal++;
       else if (c.iconClass === 'icon-orange') aboutToExpire++;
       else if (c.iconClass === 'icon-red') expired++;
+      
+      if (c.personnelId === currentUserId) myAssets++;
+      if (c.hasReports) reported++;
     }
-    return { permanent, normal, aboutToExpire, expired };
+    return { permanent, normal, aboutToExpire, expired, myAssets, reported };
   }, [cards]);
-
-  // Edit/Delete/QR preview + history
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editForm, setEditForm] = useState<any>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const qrPreviewRef = useRef<HTMLDivElement | null>(null);
 
   const handleCardOptionsToggle = (index: number) => setOpenCardOptionsId(prev => (prev === index ? null : index));
 
   const handleEditCard = (index: number) => {
     const card = filteredCards[index];
     if (!card) return;
-    setEditingId(card.id);
-    setEditForm({
-      assetName: card.title || '',
-      serialNo: card.serial || '',
-      category: card.team || categories[0] || '',
-      licenseType: card.licenseType || '',
-      personnel: card.personnel || '',
-      purchaseDate: card.purchaseDate || '',
-      renewdate: card.renewdate || '',
-      status: card.status || '',
-      originalStatus: card.status || '',
-      assetId: card.assetId || '',
-      assetUrl: card.assetUrl || '',
-      generateQR: !!card.qrcode || !!card.generateQR || false,
-      existingQrcode: card.qrcode ?? null,
-      statusReason: '',
-      maintainedBy: '',
+    
+    const rawAsset = rawAssets.find(a => a.id === card.id);
+    if (!rawAsset) return;
+
+    setEditingAsset({
+      docId: rawAsset.id,
+      assetId: rawAsset.assetId,
+      assetName: rawAsset.assetName,
+      assetUrl: rawAsset.assetUrl,
+      category: rawAsset.category,
+      licenseType: rawAsset.licenseType,
+      personnel: rawAsset.personnel,
+      purchaseDate: rawAsset.purchaseDate,
+      renewdate: rawAsset.renewdate,
+      serialNo: rawAsset.serialNo,
+      status: rawAsset.status,
+      qrcode: rawAsset.qrcode,
+      generateQR: rawAsset.generateQR,
+      image: rawAsset.image,
+      createdBy: rawAsset.createdBy,
+      createdAt: rawAsset.createdAt,
+      updatedBy: rawAsset.updatedBy,
+      updatedAt: rawAsset.updatedAt,
+      assetHistory: rawAsset.assetHistory,
     });
+    
     setEditModalOpen(true);
     setOpenCardOptionsId(null);
   };
+
   const getCurrentUserFullName = (): string => {
-  const uid = auth.currentUser?.uid;
-  if (uid && uidToNameMap[uid]) {
-    return uidToNameMap[uid];
-  }
-  // Fallback to email if name not found
-  return auth.currentUser?.email || 'Unknown User';
-};
-const handleDeleteCard = async (index: number) => {
-  const card = filteredCards[index];
-  if (!card) return;
-
-  // Show strong warning
-  const warningMessage = 
-    `⚠️ WARNING: You will be held accountable for the deletion of this asset.\n\n` +
-    `Asset: "${card.title}" (Serial: ${card.serial})\n` +
-    `Category: ${card.team}\n\n` +
-    `Are you absolutely sure you want to delete this asset? This action cannot be undone.`;
-
-  if (!window.confirm(warningMessage)) return;
-
-  try {
-    const assetRef = doc(db, "IT_Assets", card.id);
-    
-    // Get current user info
-    const deletedBy = getCurrentUserFullName();
-    const deletedByEmail = auth.currentUser?.email || '';
-    const deletedAt = new Date().toISOString();
-
-    // Create audit record
-    const auditRecord = {
-      ...card, // Preserve all original data
-      deletedAt,
-      deletedBy,
-      deletedByEmail,
-      deletionReason: 'User-initiated deletion', // You can make this a prompt if needed
-      originalId: card.id, // Keep reference to original ID
-    };
-
-    // Save to Deleted_Assets collection
-    await addDoc(collection(db, "Deleted_Assets"), auditRecord);
-    
-    // Now delete from active assets
-    await deleteDoc(assetRef);
-    
-    toast.success('Asset deleted and archived successfully');
-    setOpenCardOptionsId(null);
-  } catch (err) {
-    console.error('Delete failed', err);
-    toast.error('Failed to delete asset. Please try again.');
-  }
-};
-
-  const renderQRTo = (value: string, container: HTMLElement | null) => {
-    if (!container) return;
-    container.innerHTML = '';
-    QrCreator.render({
-      text: value,
-      radius: 0.45,
-      ecLevel: 'H',
-      fill: '#162a37',
-      background: null,
-      size: 250,
-    }, container as any);
+    const uid = auth.currentUser?.uid;
+    if (uid && uidToNameMap[uid]) {
+      return uidToNameMap[uid];
+    }
+    return auth.currentUser?.email || 'Unknown User';
   };
 
-  const makeQRDataUrl = async (value: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      try {
-        const canvas = document.createElement('canvas');
-        QrCreator.render({
-          text: value,
-          radius: 0.45,
-          ecLevel: 'H',
-          fill: '#162a37',
-          background: null,
-          size: 250,
-        }, canvas as any);
-        const dataUrl = (canvas as HTMLCanvasElement).toDataURL('image/png');
-        resolve(dataUrl);
-      } catch (e) {
-        reject(e);
-      }
-    });
+  const handleDeleteCard = async (index: number) => {
+    const card = filteredCards[index];
+    if (!card) return;
+
+    const warningMessage = 
+      `⚠️ WARNING: You will be held accountable for the deletion of this asset.\n\n` +
+      `Asset: "${card.title}" (Serial: ${card.serial})\n` +
+      `Category: ${card.team}\n\n` +
+      `Are you absolutely sure you want to delete this asset? This action cannot be undone.`;
+
+    if (!window.confirm(warningMessage)) return;
+
+    try {
+      const assetRef = doc(db, "IT_Assets", card.id);
+      
+      const deletedBy = getCurrentUserFullName();
+      const deletedByEmail = auth.currentUser?.email || '';
+      const deletedAt = new Date().toISOString();
+
+      const auditRecord = {
+        ...card,
+        deletedAt,
+        deletedBy,
+        deletedByEmail,
+        deletionReason: 'User-initiated deletion',
+        originalId: card.id,
+      };
+
+      await addDoc(collection(db, "Deleted_Assets"), auditRecord);
+      await deleteDoc(assetRef);
+      
+      toast.success('Asset deleted and archived successfully');
+      setOpenCardOptionsId(null);
+    } catch (err) {
+      console.error('Delete failed', err);
+      toast.error('Failed to delete asset. Please try again.');
+    }
   };
 
   const openQR = (card: Card) => {
@@ -369,218 +390,14 @@ const handleDeleteCard = async (index: number) => {
     setShowQR(true);
   };
 
-  const [historyOpenFor, setHistoryOpenFor] = useState<string | null>(null); // id of card whose history panel is open
-
-  // Save edits — includes status change history append
-  const handleSaveEdit = async () => {
-    if (!editingId || !editForm) return;
-    setSaving(true);
-
-    try {
-      // client-side validation for status changes
-      const orig = editForm.originalStatus || '';
-      const nowStatus = editForm.status || '';
-      if (orig !== nowStatus) {
-        if (!editForm.statusReason || String(editForm.statusReason).trim().length === 0) {
-          toast.error('Please provide a reason for the status change.');
-          setSaving(false);
-          return;
-        }
-        if (orig === 'Under Maintenance' && nowStatus === 'Functional') {
-          if (!editForm.maintainedBy || String(editForm.maintainedBy).trim().length === 0) {
-            toast.error('Please specify who performed the maintenance (Maintained by).');
-            setSaving(false);
-            return;
-          }
-        }
-      }
-
-      const assetRef = doc(db, "IT_Assets", editingId);
-
-      // build payload
-      const payload: any = {
-        assetName: editForm.assetName || '',
-        serialNo: editForm.serialNo || '',
-        category: editForm.category || '',
-        licenseType: editForm.licenseType || '',
-        personnel: editForm.personnel || '',
-        purchaseDate: editForm.purchaseDate || '',
-        renewdate: editForm.renewdate || '',
-        status: editForm.status || '',
-        assetId: editForm.assetId || '',
-        assetUrl: editForm.assetUrl || '',
-        generateQR: !!editForm.generateQR,
-        updatedAt: serverTimestamp(),
-        updatedBy: auth.currentUser?.email || '',
-      };
-
-      // QR generation (if requested)
-      if (editForm.generateQR) {
-        const assetIdToUse = editForm.assetId || editingId;
-        const assetUrl = editForm.assetUrl || buildAssetUrl(assetIdToUse);
-        const qrString = JSON.stringify({ assetId: assetIdToUse, assetUrl });
-
-        const dataUrl = await makeQRDataUrl(qrString);
-
-        // size guard
-        const base64Part = dataUrl.split(',')[1] || '';
-        const estimatedBytes = Math.ceil(base64Part.length * 3 / 4);
-        const WARN_BYTES = 700 * 1024;
-        const ABORT_BYTES = 950 * 1024;
-
-        if (estimatedBytes > ABORT_BYTES) {
-          toast.error('QR image too large to save safely. Use a simpler payload.');
-          setSaving(false);
-          return;
-        }
-        if (estimatedBytes > WARN_BYTES) {
-          const ok = window.confirm(`The generated QR is ~${Math.round(estimatedBytes/1024)} KB. Saving may increase doc size. Continue?`);
-          if (!ok) { setSaving(false); return; }
-        }
-
-        payload.qrcode = dataUrl;
-        payload.assetUrl = assetUrl;
-      } else {
-        payload.qrcode = null;
-      }
-
-      // prepare history entry if status changed — use client timestamp (ISO) instead of serverTimestamp inside arrayUnion
-      let historyEntry: HistoryEntry | null = null;
-      if (orig !== nowStatus) {
-        historyEntry = {
-          changedAt: new Date().toISOString(), // client timestamp (string)
-          changedBy: auth.currentUser?.email || '',
-          from: orig,
-          to: nowStatus,
-          reason: editForm.statusReason || '',
-          maintainedBy: (orig === 'Under Maintenance' && nowStatus === 'Functional') ? (editForm.maintainedBy || '') : '',
-        };
-      }
-
-      // perform single updateDoc call (include history via arrayUnion if needed)
-      if (historyEntry) {
-        await updateDoc(assetRef, {
-          ...payload,
-          assetHistory: arrayUnion(historyEntry),
-        });
-      } else {
-        await updateDoc(assetRef, payload);
-      }
-
-      toast.success('Asset updated');
-      setEditModalOpen(false);
-      setEditForm(null);
-      setEditingId(null);
-    } catch (err: any) {
-      console.error('Failed to save asset (handleSaveEdit):', err);
-      const message = err?.message || String(err);
-      const code = err?.code ? ` (${err.code})` : '';
-      toast.error(`Failed to save changes: ${message}${code}`);
-      if (String(message).toLowerCase().includes('exceeded') || String(message).toLowerCase().includes('size')) {
-        toast.info('If you were generating a QR image, it may be too large. Try disabling QR or shrinking it.');
-      }
-    } finally {
-      setSaving(false);
-    }
+  const clearAllFilters = () => {
+    setStatusFilter('all');
+    setShowMyAssets(false);
+    setShowReported(false);
   };
 
-  const onEditChange = (field: string, value: any) => {
-    setEditForm((prev: any) => ({ ...prev, [field]: value }));
-  };
+  const hasActiveFilters = statusFilter !== 'all' || showMyAssets || showReported;
 
-  // Live QR preview inside edit modal (existing QR when not generating; live render when generateQR)
-  useEffect(() => {
-    if (!editForm) return;
-    const container = qrPreviewRef.current;
-    if (!container) return;
-
-    if (editForm.existingQrcode && !editForm.generateQR) {
-      container.innerHTML = `<img src="${editForm.existingQrcode}" style="max-width:220px;width:100%;height:auto;border-radius:6px;" />`;
-      return;
-    }
-
-    if (editForm.generateQR) {
-      const assetIdToUse = editForm.assetId || editingId || '';
-      const assetUrl = editForm.assetUrl || buildAssetUrl(assetIdToUse);
-      const qrString = JSON.stringify({ assetId: assetIdToUse, assetUrl });
-      try {
-        renderQRTo(qrString, container);
-      } catch (e) {
-        console.error('Preview render failed', e);
-        container.innerHTML = `<div class="muted">QR preview unavailable</div>`;
-      }
-    } else {
-      container.innerHTML = '';
-    }
-  }, [editForm, editingId]);
-
-  const formatWhen = (changedAt: any) => {
-    if (!changedAt) return 'Unknown time';
-    try {
-      // Firestore Timestamp object with toDate()
-      if (typeof changedAt.toDate === 'function') {
-        return changedAt.toDate().toLocaleString();
-      }
-      // Firestore-like object with toMillis()
-      if (typeof changedAt.toMillis === 'function') {
-        return new Date(changedAt.toMillis()).toLocaleString();
-      }
-      // ISO string
-      if (typeof changedAt === 'string') {
-        const parsed = new Date(changedAt);
-        if (!isNaN(parsed.getTime())) return parsed.toLocaleString();
-        return String(changedAt);
-      }
-      // number (ms since epoch)
-      if (typeof changedAt === 'number') {
-        return new Date(changedAt).toLocaleString();
-      }
-      return String(changedAt);
-    } catch {
-      return 'Unknown time';
-    }
-  };
-
-  // Format history entry for display (timestamp handling)
-  const renderHistoryEntries = (history: HistoryEntry[] | undefined) => {
-    if (!history || history.length === 0) {
-      return <div className="history-empty muted">No history available</div>;
-    }
-
-    // Sort descending by time (best-effort — handles strings, numbers, timestamps)
-    const sorted = [...history].sort((a, b) => {
-      const getMillis = (x: any) => {
-        if (!x) return 0;
-        if (typeof x.toMillis === 'function') return x.toMillis();
-        if (typeof x === 'string') {
-          const t = Date.parse(x);
-          return isNaN(t) ? 0 : t;
-        }
-        if (typeof x === 'number') return x;
-        return 0;
-      };
-      return getMillis(b.changedAt) - getMillis(a.changedAt);
-    });
-
-    return sorted.map((h, i) => {
-      const when = formatWhen(h.changedAt);
-      return (
-        <div className="history-entry" key={i} role="group" aria-label={`history-entry-${i}`}>
-          <div className="history-meta">
-            <div className="history-action">{h.from || '—'} → {h.to || '—'}</div>
-            <div className="history-when">{when}</div>
-            <div className="history-who">{h.changedBy || ''}</div>
-          </div>
-          <div className="history-body">
-            <div className="history-reason"><strong>Reason:</strong> {h.reason || '—'}</div>
-            {h.maintainedBy && <div className="history-maintained"><strong>Maintained by:</strong> {h.maintainedBy}</div>}
-          </div>
-        </div>
-      );
-    });
-  };
-
-  // UI
   return (
     <div className="content-here">
       {/* View More Modal */}
@@ -612,7 +429,6 @@ const handleDeleteCard = async (index: number) => {
                 </tbody>
               </table>
 
-              {/* Extra details including asset history */}
               <div className={`extra-details-wrapper ${showMoreDetails ? 'visible' : 'hidden'}`}>
                 <div className="extra-details-divider" />
                 <table className="modal-table extra-details">
@@ -628,7 +444,6 @@ const handleDeleteCard = async (index: number) => {
                   </tbody>
                 </table>
 
-                {/* ✅ History button - NO HistoryModal here */}
                 {selectedCard.assetHistory && selectedCard.assetHistory.length > 0 && (
                   <div style={{ marginTop: '16px', textAlign: 'center' }}>
                     <button
@@ -657,155 +472,189 @@ const handleDeleteCard = async (index: number) => {
 
               <div className="buttons-container">
                 <button className="close-btn" onClick={() => { setSelectedCard(null); setShowMoreDetails(false); }}>Close</button>
-                <button className="edits-button" onClick={() => {
-                  const idx = filteredCards.findIndex(c => c.id === selectedCard.id);
-                  if (idx >= 0) handleEditCard(idx);
-                }}>Edit</button>
+                <button 
+                  className="edits-button" 
+                  onClick={() => {
+                    const idx = filteredCards.findIndex(c => c.id === selectedCard.id);
+                    if (idx >= 0) handleEditCard(idx);
+                  }}
+                >
+                  Edit
+                </button>
+                <button 
+                  className="edits-button report-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (selectedCard) {
+                      setReportingAsset({
+                        id: selectedCard.assetId || selectedCard.id,
+                        docId: selectedCard.id,
+                        name: selectedCard.title,
+                      });
+                      setReportModalOpen(true);
+                    }
+                  }}
+                >
+                  <i className="fas fa-exclamation-triangle" /> Report Issue
+                </button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Edit Modal */}
-      {editModalOpen && editForm && (
-        <div className="modal-backdrop" onClick={() => { setEditModalOpen(false); setEditForm(null); setEditingId(null); }}>
-          <div className="modal edit-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header"><h2>Edit Asset</h2></div>
+      <EditAssetModal
+        isOpen={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false);
+          setEditingAsset(null);
+        }}
+        asset={editingAsset}
+        onSaved={() => {
+          setEditModalOpen(false);
+          setEditingAsset(null);
+        }}
+        onDeleted={() => {
+          setEditModalOpen(false);
+          setEditingAsset(null);
+          setSelectedCard(null);
+        }}
+      />
 
-            <div className="modal-body edit-grid">
-              <div className="edit-left">
-                <div className="form-row"><label>Asset ID</label>
-                  <input value={editForm.assetId} readOnly className="cursor-not-allowed bg-gray-100" />
-                </div>
-
-                <div className="form-row"><label>Asset Name</label>
-                  <input value={editForm.assetName} onChange={(e) => onEditChange('assetName', e.target.value)} />
-                </div>
-
-                <div className="form-row"><label>Category</label>
-                  <select value={editForm.category} onChange={(e) => onEditChange('category', e.target.value)}>
-                    <option value="">-- Select Category --</option>
-                    {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-
-                <div className="form-row"><label>License Type</label>
-                  <select value={editForm.licenseType} onChange={(e) => onEditChange('licenseType', e.target.value)}>
-                    <option value="">-- Select License Type --</option>
-                    <option value="Perpetual">Perpetual</option>
-                    <option value="Subscription">Subscription</option>
-                    <option value="Trial">Trial</option>
-                    <option value="OEM">OEM</option>
-                    <option value="Open Source">Open Source</option>
-                  </select>
-                </div>
-
-                <div className="form-row"><label>Asset URL</label>
-                  <input value={editForm.assetUrl} readOnly className="cursor-not-allowed bg-gray-100" />
-                </div>
-
-                <div className="form-row"><label>Assigned To</label>
-                  <select value={editForm.personnel} onChange={(e) => onEditChange('personnel', e.target.value)}>
-                    <option value="">-- Select IT Personnel --</option>
-                    {itUsers.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.fullName}{u.position ? ` (${u.position})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-row"><label>Purchase Date</label>
-                  <input type="date" value={editForm.purchaseDate || ''} onChange={(e) => onEditChange('purchaseDate', e.target.value)} />
-                </div>
-
-                <div className="form-row"><label>Serial Number</label>
-                  <input value={editForm.serialNo} onChange={(e) => onEditChange('serialNo', e.target.value)} />
-                </div>
-
-                <div className="form-row"><label>Status</label>
-                  <select value={editForm.status} onChange={(e) => onEditChange('status', e.target.value)}>
-                    <option value="">-- Select Status --</option>
-                    <option value="Functional">Functional</option>
-                    <option value="Under Maintenance">Under Maintenance</option>
-                    <option value="Defective">Defective</option>
-                    <option value="Unserviceable">Unserviceable</option>
-                  </select>
-                </div>
-
-                {/* show reason when status changed */}
-                {editForm.originalStatus !== undefined && editForm.originalStatus !== editForm.status && (
-                  <div className="form-row">
-                    <label>Reason for status change</label>
-                    <textarea value={editForm.statusReason || ''} onChange={(e) => onEditChange('statusReason', e.target.value)} placeholder="Explain why the status was changed" />
-                  </div>
-                )}
-
-                {/* maintainedBy only when transition Under Maintenance -> Functional */}
-                {editForm.originalStatus === 'Under Maintenance' && editForm.status === 'Functional' && (
-                  <div className="form-row">
-                    <label>Maintained by</label>
-                    <input value={editForm.maintainedBy || ''} onChange={(e) => onEditChange('maintainedBy', e.target.value)} placeholder="Person/Team who performed maintenance" />
-                  </div>
-                )}
-
-                <div className="form-row">
-                  <label>Renewal Date</label>
-                  <input
-                    type="date"
-                    value={editForm.renewdate || ''}
-                    onChange={(e) => onEditChange('renewdate', e.target.value)}
-                    disabled={NON_EXPIRING.has(editForm.licenseType)}
-                    className={NON_EXPIRING.has(editForm.licenseType) ? 'disabled' : ''}
-                  />
-                </div>
-
-                <div className="form-row checkbox-row">
-                  <label><input type="checkbox" checked={!!editForm.generateQR} onChange={(e) => onEditChange('generateQR', e.target.checked)} /> Generate QR for this asset</label>
-                </div>
-              </div>
-
-              <div className="edit-right">
-                <div className="qr-preview-wrapper">
-                  <label>QR Preview</label>
-                  <div className="qr-preview" ref={qrPreviewRef} />
-                  <div className="qr-preview-hint muted">
-                    {editForm.generateQR ? 'Live preview of generated QR (not saved yet).' : (editForm.existingQrcode ? 'Showing saved QR (existing).' : 'QR disabled')}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button className="close-btn" onClick={() => { setEditModalOpen(false); setEditForm(null); setEditingId(null); }}>Cancel</button>
-              <button className="edits-button" onClick={handleSaveEdit} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ReportAssetModal
+        isOpen={reportModalOpen}
+        onClose={() => {
+          setReportModalOpen(false);
+          setReportingAsset(null);
+        }}
+        assetId={reportingAsset?.id || ''}
+        assetDocId={reportingAsset?.docId || ''}
+        assetName={reportingAsset?.name || ''}
+      />
 
       <h1>Asset Management</h1>
 
-      <div className="filter-tabs">
-        <button onClick={() => setFilter('all')}>All <span>{cards.length}</span></button>
-        <button onClick={() => setFilter('permanent')}>Permanent <span>{counts.permanent}</span></button>
-        <button onClick={() => setFilter('normal')}>Normal <span>{counts.normal}</span></button>
-        <button onClick={() => setFilter('aboutToExpire')}>About To Expire <span>{counts.aboutToExpire}</span></button>
-        <button onClick={() => setFilter('expired')}>Expired <span>{counts.expired}</span></button>
+      {/* Enhanced Filter Section */}
+      <div className="filter-section">
+        {/* Multi-Select Filters */}
+        <div className="quick-filters">
+          <div className="filter-section-label">
+            <i className="fas fa-filter" />
+            <span>Quick Filters</span>
+          </div>
+          <div className="filter-tabs">
+            <button 
+              className={`multi-select ${showMyAssets ? 'active' : ''}`}
+              onClick={() => setShowMyAssets(!showMyAssets)}
+            >
+              <i className="fas fa-user" />
+              My Assets
+              <span>{counts.myAssets}</span>
+            </button>
+
+            <button 
+              className={`multi-select reported ${showReported ? 'active' : ''}`}
+              onClick={() => setShowReported(!showReported)}
+            >
+              <i className="fas fa-exclamation-triangle" />
+              Reported Issues
+              <span>{counts.reported}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Status Filters */}
+        <div>
+          <div className="filter-section-label">
+            <i className="fas fa-clock" />
+            <span>Status</span>
+          </div>
+          <div className="filter-tabs">
+            <button 
+              className={`status-filter status-all ${statusFilter === 'all' ? 'active' : ''}`}
+              onClick={() => setStatusFilter('all')}
+            >
+              All Assets
+              <span>{cards.length}</span>
+            </button>
+            <button 
+              className={`status-filter status-permanent ${statusFilter === 'permanent' ? 'active' : ''}`}
+              onClick={() => setStatusFilter('permanent')}
+            >
+              Permanent
+              <span>{counts.permanent}</span>
+            </button>
+            <button 
+              className={`status-filter status-normal ${statusFilter === 'normal' ? 'active' : ''}`}
+              onClick={() => setStatusFilter('normal')}
+            >
+              Normal
+              <span>{counts.normal}</span>
+            </button>
+            <button 
+              className={`status-filter status-expire ${statusFilter === 'aboutToExpire' ? 'active' : ''}`}
+              onClick={() => setStatusFilter('aboutToExpire')}
+            >
+              Expiring Soon
+              <span>{counts.aboutToExpire}</span>
+            </button>
+            <button 
+              className={`status-filter status-expired ${statusFilter === 'expired' ? 'active' : ''}`}
+              onClick={() => setStatusFilter('expired')}
+            >
+              Expired
+              <span>{counts.expired}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Active Filters Summary */}
+        {hasActiveFilters && (
+          <div className="active-filters-summary">
+            <i className="fas fa-info-circle" />
+            <span>
+              Showing <strong>{filteredCards.length}</strong> of <strong>{cards.length}</strong> assets
+            </span>
+            <button className="clear-filters-btn" onClick={clearAllFilters}>
+              Clear All
+            </button>
+          </div>
+        )}
       </div>
 
+      {/* Cards Grid */}
       {loading ? (
-        <p style={{ padding: '1rem' }}>Loading assets…</p>
+        <div className="loading-state">
+          <div className="loading-spinner"></div>
+        </div>
       ) : filteredCards.length === 0 ? (
-        <p style={{ padding: '1rem' }}>No assets found for this filter.</p>
+        <div className="empty-state">
+          <i className="fas fa-inbox" />
+          <p>No assets found</p>
+          <p>Try adjusting your filters</p>
+        </div>
       ) : (
         <div className="cards-grid">
           {filteredCards.map((card, index) => (
             <div className="card" key={card.id}>
+              {/* Card Badges */}
+              <div className="card-badges">
+                {card.personnelId === auth.currentUser?.uid && (
+                  <span className="card-badge my-asset">Mine</span>
+                )}
+                {card.hasReports && (
+                  <span className="card-badge reported">
+                    <i className="fas fa-exclamation-circle" />
+                    {card.reportCount}
+                  </span>
+                )}
+              </div>
+
               <div className="card-top">
                 <div className="card-top-left">
-                  <div className={`card-icon ${card.iconClass}`}></div>
+                  <div className={`card-icon ${card.iconClass}`}>
+                    <i className={`fas ${card.team.toLowerCase().includes('hardware') ? 'fa-laptop' : 'fa-code'}`} />
+                  </div>
                   <button className="view-more-btn" onClick={() => setSelectedCard(card)}>View More</button>
                 </div>
                 <div className="card-options">
@@ -818,19 +667,34 @@ const handleDeleteCard = async (index: number) => {
                   )}
                 </div>
               </div>
+              
               <h2>{card.title}</h2>
-              <p>{card.team}</p>
-              <p>{card.timeLeft}</p>
-              <div className="card-footer">
-                <span>Ronzel Go</span>
-                <span>Serial Number: {card.serial}</span>
+              
+              <div className="card-meta">
+                <div className="card-meta-item">
+                  <i className="fas fa-layer-group" />
+                  {card.team}
+                </div>
+                <div className="card-meta-item">
+                  <i className="fas fa-barcode" />
+                  {card.serial}
+                </div>
+                {card.personnel && (
+                  <div className="card-meta-item">
+                    <i className="fas fa-user" />
+                    {card.personnel}
+                  </div>
+                )}
+              </div>
+              
+              <div className="card-time-badge">
+                {card.timeLeft}
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* ✅ HistoryModal at root level - CORRECT PLACE */}
       <HistoryModal
         isOpen={showHistoryModal}
         onClose={() => setShowHistoryModal(false)}
@@ -838,7 +702,6 @@ const handleDeleteCard = async (index: number) => {
         assetName={historyAsset?.name || 'Asset'}
       />
 
-      {/* QRModal at root level */}
       <QRModal isOpen={showQR} onClose={() => setShowQR(false)} asset={qrAsset} />
     </div>
   );

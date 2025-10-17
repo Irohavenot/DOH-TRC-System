@@ -593,7 +593,9 @@ const [showReportModal, setShowReportModal] = useState(false);
 
             {currentView === 'qr' && <WebQRScanner />}
 
-            {currentView === 'history' && <AssetHistory />}
+            {currentView === 'history' && <AssetHistory isOpen={false} onClose={function (): void {
+              throw new Error('Function not implemented.');
+            } } history={[]} assetName={''} />}
 
             {currentView === 'profile' && <ProfilePage />}
 

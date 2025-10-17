@@ -209,8 +209,7 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
             />
           </div>
           <div>
-            <label>Position</label>
-            <p>(Please Refer to your DOH-TRC ID)</p>
+            <label>Position (Please Refer to your DOH-TRC ID)</label>
             <select
               value={position}
               required

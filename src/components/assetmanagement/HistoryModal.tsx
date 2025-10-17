@@ -67,11 +67,8 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="history-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
+        <div className="history-modal-header">
           <h3>History: {assetName}</h3>
-          <button className="close-btn" onClick={onClose}>
-            &times;
-          </button>
         </div>
 
         <div className="history-content">

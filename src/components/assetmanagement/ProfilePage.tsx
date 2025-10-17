@@ -611,7 +611,13 @@ const ProfilePage: React.FC = () => {
     .join(", ");
 
   // Single-line full name for view mode
-  const fullName = [formData.firstName, formData.middleName, formData.lastName].filter(Boolean).join(" ");
+  // Single-line full name beside the profile picture (Middle name shortened)
+      const fullName = [
+        formData.firstName,
+        formData.middleName ? formData.middleName.charAt(0) + "." : "",
+        formData.lastName
+      ].filter(Boolean).join(" ");
+
 
   return (
     <div className="profile-page-container">
@@ -629,7 +635,7 @@ const ProfilePage: React.FC = () => {
             )}
           </div>
 
-                    <div className="profile-titleblock">
+            <div className="profile-titleblock">
             <h2>{isEditing ? fullName || "No name" : fullName || "No name"}</h2>
             <p className="profile-username">{formData.username}</p>
             {!!formData.status && (
@@ -651,7 +657,7 @@ const ProfilePage: React.FC = () => {
 
         <div className="profile-details">
         {/* Full name display (view) / separate inputs (edit) */}
-            <label className="profile-label">Name</label>
+            <label className="profile-label">Full Name</label>
             {isEditing ? (
               <div className="field-group">
                 <label className="profile-label small">First Name</label>
@@ -732,7 +738,7 @@ const ProfilePage: React.FC = () => {
 
           {/* Department */}
           <label className="profile-label">Department</label>
-          {isEditing ? <input name="department" value={formData.department} onChange={handleChange} className="profile-input" /> : <p>{formData.department}</p>}
+          <p>{formData.department || "Not Provided"}</p>
 
           {/* Address */}
           <label className="profile-label">Address</label>

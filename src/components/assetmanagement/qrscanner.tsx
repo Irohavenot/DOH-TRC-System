@@ -3,6 +3,7 @@ import QrScanner from "qr-scanner";
 // Vite returns a URL string for the worker file
 import QrScannerWorkerPath from "qr-scanner/qr-scanner-worker.min.js?url";
 import "../../assets/scanqr.css";
+import EditAssetModal from "../assetmanagement/EditAssetModal"; // adjust the path if needed
 
 // Firestore
 import { db } from "../../firebase/firebase";
@@ -160,6 +161,8 @@ const WebQRScanner: React.FC = () => {
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 
   const [showModal, setShowModal] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+
   const [scanText, setScanText] = useState<string>("");
   const [asset, setAsset] = useState<AssetDoc | null>(null);
   const [loading, setLoading] = useState(false);
@@ -492,14 +495,14 @@ const WebQRScanner: React.FC = () => {
                     Close
                   </button>
                   <button
-                    className="scanqr-btn scanqr-btn-success"
-                    onClick={() => {
-                      console.log("Edit asset", asset.docId ?? asset.assetId);
-                      // navigate(`/assets/${asset.docId ?? asset.assetId}/edit`);
-                    }}
-                  >
-                    Edit
-                  </button>
+                      className="scanqr-btn scanqr-btn-success"
+                      onClick={() => {
+                        setEditOpen(true);
+                      }}
+                    >
+                      Edit
+                    </button>
+
                   <button
                       className="scanqr-btn scanqr-btn-outline"
                       onClick={() => {
@@ -528,6 +531,24 @@ const WebQRScanner: React.FC = () => {
           </div>
         </div>
       )}
+      <EditAssetModal
+            isOpen={editOpen}
+            onClose={() => setEditOpen(false)}
+            asset={asset ? { ...asset, docId: asset.docId } : null}
+            categories={[]} // optional, can later pass real categories if you want
+            itUsers={[]} // optional, can later pass personnel list if you want
+            onSaved={() => {
+              setEditOpen(false);
+              setShowModal(false);
+              // Optionally re-fetch the updated asset here:
+              // if (asset?.docId) fetchByDocId(asset.docId).then(setAsset);
+            }}
+            onDeleted={() => {
+              setEditOpen(false);
+              setShowModal(false);
+            }}
+          />
+
     </div>
   );
 };
