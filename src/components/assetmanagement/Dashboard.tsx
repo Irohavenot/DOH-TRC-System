@@ -164,11 +164,11 @@ const Dashboard = () => {
       expiringIn3Months: 20,
     },
     consumables: { total: 200 },
-    propertyPlantEquipment: { total: 150 },
-    semiExpendableProperty: { total: 80 },
+    machineryEquipment: { total: 150 },
+    functionalProperty: { total: 80 },
     insuredProperty: { total: 100 },
     defectiveProperty: { total: 60 },
-    custodian: { total: 50 },
+    assignedCustodian: { total: 50 },
     unserviceableProperty: { total: 70 },
     otherTable: [
       { category: 'People', users: 10, toApprove: 3 },
@@ -186,11 +186,11 @@ const Dashboard = () => {
 
   const items = [
     { label: 'Consumables', total: dashboardData.consumables.total, icon: 'fas fa-tint', viewLink: 'consumables' },
-    { label: 'Property Plant & Equipment', total: dashboardData.propertyPlantEquipment.total, icon: 'fas fa-building', viewLink: 'propertyPlant' },
-    { label: 'Semi-Expendable Property', total: dashboardData.semiExpendableProperty.total, icon: 'fas fa-box-open', viewLink: 'semiExpendable' },
+    { label: 'Machinery & Equipment', total: dashboardData.machineryEquipment.total, icon: 'fas fa-building', viewLink: 'machineryEquipment' },
+    { label: 'Functional Property', total: dashboardData.functionalProperty.total, icon: 'fas fa-box-open', viewLink: 'functionalProperty' },
     { label: 'Insured Property', total: dashboardData.insuredProperty.total, icon: 'fas fa-shield-alt', viewLink: 'insuredProperty' },
     { label: 'Defective Property', total: dashboardData.defectiveProperty.total, icon: 'fas fa-tools', viewLink: 'defectiveProperty' },
-    { label: 'Custodian', total: dashboardData.custodian.total, icon: 'fas fa-user-shield', viewLink: 'custodian' },
+    { label: 'Assigned Custodian', total: dashboardData.assignedCustodian.total, icon: 'fas fa-user-shield', viewLink: 'assignedCustodian' },
     { label: 'Unserviceable Property', total: dashboardData.unserviceableProperty.total, icon: 'fas fa-exclamation-triangle', viewLink: 'unserviceableProperty' }
   ];
 

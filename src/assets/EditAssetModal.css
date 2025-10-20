@@ -12,7 +12,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 2000; /* Increased to appear above other modals */
   animation: fadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   padding: 20px;
   overflow-y: auto;
@@ -41,6 +41,8 @@
   flex-direction: column;
   animation: slideUp 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
+  position: relative;
+  z-index: 2001; /* Ensures modal is above backdrop */
 }
 
 @keyframes slideUp {
@@ -466,21 +468,61 @@
   transform: translateY(-4px);
 }
 
+.preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e8eaed;
+}
+
 .qr-preview-title {
-  margin: 0 0 20px 0;
+  margin: 0;
   font-size: 17px;
   font-weight: 700;
   color: #1a2f3d;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #e8eaed;
 }
 
 .qr-preview-title i {
   color: #2196f3;
   font-size: 20px;
+}
+
+.preview-toggle-buttons {
+  display: flex;
+  gap: 8px;
+  background: #f5f7fa;
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.toggle-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #5f6368;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle-btn:hover {
+  background: rgba(33, 150, 243, 0.1);
+  color: #2196f3;
+}
+
+.toggle-btn.active {
+  background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
 }
 
 .qr-preview-container {
@@ -572,6 +614,130 @@
 
 .info-text i {
   font-size: 14px;
+}
+
+/* Image Preview Styles */
+.image-preview-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%);
+  border-radius: 12px;
+  border: 2px dashed #dde1e6;
+  padding: 20px;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.image-preview-container:has(.asset-preview-image) {
+  border-style: solid;
+  border-color: #2196f3;
+  background: white;
+}
+
+.image-preview-wrapper {
+  position: relative;
+  max-width: 100%;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.asset-preview-image {
+  max-width: 100%;
+  max-height: 280px;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  object-fit: contain;
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+  color: white;
+  border: 3px solid white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+}
+
+.remove-image-btn:hover {
+  background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.5);
+}
+
+.image-placeholder {
+  text-align: center;
+  color: #95a5a6;
+  padding: 40px 20px;
+}
+
+.image-placeholder i {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.4;
+  display: block;
+}
+
+.image-placeholder p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #757575;
+}
+
+.image-upload-section {
+  text-align: center;
+}
+
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+  color: white;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+  letter-spacing: 0.3px;
+}
+
+.upload-btn:hover {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+}
+
+.upload-btn:active {
+  transform: translateY(0);
+}
+
+.upload-btn i {
+  font-size: 16px;
+}
+
+.upload-hint {
+  margin: 12px 0 0 0;
+  font-size: 12px;
+  color: #757575;
+  font-weight: 500;
 }
 
 /* Footer */

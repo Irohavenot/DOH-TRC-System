@@ -300,8 +300,24 @@
   }
 }
 
-/* Issue Details Modal */
-.issue-modal {
+/* Report Modal Backdrop */
+.report-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 77, 64, 0.75);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+}
+
+/* Report Modal */
+.report-modal {
   position: relative;
   padding: 0;
   background: white;
@@ -318,7 +334,7 @@
   border: 1px solid rgba(1, 139, 116, 0.2);
 }
 
-.issue-modal .modal-header {
+.report-modal-header {
   width: 100%;
   display: flex;
   align-items: center;
@@ -328,7 +344,7 @@
   border-bottom: none;
 }
 
-.issue-modal .modal-header h2 {
+.report-modal-header h2 {
   font-size: 1.5rem;
   font-weight: 700;
   color: white;
@@ -340,7 +356,7 @@
   -webkit-text-fill-color: white;
 }
 
-.modal-close {
+.report-modal-close {
   background: rgba(255, 255, 255, 0.2);
   border: none;
   width: 36px;
@@ -355,32 +371,32 @@
   font-size: 1.25rem;
 }
 
-.modal-close:hover {
+.report-modal-close:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: rotate(90deg);
 }
 
-.issue-modal .modal-content {
+.report-modal-content {
   padding: 2rem;
   overflow-y: auto;
   max-height: calc(90vh - 200px);
 }
 
-.issue-modal .modal-content::-webkit-scrollbar {
+.report-modal-content::-webkit-scrollbar {
   width: 8px;
 }
 
-.issue-modal .modal-content::-webkit-scrollbar-track {
+.report-modal-content::-webkit-scrollbar-track {
   background: #f1f5f9;
   border-radius: 4px;
 }
 
-.issue-modal .modal-content::-webkit-scrollbar-thumb {
+.report-modal-content::-webkit-scrollbar-thumb {
   background: linear-gradient(135deg, #004d40 0%, #007a66 100%);
   border-radius: 4px;
 }
 
-.modal-info-item {
+.report-modal-info-item {
   display: flex;
   align-items: flex-start;
   gap: 1rem;
@@ -392,22 +408,22 @@
   transition: all 0.2s ease;
 }
 
-.modal-info-item:hover {
+.report-modal-info-item:hover {
   background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
   transform: translateX(4px);
   box-shadow: 0 2px 8px rgba(0, 77, 64, 0.1);
 }
 
-.modal-info-item.full-width {
+.report-modal-info-item.full-width {
   flex-direction: column;
   align-items: flex-start;
 }
 
-.modal-info-item.full-width > i {
+.report-modal-info-item.full-width > i {
   margin-bottom: 0.5rem;
 }
 
-.modal-info-item i {
+.report-modal-info-item i {
   color: #007a66;
   font-size: 1.125rem;
   width: 20px;
@@ -415,7 +431,7 @@
   flex-shrink: 0;
 }
 
-.info-label {
+.report-info-label {
   font-size: 0.75rem;
   font-weight: 600;
   color: #64748b;
@@ -424,20 +440,20 @@
   margin-bottom: 0.25rem;
 }
 
-.info-value {
+.report-info-value {
   font-size: 0.9375rem;
   font-weight: 600;
   color: #1f2937;
   word-wrap: break-word;
 }
 
-.issue-description {
+.report-issue-description {
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
-.issue-image {
+.report-issue-image {
   width: 100%;
   max-height: 400px;
   object-fit: contain;
@@ -446,7 +462,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.modal-footer {
+.report-modal-footer {
   width: 100%;
   padding: 1.5rem 2rem;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
@@ -456,7 +472,7 @@
   justify-content: flex-end;
 }
 
-.modal-footer button {
+.report-modal-footer button {
   padding: 0.75rem 1.5rem;
   border-radius: 10px;
   font-weight: 600;
@@ -469,44 +485,28 @@
   gap: 0.5rem;
 }
 
-.btn-secondary {
+.report-btn-secondary {
   background: white;
   color: #6b7280;
   border: 2px solid #e2e8f0;
 }
 
-.btn-secondary:hover {
+.report-btn-secondary:hover {
   background: #f8fafc;
   border-color: #cbd5e1;
   transform: translateY(-1px);
 }
 
-.btn-primary {
+.report-btn-primary {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
-.btn-primary:hover {
+.report-btn-primary:hover {
   background: linear-gradient(135deg, #059669 0%, #047857 100%);
   box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
   transform: translateY(-2px);
-}
-
-/* Modal Backdrop */
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 77, 64, 0.75);
-  backdrop-filter: blur(8px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-  animation: fadeIn 0.3s ease;
 }
 
 @keyframes fadeIn {
@@ -599,29 +599,29 @@
     font-size: 0.75rem;
   }
 
-  .issue-modal {
+  .report-modal {
     width: 95%;
     max-height: 95vh;
   }
 
-  .issue-modal .modal-header {
+  .report-modal-header {
     padding: 1.25rem 1.5rem;
   }
 
-  .issue-modal .modal-header h2 {
+  .report-modal-header h2 {
     font-size: 1.25rem;
   }
 
-  .issue-modal .modal-content {
+  .report-modal-content {
     padding: 1.5rem;
   }
 
-  .modal-footer {
+  .report-modal-footer {
     padding: 1rem 1.5rem;
     flex-direction: column;
   }
 
-  .modal-footer button {
+  .report-modal-footer button {
     width: 100%;
     justify-content: center;
   }
@@ -648,15 +648,15 @@
     font-size: 0.6875rem;
   }
 
-  .modal-info-item {
+  .report-modal-info-item {
     padding: 0.75rem;
   }
 
-  .modal-info-item i {
+  .report-modal-info-item i {
     font-size: 1rem;
   }
 
-  .info-value {
+  .report-info-value {
     font-size: 0.875rem;
   }
 }
@@ -666,7 +666,7 @@
   .filter-section,
   .action-buttons,
   .view-details-btn,
-  .modal-backdrop {
+  .report-modal-backdrop {
     display: none !important;
   }
 

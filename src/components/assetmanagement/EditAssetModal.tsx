@@ -14,7 +14,7 @@ import {
 import { db, auth } from "../../firebase/firebase";
 import QrCreator from "qr-creator";
 import { toast } from "react-toastify";
-import "../../assets/EditAssetModal.css"; // Import custom CSS
+import "../../assets/EditAssetModal.css";
 
 type HistoryEntry = {
   changedAt?: any;
@@ -31,6 +31,7 @@ type AssetDoc = {
   assetName?: string;
   assetUrl?: string;
   category?: string;
+  subType?: string; // NEW: Asset Type or License Type
   licenseType?: string;
   personnel?: string;
   purchaseDate?: string;
@@ -67,6 +68,25 @@ const NON_EXPIRING = new Set(["Perpetual", "OEM", "Open Source"]);
 const WARN_BYTES = 700 * 1024;
 const ABORT_BYTES = 950 * 1024;
 
+// Asset and License type options
+const ASSET_TYPES = [
+  'Furniture and Fixture',
+  'Desktop',
+  'Laptop',
+  'Printer',
+  'Server',
+  'Machinery/Equipment',
+  'Infrastructure',
+  'Vehicles/Transport'
+];
+
+const LICENSE_TYPES = [
+  'Software License',
+  'Business License',
+  'Government License',
+  'General License'
+];
+
 const EditAssetModal: React.FC<Props> = ({
   isOpen,
   onClose,
@@ -78,8 +98,11 @@ const EditAssetModal: React.FC<Props> = ({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [itUsers, setItUsers] = useState<ITUser[]>([]);
+  const [uidToNameMap, setUidToNameMap] = useState<Record<string, string>>({});
   const [categories, setCategories] = useState<string[]>([]);
+  const [previewMode, setPreviewMode] = useState<"qr" | "image">("qr");
   const qrPreviewRef = useRef<HTMLDivElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   // Initialize form when modal opens
   useEffect(() => {
@@ -108,28 +131,46 @@ const EditAssetModal: React.FC<Props> = ({
   // Fetch IT personnel
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "IT_Supply_Users"), (snap) => {
+      const umap: Record<string, string> = {};
       const list: ITUser[] = snap.docs.map((d) => {
         const data: any = d.data();
+        const uid = d.id;
         const first = data.FirstName || data.firstName || "";
         const middle = data.MiddleInitial || data.middleName || "";
         const last = data.LastName || data.lastName || "";
-        const fullName = [first, middle, last].filter(Boolean).join(" ");
+        
+        let middleInitial = '';
+        if (middle) {
+          if (middle.length > 1 && !middle.endsWith('.')) {
+            middleInitial = middle.charAt(0).toUpperCase() + '.';
+          } else {
+            middleInitial = middle.trim();
+            if (middleInitial.length === 1) middleInitial += '.';
+          }
+        }
+        
+        const fullName = [first, middleInitial, last].filter(Boolean).join(" ") || "Unknown User";
+        umap[uid] = fullName;
+        
         const position =
           data.Position ||
           data.Role ||
           data.Position_Name ||
           data.Department ||
           "";
-        return { id: d.id, fullName, position };
+        return { id: uid, fullName, position };
       });
       list.sort((a, b) => a.fullName.localeCompare(b.fullName));
       setItUsers(list);
+      setUidToNameMap(umap);
     });
     return () => unsub();
   }, []);
 
   // Render QR Preview
   useEffect(() => {
+    if (previewMode !== "qr") return;
+    
     const container = qrPreviewRef.current;
     if (!container || !form) return;
     container.innerHTML = "";
@@ -164,10 +205,52 @@ const EditAssetModal: React.FC<Props> = ({
     } else {
       container.innerHTML = `<div class="qr-placeholder"><i class="fas fa-qrcode"></i><p>QR generation disabled</p></div>`;
     }
-  }, [form]);
+  }, [form, previewMode]);
 
-  const onChange = (key: keyof AssetDoc, value: any) =>
-    setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
+  const onChange = (key: keyof AssetDoc, value: any) => {
+    // Reset subType when category changes
+    if (key === 'category') {
+      setForm((prev) => (prev ? { ...prev, category: value, subType: '' } : prev));
+    } else {
+      setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file.");
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      toast.error("Image size must be less than 5MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      onChange("image", result);
+      setPreviewMode("image");
+      toast.success("Image uploaded successfully!");
+    };
+    reader.onerror = () => {
+      toast.error("Failed to read image file.");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    if (window.confirm("Are you sure you want to remove the asset image?")) {
+      onChange("image", "");
+      if (imageInputRef.current) imageInputRef.current.value = "";
+      toast.info("Image removed.");
+    }
+  };
 
   const makeQRDataUrl = async (value: string): Promise<string> => {
     const canvas = document.createElement("canvas");
@@ -201,6 +284,7 @@ const EditAssetModal: React.FC<Props> = ({
       const payload: any = {
         assetName: form.assetName || "",
         category: form.category || "",
+        subType: form.subType || "",
         licenseType: form.licenseType || "",
         personnel: form.personnel || "",
         purchaseDate: form.purchaseDate || "",
@@ -210,6 +294,7 @@ const EditAssetModal: React.FC<Props> = ({
         assetId: form.assetId || "",
         assetUrl: form.assetUrl || "",
         generateQR: !!form.generateQR,
+        image: form.image || "",
         updatedAt: serverTimestamp(),
         updatedBy: auth.currentUser?.email || "",
       };
@@ -267,32 +352,102 @@ const EditAssetModal: React.FC<Props> = ({
     }
   };
 
+  const getCurrentUserFullName = (): string => {
+    const uid = auth.currentUser?.uid;
+    if (uid && uidToNameMap[uid]) {
+      return uidToNameMap[uid];
+    }
+    return auth.currentUser?.email || 'Unknown User';
+  };
+
   const handleDelete = async () => {
-    if (!form?.docId) return toast.error("Missing asset ID.");
-    if (
-      !window.confirm(
-        `⚠️ Delete asset?\n\n"${form.assetName}" (Serial: ${form.serialNo})\nThis will move it to Deleted_Assets.`
-      )
-    )
+    if (!form?.docId) {
+      toast.error("Missing asset ID.");
+      console.error("Delete failed: No docId found in form");
       return;
+    }
+    
+    const warningMessage = 
+      `⚠️ WARNING: You will be held accountable for the deletion of this asset.\n\n` +
+      `Asset: "${form.assetName || 'Unknown'}" (Serial: ${form.serialNo || 'N/A'})\n` +
+      `Category: ${form.category || 'Unknown'}\n\n` +
+      `Are you absolutely sure you want to delete this asset? This action cannot be undone.`;
+
+    if (!window.confirm(warningMessage)) return;
 
     setDeleting(true);
     try {
-      const ref = doc(db, "IT_Assets", form.docId);
-      const archive = {
-        ...form,
-        deletedAt: new Date().toISOString(),
-        deletedBy: auth.currentUser?.email || "",
+      console.log("Starting delete process for asset:", form.docId);
+      
+      const assetRef = doc(db, "IT_Assets", form.docId);
+      
+      const deletedBy = getCurrentUserFullName();
+      const deletedByEmail = auth.currentUser?.email || '';
+      const deletedAt = new Date().toISOString();
+
+      console.log("Creating audit record...", {
+        deletedBy,
+        deletedByEmail,
+        assetName: form.assetName
+      });
+
+      // Create audit record with all asset data
+      const auditRecord = {
+        assetId: form.assetId || '',
+        assetName: form.assetName || '',
+        assetUrl: form.assetUrl || '',
+        category: form.category || '',
+        subType: form.subType || '',
+        licenseType: form.licenseType || '',
+        personnel: form.personnel || '',
+        purchaseDate: form.purchaseDate || '',
+        renewdate: form.renewdate || '',
+        serialNo: form.serialNo || '',
+        status: form.status || '',
+        qrcode: form.qrcode || null,
+        generateQR: form.generateQR || false,
+        image: form.image || '',
+        createdBy: form.createdBy || '',
+        createdAt: form.createdAt || null,
+        updatedBy: form.updatedBy || '',
+        updatedAt: form.updatedAt || null,
+        assetHistory: form.assetHistory || [],
+        deletedAt,
+        deletedBy,
+        deletedByEmail,
+        deletionReason: 'User-initiated deletion from Edit Modal',
         originalId: form.docId,
       };
-      await addDoc(collection(db, "Deleted_Assets"), archive);
-      await deleteDoc(ref);
-      toast.success("Asset archived and deleted.");
+
+      // Save to Deleted_Assets first
+      const deletedDocRef = await addDoc(collection(db, "Deleted_Assets"), auditRecord);
+      console.log("Audit record created:", deletedDocRef.id);
+      
+      // Then delete from IT_Assets
+      await deleteDoc(assetRef);
+      console.log("Asset deleted from IT_Assets:", form.docId);
+      
+      toast.success("Asset deleted and archived successfully.");
       onDeleted?.(form.docId);
       onClose();
-    } catch (err) {
-      console.error("Delete failed:", err);
-      toast.error("Failed to delete asset.");
+    } catch (err: any) {
+      console.error("❌ Delete failed:", err);
+      console.error("Error details:", {
+        code: err.code,
+        message: err.message,
+        stack: err.stack
+      });
+      
+      let errorMessage = "Failed to delete asset.";
+      if (err.code === 'permission-denied') {
+        errorMessage = "Permission denied. You don't have access to delete this asset.";
+      } else if (err.code === 'not-found') {
+        errorMessage = "Asset not found. It may have already been deleted.";
+      } else if (err.message) {
+        errorMessage = `Error: ${err.message}`;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setDeleting(false);
     }
@@ -314,9 +469,6 @@ const EditAssetModal: React.FC<Props> = ({
               <span className="asset-id-badge">ID: {form.assetId || form.docId}</span>
             </div>
           </div>
-          <button className="close-icon-btn" onClick={onClose} title="Close">
-            <i className="fas fa-times"></i>
-          </button>
         </div>
 
         {/* Body */}
@@ -363,6 +515,64 @@ const EditAssetModal: React.FC<Props> = ({
                     </select>
                   </div>
 
+                  {/* Conditional Sub-Type Field */}
+                  {form.category === 'Asset' && (
+                    <div className="form-group">
+                      <label className="form-label">
+                        <i className="fas fa-box"></i> Asset Type
+                      </label>
+                      <select
+                        className="form-select"
+                        value={form.subType || ""}
+                        onChange={(e) => onChange("subType", e.target.value)}
+                      >
+                        <option value="">-- Select Asset Type --</option>
+                        {ASSET_TYPES.map((type) => (
+                          <option key={type} value={type}>
+                            {type}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {form.category === 'License' && (
+                    <div className="form-group">
+                      <label className="form-label">
+                        <i className="fas fa-certificate"></i> License Type
+                      </label>
+                      <select
+                        className="form-select"
+                        value={form.subType || ""}
+                        onChange={(e) => onChange("subType", e.target.value)}
+                      >
+                        <option value="">-- Select License Type --</option>
+                        {LICENSE_TYPES.map((type) => (
+                          <option key={type} value={type}>
+                            {type}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {form.category !== 'Asset' && form.category !== 'License' && (
+                    <div className="form-group">
+                      <label className="form-label">
+                        <i className="fas fa-barcode"></i> Serial Number
+                      </label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={form.serialNo || ""}
+                        onChange={(e) => onChange("serialNo", e.target.value)}
+                        placeholder="Serial number"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {(form.category === 'Asset' || form.category === 'License') && (
                   <div className="form-group">
                     <label className="form-label">
                       <i className="fas fa-barcode"></i> Serial Number
@@ -375,19 +585,19 @@ const EditAssetModal: React.FC<Props> = ({
                       placeholder="Serial number"
                     />
                   </div>
-                </div>
+                )}
 
                 <div className="form-row-2">
                   <div className="form-group">
                     <label className="form-label">
-                      <i className="fas fa-key"></i> License Type
+                      <i className="fas fa-key"></i> Operational Period
                     </label>
                     <select
                       className="form-select"
                       value={form.licenseType || ""}
                       onChange={(e) => onChange("licenseType", e.target.value)}
                     >
-                      <option value="">Select License Type</option>
+                      <option value="">Select Operational Period</option>
                       <option value="Perpetual">Perpetual</option>
                       <option value="Subscription">Subscription</option>
                       <option value="Trial">Trial</option>
@@ -513,28 +723,92 @@ const EditAssetModal: React.FC<Props> = ({
               </div>
             </div>
 
-            {/* Right Column - QR Preview */}
+            {/* Right Column - QR/Image Preview */}
             <div className="qr-column">
               <div className="qr-preview-card">
-                <h3 className="qr-preview-title">
-                  <i className="fas fa-qrcode"></i> QR Code Preview
-                </h3>
-                <div className="qr-preview-container" ref={qrPreviewRef}></div>
-                <div className="qr-preview-info">
-                  {form.generateQR ? (
-                    <p className="info-text generating">
-                      <i className="fas fa-sync-alt fa-spin"></i> Live preview - not saved yet
-                    </p>
-                  ) : form.qrcode ? (
-                    <p className="info-text existing">
-                      <i className="fas fa-check-circle"></i> Showing saved QR code
-                    </p>
-                  ) : (
-                    <p className="info-text disabled">
-                      <i className="fas fa-info-circle"></i> QR generation is disabled
-                    </p>
-                  )}
+                <div className="preview-header">
+                  <h3 className="qr-preview-title">
+                    <i className={previewMode === "qr" ? "fas fa-qrcode" : "fas fa-image"}></i>
+                    {previewMode === "qr" ? "QR Code Preview" : "Asset Image Preview"}
+                  </h3>
+                  <div className="preview-toggle-buttons">
+                    <button
+                      type="button"
+                      className={`toggle-btn ${previewMode === "qr" ? "active" : ""}`}
+                      onClick={() => setPreviewMode("qr")}
+                    >
+                      <i className="fas fa-qrcode"></i>
+                    </button>
+                    <button
+                      type="button"
+                      className={`toggle-btn ${previewMode === "image" ? "active" : ""}`}
+                      onClick={() => setPreviewMode("image")}
+                    >
+                      <i className="fas fa-image"></i>
+                    </button>
+                  </div>
                 </div>
+
+                {previewMode === "qr" && (
+                  <>
+                    <div className="qr-preview-container" ref={qrPreviewRef}></div>
+                    <div className="qr-preview-info">
+                      {form.generateQR ? (
+                        <p className="info-text generating">
+                          <i className="fas fa-sync-alt fa-spin"></i> Live preview - not saved yet
+                        </p>
+                      ) : form.qrcode ? (
+                        <p className="info-text existing">
+                          <i className="fas fa-check-circle"></i> Showing saved QR code
+                        </p>
+                      ) : (
+                        <p className="info-text disabled">
+                          <i className="fas fa-info-circle"></i> QR generation is disabled
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {previewMode === "image" && (
+                  <>
+                    <div className="image-preview-container">
+                      {form.image ? (
+                        <div className="image-preview-wrapper">
+                          <img src={form.image} alt="Asset" className="asset-preview-image" />
+                          <button
+                            type="button"
+                            className="remove-image-btn"
+                            onClick={handleRemoveImage}
+                            title="Remove image"
+                          >
+                            <i className="fas fa-times"></i>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="image-placeholder">
+                          <i className="fas fa-image"></i>
+                          <p>No image uploaded</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="image-upload-section">
+                      <input
+                        ref={imageInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        style={{ display: "none" }}
+                        id="asset-image-upload"
+                      />
+                      <label htmlFor="asset-image-upload" className="upload-btn">
+                        <i className="fas fa-upload"></i>
+                        {form.image ? "Change Image" : "Upload Image"}
+                      </label>
+                      <p className="upload-hint">Max size: 5MB • PNG, JPG, WEBP</p>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>

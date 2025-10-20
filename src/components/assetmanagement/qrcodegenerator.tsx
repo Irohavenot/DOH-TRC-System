@@ -46,7 +46,6 @@ const QRCodeGenerator = () => {
   const [showConfirm, setShowConfirm] = useState(false);  // Confirm modal
   const [qrValue, setQrValue] = useState('');
   const [itUsers, setItUsers] = useState<User[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
   const qrRef = useRef<HTMLDivElement>(null);
 
   const [pendingReset, setPendingReset] = useState(false);
@@ -57,24 +56,6 @@ const QRCodeGenerator = () => {
   const showToast = (message: string, type: 'error'|'success'|'info' = 'info') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 2500);
-  };
-
-  const resetForm = () => {
-    setAssetDetails(prev => ({
-      assetId: '',
-      assetName: '',
-      category: prev.category, // keep last category (change to "" if you prefer)
-      status: '',
-      personnel: '',
-      purchaseDate: '',
-      serialNo: '',
-      licenseType: '',
-      expirationDate: '',
-      generateQR: true,
-    }));
-    setImagePreview(null);
-    setQrValue('');
-    if (qrRef.current) qrRef.current.innerHTML = '';
   };
 
   interface User {
@@ -90,6 +71,7 @@ const QRCodeGenerator = () => {
     assetId: '',
     assetName: '',
     category: categoryFromState,
+    subType: '',               // Specific type based on category
     status: '',
     personnel: '',             // store user id (string) or ""
     purchaseDate: '',          // "YYYY-MM-DD" or ""
@@ -98,6 +80,25 @@ const QRCodeGenerator = () => {
     expirationDate: '',        // "YYYY-MM-DD" or ""
     generateQR: true,
   });
+
+  const resetForm = () => {
+    setAssetDetails(prev => ({
+      assetId: '',
+      assetName: '',
+      category: prev.category, // keep last category (change to "" if you prefer)
+      subType: '',
+      status: '',
+      personnel: '',
+      purchaseDate: '',
+      serialNo: '',
+      licenseType: '',
+      expirationDate: '',
+      generateQR: true,
+    }));
+    setImagePreview(null);
+    setQrValue('');
+    if (qrRef.current) qrRef.current.innerHTML = '';
+  };
 
   // ---- helpers ----
   const generateAssetId = () => {
@@ -165,24 +166,6 @@ const QRCodeGenerator = () => {
     })();
   }, []);
 
-  useEffect(() => {
-    // Categories
-    (async () => {
-      try {
-        const snapshot = await getDocs(collection(db, "Asset_Categories"));
-        const list: string[] = [];
-        snapshot.forEach((doc) => {
-          const data = doc.data() as any;
-          if (data.Category_Name) list.push(data.Category_Name);
-        });
-        setCategories(list);
-      } catch (e) {
-        console.error("Error fetching categories:", e);
-        showToast("Failed to load categories.", 'error');
-      }
-    })();
-  }, []);
-
   // Disable/clear expiration if license becomes non-expiring
   useEffect(() => {
     if (NON_EXPIRING.has(assetDetails.licenseType) && assetDetails.expirationDate) {
@@ -198,11 +181,17 @@ const QRCodeGenerator = () => {
     if (!assetDetails.category) {
       showToast('Please select a Category.', 'error'); return false;
     }
+    if (assetDetails.category === 'Asset' && !assetDetails.subType) {
+      showToast('Please select an Asset Type.', 'error'); return false;
+    }
+    if (assetDetails.category === 'License' && !assetDetails.subType) {
+      showToast('Please select a License Type.', 'error'); return false;
+    }
     if (!assetDetails.status) {
       showToast('Please select a Status.', 'error'); return false;
     }
     if (!assetDetails.licenseType) {
-      showToast('Please select a License Type.', 'error'); return false;
+      showToast('Please select a License Duration.', 'error'); return false;
     }
     if (!assetDetails.personnel) {
       showToast('Please assign a Personnel.', 'error'); return false;
@@ -225,6 +214,15 @@ const QRCodeGenerator = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value, type, checked } = e.target as any;
+
+    if (name === 'category') {
+      setAssetDetails((prev) => ({
+        ...prev,
+        category: value,
+        subType: '', // reset subType when category changes
+      }));
+      return;
+    }
 
     if (name === 'licenseType') {
       setAssetDetails((prev) => ({
@@ -279,6 +277,7 @@ const QRCodeGenerator = () => {
         assetName: assetDetails.assetName || "",
         assetUrl,
         category: assetDetails.category || "",
+        subType: assetDetails.subType || "",
         createdAt: serverTimestamp(),
         createdBy: auth.currentUser?.email || "",
         expirationDate: assetDetails.expirationDate || "",
@@ -394,8 +393,27 @@ const QRCodeGenerator = () => {
 
   const isExpirationDisabled = NON_EXPIRING.has(assetDetails.licenseType);
 
+  // Asset and License type options
+  const ASSET_TYPES = [
+    'Furniture and Fixture',
+    'Desktop',
+    'Laptop',
+    'Printer',
+    'Server',
+    'Machinery/Equipment',
+    'Infrastructure',
+    'Vehicles/Transport'
+  ];
+
+  const LICENSE_TYPES = [
+    'Software License',
+    'Business License',
+    'Government License',
+    'General License'
+  ];
+
   return (
-    <div className="qr-generator-container">
+    <div className="add-asset-function">
       {/* Toast */}
       {toast && (
         <div className={`toast ${toast.type || 'info'}`}>
@@ -405,7 +423,7 @@ const QRCodeGenerator = () => {
 
       <div className="asset-form">
         <h3>
-          Asset Details <br /> ({assetDetails.category || "Select Category"})
+          Add New {assetDetails.category || "Asset"} <br />
         </h3>
 
         {imagePreview && (
@@ -431,7 +449,9 @@ const QRCodeGenerator = () => {
 
           {/* Asset Name */}
           <div className="form-field">
-            <label htmlFor="assetName">Asset Name</label>
+            <label htmlFor="assetName">
+              Asset Name <span className="required">*</span>
+            </label>
             <input
               type="text"
               id="assetName"
@@ -444,25 +464,71 @@ const QRCodeGenerator = () => {
 
           {/* Category */}
           <div className="form-field">
-            <label htmlFor="category">Category</label>
+            <label htmlFor="category">
+              Category <span className="required">*</span>
+            </label>
             <select
               id="category"
               name="category"
               value={assetDetails.category}
               onChange={handleInputChange}
             >
-              <option value="">-- Select a Category --</option>
-              {categories.map((category, index) => (
-                <option key={index} value={category}>
-                  {category}
-                </option>
-              ))}
+              <option value="">-- Select Category --</option>
+              <option value="Asset">Asset</option>
+              <option value="License">License</option>
+              <option value="Accessory">Accessory</option>
+              <option value="Component">Component</option>
             </select>
           </div>
 
+          {/* Conditional Sub-Type Field */}
+          {assetDetails.category === 'Asset' && (
+            <div className="form-field">
+              <label htmlFor="subType">
+                Asset Type <span className="required">*</span>
+              </label>
+              <select
+                id="subType"
+                name="subType"
+                value={assetDetails.subType}
+                onChange={handleInputChange}
+              >
+                <option value="">-- Select Asset Type --</option>
+                {ASSET_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {assetDetails.category === 'License' && (
+            <div className="form-field">
+              <label htmlFor="subType">
+                License Type <span className="required">*</span>
+              </label>
+              <select
+                id="subType"
+                name="subType"
+                value={assetDetails.subType}
+                onChange={handleInputChange}
+              >
+                <option value="">-- Select License Type --</option>
+                {LICENSE_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Status */}
           <div className="form-field">
-            <label htmlFor="status">Status</label>
+            <label htmlFor="status">
+              Status <span className="required">*</span>
+            </label>
             <select
               id="status"
               name="status"
@@ -470,7 +536,7 @@ const QRCodeGenerator = () => {
               value={assetDetails.status}
             >
               <option value="" disabled>
-                Select Status
+                -- Select Status --
               </option>
               <option value="Functional">Functional</option>
               <option value="Under Maintenance">Under Maintenance</option>
@@ -481,14 +547,16 @@ const QRCodeGenerator = () => {
 
           {/* Assigned Personnel */}
           <div className="form-field">
-            <label htmlFor="personnel">Assigned Personnel</label>
+            <label htmlFor="personnel">
+              Assigned Personnel <span className="required">*</span>
+            </label>
             <select
               id="personnel"
               name="personnel"
               value={assetDetails.personnel}
               onChange={handleInputChange}
             >
-              <option value="">-- Select IT Supply User --</option>
+              <option value="">-- Select Personnel --</option>
               {itUsers.map((user) => (
                 <option key={user.id} value={user.id}>
                   {user.fullName}
@@ -522,9 +590,11 @@ const QRCodeGenerator = () => {
             />
           </div>
 
-          {/* License Type */}
+          {/* License Duration */}
           <div className="form-field">
-            <label htmlFor="licenseType">License Type</label>
+            <label htmlFor="licenseType">
+              License Duration <span className="required">*</span>
+            </label>
             <select
               id="licenseType"
               name="licenseType"
@@ -532,7 +602,7 @@ const QRCodeGenerator = () => {
               onChange={handleInputChange}
             >
               <option value="" disabled>
-                -- Select License Type --
+                -- Select Duration --
               </option>
               <option value="Perpetual">Perpetual</option>
               <option value="Subscription">Subscription</option>
@@ -544,7 +614,10 @@ const QRCodeGenerator = () => {
 
           {/* Expiration Date (disabled for non-expiring types) */}
           <div className="form-field">
-            <label htmlFor="expirationDate">Expiration Date</label>
+            <label htmlFor="expirationDate">
+              Expiration Date
+              {!isExpirationDisabled && <span className="required">*</span>}
+            </label>
             <input
               type="date"
               id="expirationDate"
@@ -578,18 +651,17 @@ const QRCodeGenerator = () => {
 
         {/* Action Bar: centered Add + QR, Clear on right */}
         <div className="action-bar">
-           <label htmlFor="generateQR" className="checkbox-inline">
-              <input
-                type="checkbox"
-                id="generateQR"
-                name="generateQR"
-                checked={assetDetails.generateQR || false}
-                onChange={handleInputChange}
-              />
-              <span>Generate QR Code</span>
-            </label>
+          <label htmlFor="generateQR" className="checkbox-inline">
+            <input
+              type="checkbox"
+              id="generateQR"
+              name="generateQR"
+              checked={assetDetails.generateQR || false}
+              onChange={handleInputChange}
+            />
+            <span>Generate QR Code</span>
+          </label>
           <div className="action-center">
-
             <button
               className="add-btn"
               onClick={openConfirm}
@@ -617,7 +689,7 @@ const QRCodeGenerator = () => {
       {showConfirm && (
         <div className="modal-overlay">
           <div className="modal confirm-modal">
-            <h3>Add this Asset?</h3>
+            <h3>Confirm Add Asset?</h3>
 
             <div className="confirm-preview">
               {imagePreview && (
@@ -630,6 +702,12 @@ const QRCodeGenerator = () => {
                 <tbody>
                   <tr><th>Asset Name</th><td>{assetDetails.assetName || '—'}</td></tr>
                   <tr><th>Category</th><td>{assetDetails.category || '—'}</td></tr>
+                  {assetDetails.category === 'Asset' && assetDetails.subType && (
+                    <tr><th>Asset Type</th><td>{assetDetails.subType}</td></tr>
+                  )}
+                  {assetDetails.category === 'License' && assetDetails.subType && (
+                    <tr><th>License Type</th><td>{assetDetails.subType}</td></tr>
+                  )}
                   <tr><th>Status</th><td>{assetDetails.status || '—'}</td></tr>
                   <tr>
                     <th>Personnel</th>
@@ -637,7 +715,7 @@ const QRCodeGenerator = () => {
                   </tr>
                   <tr><th>Purchase Date</th><td>{assetDetails.purchaseDate || '—'}</td></tr>
                   <tr><th>Serial No.</th><td>{assetDetails.serialNo || '—'}</td></tr>
-                  <tr><th>License Type</th><td>{assetDetails.licenseType || '—'}</td></tr>
+                  <tr><th>License Duration</th><td>{assetDetails.licenseType || '—'}</td></tr>
                   <tr>
                     <th>Expiration Date</th>
                     <td>

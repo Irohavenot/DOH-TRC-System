@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import React from 'react';
-import { collection, getDocs, doc, updateDoc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, query, orderBy, arrayUnion } from 'firebase/firestore';
 import { db, auth } from '../../firebase/firebase';
 import "../../assets/Reports.css";
 
@@ -59,18 +59,57 @@ const Reports: React.FC = () => {
     fetchReports();
   }, []);
 
-  // Update status in Firestore
+  // Update status in Firestore and corresponding asset
   const handleStatusChange = async (reportId: string, newStatus: string) => {
     try {
+      // Find the report to get asset details
+      const report = reports.find(r => r.id === reportId);
+      if (!report) {
+        throw new Error('Report not found');
+      }
+
+      // Map report status to asset status
+      let assetStatus = '';
+      if (newStatus === 'In Progress') {
+        assetStatus = 'Under Maintenance';
+      } else if (newStatus === 'Resolved') {
+        assetStatus = 'Functional';
+      }
+
+      // Update the report status
       const reportRef = doc(db, 'Reported_Issues', reportId);
       await updateDoc(reportRef, {
         condition: newStatus
       });
 
+      // Update the corresponding asset status if we have a valid mapping
+      if (assetStatus && report.assetDocId) {
+        const assetRef = doc(db, 'IT_Assets', report.assetDocId);
+        
+        // Create history entry for asset
+        const historyEntry = {
+          changedAt: new Date().toISOString(),
+          changedBy: auth.currentUser?.email || 'Unknown',
+          from: report.condition,
+          to: assetStatus,
+          reason: `Issue reported: ${report.reason}`,
+          maintainedBy: assetStatus === 'Functional' ? (auth.currentUser?.email || 'IT Department') : ''
+        };
+
+        await updateDoc(assetRef, {
+          status: assetStatus,
+          updatedAt: new Date(),
+          updatedBy: auth.currentUser?.email || 'Unknown',
+          assetHistory: arrayUnion(historyEntry)
+        });
+      }
+
       // Update local state
-      setReports(reports.map(report => 
-        report.id === reportId ? { ...report, condition: newStatus } : report
+      setReports(reports.map(r => 
+        r.id === reportId ? { ...r, condition: newStatus } : r
       ));
+
+      alert('Status updated successfully!');
     } catch (error) {
       console.error('Error updating status:', error);
       alert('Failed to update status. Please try again.');
@@ -271,40 +310,40 @@ const Reports: React.FC = () => {
 
       {/* Issue Details Modal */}
       {showModal && selectedReport && (
-        <div className="modal-backdrop" onClick={closeModal}>
-          <div className="issue-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+        <div className="report-modal-backdrop" onClick={closeModal}>
+          <div className="report-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="report-modal-header">
               <h2>
                 <i className="fas fa-exclamation-triangle"></i>
                 Issue Details
               </h2>
-              <button className="modal-close" onClick={closeModal}>
+              <button className="report-modal-close" onClick={closeModal}>
                 <i className="fas fa-times"></i>
               </button>
             </div>
 
-            <div className="modal-content">
-              <div className="modal-info-item">
+            <div className="report-modal-content">
+              <div className="report-modal-info-item">
                 <i className="fas fa-laptop"></i>
                 <div>
-                  <div className="info-label">Asset Name</div>
-                  <div className="info-value">{selectedReport.assetName}</div>
+                  <div className="report-info-label">Asset Name</div>
+                  <div className="report-info-value">{selectedReport.assetName}</div>
                 </div>
               </div>
 
-              <div className="modal-info-item">
+              <div className="report-modal-info-item">
                 <i className="fas fa-barcode"></i>
                 <div>
-                  <div className="info-label">Asset ID</div>
-                  <div className="info-value">{selectedReport.assetId}</div>
+                  <div className="report-info-label">Asset ID</div>
+                  <div className="report-info-value">{selectedReport.assetId}</div>
                 </div>
               </div>
 
-              <div className="modal-info-item">
+              <div className="report-modal-info-item">
                 <i className="fas fa-calendar-alt"></i>
                 <div>
-                  <div className="info-label">Date Reported</div>
-                  <div className="info-value">
+                  <div className="report-info-label">Date Reported</div>
+                  <div className="report-info-value">
                     {selectedReport.createdAt.toLocaleString('en-US', {
                       year: 'numeric',
                       month: 'long',
@@ -316,27 +355,27 @@ const Reports: React.FC = () => {
                 </div>
               </div>
 
-              <div className="modal-info-item">
+              <div className="report-modal-info-item">
                 <i className="fas fa-user"></i>
                 <div>
-                  <div className="info-label">Reported By</div>
-                  <div className="info-value">{selectedReport.reportedBy}</div>
+                  <div className="report-info-label">Reported By</div>
+                  <div className="report-info-value">{selectedReport.reportedBy}</div>
                 </div>
               </div>
 
-              <div className="modal-info-item full-width">
+              <div className="report-modal-info-item full-width">
                 <i className="fas fa-info-circle"></i>
                 <div>
-                  <div className="info-label">Issue Description</div>
-                  <div className="info-value issue-description">{selectedReport.reason}</div>
+                  <div className="report-info-label">Issue Description</div>
+                  <div className="report-info-value report-issue-description">{selectedReport.reason}</div>
                 </div>
               </div>
 
-              <div className="modal-info-item">
+              <div className="report-modal-info-item">
                 <i className="fas fa-flag"></i>
                 <div>
-                  <div className="info-label">Current Status</div>
-                  <div className="info-value">
+                  <div className="report-info-label">Current Status</div>
+                  <div className="report-info-value">
                     <span 
                       className="status-badge large"
                       style={{ backgroundColor: getStatusColor(selectedReport.condition) }}
@@ -348,27 +387,27 @@ const Reports: React.FC = () => {
               </div>
 
               {selectedReport.image && (
-                <div className="modal-info-item full-width">
+                <div className="report-modal-info-item full-width">
                   <i className="fas fa-image"></i>
                   <div>
-                    <div className="info-label">Attached Image</div>
+                    <div className="report-info-label">Attached Image</div>
                     <img 
                       src={selectedReport.image} 
                       alt="Issue" 
-                      className="issue-image"
+                      className="report-issue-image"
                     />
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={closeModal}>
+            <div className="report-modal-footer">
+              <button className="report-btn-secondary" onClick={closeModal}>
                 <i className="fas fa-times"></i> Close
               </button>
               {!selectedReport.condition.toLowerCase().includes('resolved') && (
                 <button 
-                  className="btn-primary"
+                  className="report-btn-primary"
                   onClick={() => {
                     handleStatusChange(selectedReport.id, 'Resolved');
                     closeModal();

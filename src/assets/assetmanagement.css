@@ -374,6 +374,64 @@
   border-top: 1px solid #f3f4f6;
   color: #6b7280;
 }
+.qr-modal {
+  background-color: white;
+  width: min(400px, 92vw);
+  max-height: 90vh;
+  overflow: auto;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.view-qr-fab {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 999px;
+  background: #00695c;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(0,0,0,.15);
+  cursor: pointer;
+  transition: background .2s ease, transform .1s ease;
+  z-index: 2;
+}
+.show-more-section {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0 20px;
+  width: 100%;
+  transition: margin 0.3s ease;
+}
+
+.show-more-btn {
+  background: #e8f5f2;
+  color: #00695c;
+  border: 1px solid #b2dfdb;
+  padding: 8px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.show-more-btn:hover {
+  background: #b2dfdb;
+  color: #004d40;
+}
+.view-qr-fab:hover { background: #004d40; }
+.view-qr-fab:active { transform: translateY(1px); }
+.view-qr-fab .fa-qrcode { font-size: 16px; }
 
 /* Enhanced View More Button */
 .view-more-btn {
@@ -396,7 +454,7 @@
 }
 
 /* Enhanced Modal */
-.modal-backdrop {
+.view-modal-backdrop {
   position: fixed;
   top: 0;
   left: 0;
@@ -407,7 +465,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 9999;
+  z-index: 1000;
   animation: fadeIn 0.2s ease;
 }
 
@@ -418,7 +476,7 @@
   background: white;
   width: 90%;
   max-width: 600px;
-  z-index: 10000;
+  z-index: 1001;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
@@ -427,6 +485,29 @@
   overflow-y: auto;
   border-radius: 16px;
   animation: scaleIn 0.3s ease;
+}
+
+.extra-details-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, #ccc, transparent);
+  margin: 16px 0;
+  opacity: 0.4;
+}
+
+.extra-details-wrapper {
+  /* overflow: hidden; ← REMOVE THIS */
+  opacity: 1;
+  max-height: 500px;
+  transition: max-height 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              opacity 0.2s ease-in-out;
+}
+
+.extra-details-wrapper.hidden {
+  max-height: 0;
+  opacity: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* ✅ Only hide overflow when collapsed */
 }
 
 /* Enhanced Modal Header */

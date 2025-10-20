@@ -1,6 +1,3 @@
-// Enhanced AssetManagement.tsx with improved UI and multi-select filters
-// Replace your existing component with this enhanced version
-
 import React, { useEffect, useMemo, useState } from 'react';
 import "../../assets/assetmanagement.css";
 import '@fortawesome/fontawesome-free/css/all.min.css';
@@ -52,6 +49,7 @@ interface Card {
   purchaseDate?: string;
   status?: string;
   licenseType?: string;
+  subType?: string;
   createdAt?: string;
   createdBy?: string;
   updatedAt?: string;
@@ -63,20 +61,15 @@ interface Card {
 }
 
 const AssetManagement: React.FC = () => {
-  // Status filter (single selection)
   const [statusFilter, setStatusFilter] = useState<FilterKey>('all');
-  
-  // Multi-select filters
   const [showMyAssets, setShowMyAssets] = useState(false);
   const [showReported, setShowReported] = useState(false);
-  
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [openCardOptionsId, setOpenCardOptionsId] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [showQR, setShowQR] = useState(false);
   const [qrAsset, setQrAsset] = useState<any>(null);
   const [showMoreDetails, setShowMoreDetails] = useState<boolean>(false);
-
   const [emailToNameMap, setEmailToNameMap] = useState<Record<string, string>>({});
   const [uidToNameMap, setUidToNameMap] = useState<Record<string, string>>({});
   const [itUsers, setItUsers] = useState<Array<{ id: string; fullName: string; position?: string }>>([]);
@@ -85,10 +78,8 @@ const AssetManagement: React.FC = () => {
   const [reportedAssets, setReportedAssets] = useState<Set<string>>(new Set());
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [historyAsset, setHistoryAsset] = useState<{ id: string; name: string; history: HistoryEntry[] } | null>(null);
-
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<any>(null);
-
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportingAsset, setReportingAsset] = useState<{ id: string; docId: string; name: string } | null>(null);
 
@@ -111,8 +102,6 @@ const AssetManagement: React.FC = () => {
         });
         
         setReportedAssets(reported);
-        
-        // Update rawAssets with report counts
         setRawAssets(prev => prev.map(asset => ({
           ...asset,
           hasReports: reported.has(asset.id),
@@ -238,6 +227,7 @@ const AssetManagement: React.FC = () => {
       purchaseDate: d.purchaseDate || undefined,
       status: d.status || undefined,
       licenseType: d.licenseType || undefined,
+      subType: d.subType || undefined,
       createdAt: d.createdAt?.toDate ? new Date(d.createdAt.toDate()).toLocaleString() : (d.createdAt || undefined),
       createdBy: createdByName,
       updatedAt: d.updatedAt?.toDate ? new Date(d.updatedAt.toDate()).toLocaleString() : (d.updatedAt || undefined),
@@ -252,7 +242,6 @@ const AssetManagement: React.FC = () => {
   const filteredCards = useMemo(() => {
     let result = [...cards];
 
-    // Apply status filter (single selection)
     if (statusFilter !== 'all') {
       result = result.filter((card) => {
         switch (statusFilter) {
@@ -265,13 +254,11 @@ const AssetManagement: React.FC = () => {
       });
     }
 
-    // Apply "My Assets" filter (multi-select)
     if (showMyAssets) {
       const currentUserId = auth.currentUser?.uid;
       result = result.filter(card => card.personnelId === currentUserId);
     }
 
-    // Apply "Reported" filter (multi-select)
     if (showReported) {
       result = result.filter(card => card.hasReports);
     }
@@ -310,6 +297,7 @@ const AssetManagement: React.FC = () => {
       assetName: rawAsset.assetName,
       assetUrl: rawAsset.assetUrl,
       category: rawAsset.category,
+      subType: rawAsset.subType,
       licenseType: rawAsset.licenseType,
       personnel: rawAsset.personnel,
       purchaseDate: rawAsset.purchaseDate,
@@ -340,7 +328,11 @@ const AssetManagement: React.FC = () => {
 
   const handleDeleteCard = async (index: number) => {
     const card = filteredCards[index];
-    if (!card) return;
+    if (!card) {
+      toast.error("Card not found.");
+      console.error("Delete failed: Card not found at index", index);
+      return;
+    }
 
     const warningMessage = 
       `⚠️ WARNING: You will be held accountable for the deletion of this asset.\n\n` +
@@ -351,29 +343,79 @@ const AssetManagement: React.FC = () => {
     if (!window.confirm(warningMessage)) return;
 
     try {
+      console.log("Starting delete process for asset:", card.id);
+      
       const assetRef = doc(db, "IT_Assets", card.id);
       
       const deletedBy = getCurrentUserFullName();
       const deletedByEmail = auth.currentUser?.email || '';
       const deletedAt = new Date().toISOString();
 
+      console.log("Creating audit record...", {
+        deletedBy,
+        deletedByEmail,
+        assetName: card.title
+      });
+
+      // Create comprehensive audit record
       const auditRecord = {
-        ...card,
+        assetId: card.assetId || '',
+        assetName: card.title || '',
+        assetUrl: card.assetUrl || '',
+        category: card.team || '',
+        subType: card.subType || '',
+        licenseType: card.licenseType || '',
+        personnel: card.personnelId || '',
+        personnelName: card.personnel || '',
+        purchaseDate: card.purchaseDate || '',
+        renewdate: card.renewdate || '',
+        serialNo: card.serial || '',
+        status: card.status || '',
+        qrcode: card.qrcode || null,
+        generateQR: card.generateQR || false,
+        image: card.image || '',
+        createdBy: card.createdBy || '',
+        createdAt: card.createdAt || '',
+        updatedBy: card.updatedBy || '',
+        updatedAt: card.updatedAt || '',
+        assetHistory: card.assetHistory || [],
+        hasReports: card.hasReports || false,
+        reportCount: card.reportCount || 0,
         deletedAt,
         deletedBy,
         deletedByEmail,
-        deletionReason: 'User-initiated deletion',
+        deletionReason: 'User-initiated deletion from Asset Management',
         originalId: card.id,
       };
 
-      await addDoc(collection(db, "Deleted_Assets"), auditRecord);
+      // Save to Deleted_Assets first
+      const deletedDocRef = await addDoc(collection(db, "Deleted_Assets"), auditRecord);
+      console.log("Audit record created:", deletedDocRef.id);
+      
+      // Then delete from IT_Assets
       await deleteDoc(assetRef);
+      console.log("Asset deleted from IT_Assets:", card.id);
       
       toast.success('Asset deleted and archived successfully');
       setOpenCardOptionsId(null);
-    } catch (err) {
-      console.error('Delete failed', err);
-      toast.error('Failed to delete asset. Please try again.');
+    } catch (err: any) {
+      console.error('❌ Delete failed:', err);
+      console.error("Error details:", {
+        code: err.code,
+        message: err.message,
+        stack: err.stack
+      });
+      
+      let errorMessage = "Failed to delete asset.";
+      if (err.code === 'permission-denied') {
+        errorMessage = "Permission denied. You don't have access to delete this asset.";
+      } else if (err.code === 'not-found') {
+        errorMessage = "Asset not found. It may have already been deleted.";
+      } else if (err.message) {
+        errorMessage = `Error: ${err.message}`;
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
@@ -398,11 +440,25 @@ const AssetManagement: React.FC = () => {
 
   const hasActiveFilters = statusFilter !== 'all' || showMyAssets || showReported;
 
+  const shouldShowSubType = (category?: string) => {
+    if (!category) return false;
+    const cat = category.toLowerCase();
+    return cat === 'asset' || cat === 'license';
+  };
+
+  const getSubTypeLabel = (category?: string) => {
+    if (!category) return 'Type';
+    const cat = category.toLowerCase();
+    if (cat === 'asset') return 'Asset Type';
+    if (cat === 'license') return 'License Type';
+    return 'Type';
+  };
+
   return (
     <div className="content-here">
       {/* View More Modal */}
       {selectedCard && (
-        <div className="modal-backdrop" onClick={() => { setSelectedCard(null); setShowMoreDetails(false); }}>
+        <div className="view-modal-backdrop" onClick={() => { setSelectedCard(null); setShowMoreDetails(false); }}>
           <div className="modal view-more-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Asset Details</h2>
@@ -423,9 +479,23 @@ const AssetManagement: React.FC = () => {
                 <tbody>
                   <tr><td><strong>Asset Name:</strong></td><td>{selectedCard.title}</td></tr>
                   <tr><td><strong>Category:</strong></td><td>{selectedCard.team}</td></tr>
+                  
+                  {shouldShowSubType(selectedCard.team) && selectedCard.subType && (
+                    <tr>
+                      <td><strong>{getSubTypeLabel(selectedCard.team)}:</strong></td>
+                      <td>{selectedCard.subType}</td>
+                    </tr>
+                  )}
+                  
                   <tr><td><strong>Serial Number:</strong></td><td>{selectedCard.serial}</td></tr>
                   <tr><td><strong>License Status:</strong></td><td>{selectedCard.timeLeft}</td></tr>
-                  {selectedCard.licenseType && (<tr><td><strong>License Type:</strong></td><td>{selectedCard.licenseType}</td></tr>)}
+                  
+                  {selectedCard.licenseType && (
+                    <tr>
+                      <td><strong>Operational Period:</strong></td>
+                      <td>{selectedCard.licenseType}</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
 
@@ -534,9 +604,7 @@ const AssetManagement: React.FC = () => {
 
       <h1>Asset Management</h1>
 
-      {/* Enhanced Filter Section */}
       <div className="filter-section">
-        {/* Multi-Select Filters */}
         <div className="quick-filters">
           <div className="filter-section-label">
             <i className="fas fa-filter" />
@@ -563,7 +631,6 @@ const AssetManagement: React.FC = () => {
           </div>
         </div>
 
-        {/* Status Filters */}
         <div>
           <div className="filter-section-label">
             <i className="fas fa-clock" />
@@ -608,7 +675,6 @@ const AssetManagement: React.FC = () => {
           </div>
         </div>
 
-        {/* Active Filters Summary */}
         {hasActiveFilters && (
           <div className="active-filters-summary">
             <i className="fas fa-info-circle" />
@@ -622,7 +688,6 @@ const AssetManagement: React.FC = () => {
         )}
       </div>
 
-      {/* Cards Grid */}
       {loading ? (
         <div className="loading-state">
           <div className="loading-spinner"></div>
@@ -637,7 +702,6 @@ const AssetManagement: React.FC = () => {
         <div className="cards-grid">
           {filteredCards.map((card, index) => (
             <div className="card" key={card.id}>
-              {/* Card Badges */}
               <div className="card-badges">
                 {card.personnelId === auth.currentUser?.uid && (
                   <span className="card-badge my-asset">Mine</span>
