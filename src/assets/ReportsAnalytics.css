@@ -61,9 +61,8 @@
   margin-bottom: 2rem;
 }
 
-.content-here {
+.analytics-content-here {
   background-color: #B2DFDB;
-  padding: 1.8rem;
   border-radius: 0px 0px 40px 40px;
 }
 
@@ -167,7 +166,7 @@
   color: #00796b;
 }
 
-.filter-section {
+.analytics-filter-section {
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;

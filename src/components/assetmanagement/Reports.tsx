@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import React from 'react';
-import { collection, getDocs, doc, updateDoc, query, orderBy, arrayUnion } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, query, orderBy, arrayUnion, deleteDoc, addDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase/firebase';
 import "../../assets/Reports.css";
 
@@ -14,6 +14,12 @@ interface Report {
   image: string | null;
   reason: string;
   reportedBy: string;
+  resolvedBy?: string;
+  resolvedAt?: Date;
+  resolutionNotes?: string;
+  disposedBy?: string;
+  disposedAt?: Date;
+  disposalReason?: string;
 }
 
 const Reports: React.FC = () => {
@@ -45,6 +51,9 @@ const Reports: React.FC = () => {
             image: data.image || null,
             reason: data.reason || '',
             reportedBy: data.reportedBy || '',
+            resolvedBy: data.resolvedBy || '',
+            resolvedAt: data.resolvedAt?.toDate() || undefined,
+            resolutionNotes: data.resolutionNotes || '',
           };
         });
         
@@ -59,6 +68,208 @@ const Reports: React.FC = () => {
     fetchReports();
   }, []);
 
+  // Show confirmation modal before status change
+  const showConfirmationModal = (
+    reportId: string, 
+    newStatus: string, 
+    assetName: string,
+    currentStatus: string
+  ): Promise<{ confirmed: boolean; maintainedBy?: string; reason?: string }> => {
+    return new Promise((resolve) => {
+      const modal = document.createElement('div');
+      modal.className = 'confirmation-modal-backdrop';
+      
+      const actionText = newStatus === 'In Repair' ? 'repair' : 
+                        newStatus === 'In Progress' ? 'maintenance' : 'resolution';
+      
+      const needsMaintainer = newStatus === 'Resolved';
+      
+      modal.innerHTML = `
+        <div class="confirmation-modal">
+          <div class="confirmation-modal-header">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>Confirm ${newStatus} Action</h3>
+          </div>
+          <div class="confirmation-modal-body">
+            <p><strong>Asset:</strong> ${assetName}</p>
+            <p><strong>Current Status:</strong> ${currentStatus}</p>
+            <p><strong>New Status:</strong> ${newStatus}</p>
+            <br>
+            <p>Are you sure you want to mark this issue as <strong>${newStatus}</strong>?</p>
+            ${needsMaintainer ? `
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="fas fa-wrench"></i> Resolved/Maintained By <span class="required">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="maintainedBy"
+                  class="form-input"
+                  placeholder="Enter name of person/team"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="fas fa-comment-alt"></i> Resolution Notes <span class="required">*</span>
+                </label>
+                <textarea
+                  id="statusReason"
+                  class="form-textarea"
+                  placeholder="Describe what was done to resolve the issue..."
+                  rows="3"
+                  required
+                ></textarea>
+              </div>
+            ` : ''}
+          </div>
+          <div class="confirmation-modal-footer">
+            <button class="btn btn-cancel" id="cancelBtn">
+              <i class="fas fa-times"></i> Cancel
+            </button>
+            <button class="btn btn-confirm" id="confirmBtn">
+              <i class="fas fa-check"></i> Confirm
+            </button>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
+      
+      const confirmBtn = modal.querySelector('#confirmBtn') as HTMLButtonElement;
+      const cancelBtn = modal.querySelector('#cancelBtn') as HTMLButtonElement;
+      const maintainedByInput = modal.querySelector('#maintainedBy') as HTMLInputElement;
+      const reasonInput = modal.querySelector('#statusReason') as HTMLTextAreaElement;
+      
+      const cleanup = () => {
+        document.body.removeChild(modal);
+      };
+      
+      confirmBtn.onclick = () => {
+        if (needsMaintainer) {
+          const maintainedBy = maintainedByInput?.value.trim();
+          const reason = reasonInput?.value.trim();
+          
+          if (!maintainedBy || !reason) {
+            alert('Please fill in all required fields.');
+            return;
+          }
+          
+          cleanup();
+          resolve({ confirmed: true, maintainedBy, reason });
+        } else {
+          cleanup();
+          resolve({ confirmed: true });
+        }
+      };
+      
+      cancelBtn.onclick = () => {
+        cleanup();
+        resolve({ confirmed: false });
+      };
+      
+      modal.onclick = (e) => {
+        if (e.target === modal) {
+          cleanup();
+          resolve({ confirmed: false });
+        }
+      };
+    });
+  };
+
+  // Handle disposal of asset
+  const handleDisposeAsset = async (report: Report) => {
+    const warningMessage = 
+      `⚠️ WARNING: You will be held accountable for the disposal of this asset.\n\n` +
+      `Asset: "${report.assetName}" (ID: ${report.assetId})\n\n` +
+      `Are you absolutely sure you want to dispose this asset? This action cannot be undone.`;
+
+    if (!window.confirm(warningMessage)) return;
+
+    // Get disposal reason
+    const disposalReason = window.prompt('Please provide a reason for disposal:');
+    if (!disposalReason || disposalReason.trim() === '') {
+      alert('Disposal reason is required.');
+      return;
+    }
+
+    try {
+      if (!report.assetDocId) {
+        throw new Error('Asset document ID not found');
+      }
+
+      const assetRef = doc(db, 'IT_Assets', report.assetDocId);
+      const assetDoc = await getDoc(assetRef);
+
+      if (!assetDoc.exists()) {
+        throw new Error('Asset not found');
+      }
+
+      const assetData = assetDoc.data();
+      const deletedBy = auth.currentUser?.displayName || auth.currentUser?.email || 'Unknown';
+      const deletedByEmail = auth.currentUser?.email || '';
+      const deletedAt = new Date().toISOString();
+
+      // Create comprehensive audit record
+      const auditRecord = {
+        assetId: assetData.assetId || '',
+        assetName: assetData.assetName || '',
+        assetUrl: assetData.assetUrl || '',
+        category: assetData.category || '',
+        subType: assetData.subType || '',
+        licenseType: assetData.licenseType || '',
+        personnel: assetData.personnelId || '',
+        personnelName: assetData.personnel || '',
+        purchaseDate: assetData.purchaseDate || '',
+        renewdate: assetData.renewdate || '',
+        serialNo: assetData.serialNo || '',
+        status: assetData.status || '',
+        qrcode: assetData.qrcode || null,
+        generateQR: assetData.generateQR || false,
+        image: assetData.image || '',
+        createdBy: assetData.createdBy || '',
+        createdAt: assetData.createdAt || '',
+        updatedBy: assetData.updatedBy || '',
+        updatedAt: assetData.updatedAt || '',
+        assetHistory: assetData.assetHistory || [],
+        hasReports: assetData.hasReports || false,
+        reportCount: assetData.reportCount || 0,
+        deletedAt,
+        deletedBy,
+        deletedByEmail,
+        deletionReason: `Disposed - ${disposalReason.trim()}`,
+        originalId: report.assetDocId,
+        relatedReportId: report.id,
+      };
+
+      // Save to Deleted_Assets first
+      await addDoc(collection(db, 'Deleted_Assets'), auditRecord);
+      
+      // Update report status to disposed
+      const reportRef = doc(db, 'Reported_Issues', report.id);
+      await updateDoc(reportRef, {
+        condition: 'Disposed',
+        disposedBy: deletedBy,
+        disposedAt: new Date(),
+        disposalReason: disposalReason.trim()
+      });
+
+      // Then delete from IT_Assets
+      await deleteDoc(assetRef);
+      
+      // Update local state
+      setReports(reports.map(r => 
+        r.id === report.id ? { ...r, condition: 'Disposed' } : r
+      ));
+
+      alert('Asset disposed and archived successfully');
+      closeModal();
+    } catch (error) {
+      console.error('Error disposing asset:', error);
+      alert('Failed to dispose asset. Please try again.');
+    }
+  };
+
   // Update status in Firestore and corresponding asset
   const handleStatusChange = async (reportId: string, newStatus: string) => {
     try {
@@ -68,9 +279,23 @@ const Reports: React.FC = () => {
         throw new Error('Report not found');
       }
 
+      // Show confirmation modal
+      const confirmation = await showConfirmationModal(
+        reportId, 
+        newStatus, 
+        report.assetName,
+        report.condition
+      );
+      
+      if (!confirmation.confirmed) {
+        return; // User cancelled
+      }
+
       // Map report status to asset status
       let assetStatus = '';
       if (newStatus === 'In Progress') {
+        assetStatus = 'Under Maintenance';
+      } else if (newStatus === 'In Repair') {
         assetStatus = 'Under Maintenance';
       } else if (newStatus === 'Resolved') {
         assetStatus = 'Functional';
@@ -78,9 +303,18 @@ const Reports: React.FC = () => {
 
       // Update the report status
       const reportRef = doc(db, 'Reported_Issues', reportId);
-      await updateDoc(reportRef, {
+      const updateData: any = {
         condition: newStatus
-      });
+      };
+
+      // If resolved, add resolution details
+      if (newStatus === 'Resolved' && confirmation.maintainedBy && confirmation.reason) {
+        updateData.resolvedBy = confirmation.maintainedBy;
+        updateData.resolvedAt = new Date();
+        updateData.resolutionNotes = confirmation.reason;
+      }
+
+      await updateDoc(reportRef, updateData);
 
       // Update the corresponding asset status if we have a valid mapping
       if (assetStatus && report.assetDocId) {
@@ -92,8 +326,8 @@ const Reports: React.FC = () => {
           changedBy: auth.currentUser?.email || 'Unknown',
           from: report.condition,
           to: assetStatus,
-          reason: `Issue reported: ${report.reason}`,
-          maintainedBy: assetStatus === 'Functional' ? (auth.currentUser?.email || 'IT Department') : ''
+          reason: confirmation.reason || `Issue reported: ${report.reason}`,
+          maintainedBy: confirmation.maintainedBy || ''
         };
 
         await updateDoc(assetRef, {
@@ -106,7 +340,13 @@ const Reports: React.FC = () => {
 
       // Update local state
       setReports(reports.map(r => 
-        r.id === reportId ? { ...r, condition: newStatus } : r
+        r.id === reportId ? { 
+          ...r, 
+          condition: newStatus,
+          resolvedBy: confirmation.maintainedBy,
+          resolvedAt: newStatus === 'Resolved' ? new Date() : r.resolvedAt,
+          resolutionNotes: confirmation.reason
+        } : r
       ));
 
       alert('Status updated successfully!');
@@ -133,10 +373,12 @@ const Reports: React.FC = () => {
     const statusLower = status.toLowerCase();
     if (statusLower.includes('pending') || statusLower.includes('maintenance')) {
       return '#f59e0b';
-    } else if (statusLower.includes('progress')) {
+    } else if (statusLower.includes('progress') || statusLower.includes('repair')) {
       return '#3b82f6';
     } else if (statusLower.includes('resolved') || statusLower.includes('fixed')) {
       return '#10b981';
+    } else if (statusLower.includes('disposed')) {
+      return '#6b7280';
     }
     return '#6b7280';
   };
@@ -164,7 +406,7 @@ const Reports: React.FC = () => {
       <h2>Reported IT Asset Issues</h2>
 
       {/* Filter Section */}
-      <div className="filter-section">
+      <div className="reports-filter-section">
         <div className="filter-group">
           <label htmlFor="month">Month:</label>
           <select id="month" value={month} onChange={(e) => setMonth(e.target.value)}>
@@ -276,7 +518,27 @@ const Reports: React.FC = () => {
                             </>
                           )}
 
-                          {report.condition.toLowerCase().includes('progress') && (
+                          {(report.condition.toLowerCase().includes('defective') || 
+                            report.condition.toLowerCase().includes('unserviceable') ||
+                            report.condition.toLowerCase().includes('damaged')) && (
+                            <>
+                              <button
+                                className="action-btn in-repair"
+                                onClick={() => handleStatusChange(report.id, 'In Repair')}
+                              >
+                                <i className="fas fa-tools"></i> In Repair
+                              </button>
+                              <button
+                                className="action-btn resolved"
+                                onClick={() => handleStatusChange(report.id, 'Resolved')}
+                              >
+                                Resolved
+                              </button>
+                            </>
+                          )}
+
+                          {(report.condition.toLowerCase().includes('progress') || 
+                            report.condition.toLowerCase().includes('repair')) && (
                             <button
                               className="action-btn resolved"
                               onClick={() => handleStatusChange(report.id, 'Resolved')}
@@ -288,6 +550,12 @@ const Reports: React.FC = () => {
                           {report.condition.toLowerCase().includes('resolved') && (
                             <span className="status-completed">
                               <i className="fas fa-check-circle"></i> Completed
+                            </span>
+                          )}
+
+                          {report.condition.toLowerCase().includes('disposed') && (
+                            <span className="status-completed">
+                              <i className="fas fa-trash"></i> Disposed
                             </span>
                           )}
                         </div>
@@ -386,8 +654,60 @@ const Reports: React.FC = () => {
                 </div>
               </div>
 
+              {selectedReport.condition.toLowerCase().includes('resolved') && selectedReport.resolvedBy && (
+                <>
+                  <div className="report-modal-info-item">
+                    <i className="fas fa-user-check"></i>
+                    <div>
+                      <div className="report-info-label">Resolved By</div>
+                      <div className="report-info-value">{selectedReport.resolvedBy}</div>
+                    </div>
+                  </div>
+
+                  {selectedReport.resolvedAt && (
+                    <div className="report-modal-info-item">
+                      <i className="fas fa-clock"></i>
+                      <div>
+                        <div className="report-info-label">Resolved At</div>
+                        <div className="report-info-value">
+                          {selectedReport.resolvedAt.toLocaleString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {selectedReport.disposalReason && (
+                    <div className="report-modal-info-item full-width">
+                      <i className="fas fa-trash-alt"></i>
+                      <div>
+                        <div className="report-info-label">Disposal Reason</div>
+                        <div className="report-info-value report-issue-description">
+                          {selectedReport.disposalReason}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {selectedReport.resolutionNotes && (
+                    <div className="report-modal-info-item full-width">
+                      <i className="fas fa-check-circle"></i>
+                      <div>
+                        <div className="report-info-label">Resolution Notes</div>
+                        <div className="report-info-value report-issue-description">{selectedReport.resolutionNotes}</div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
               {selectedReport.image && (
                 <div className="report-modal-info-item full-width">
+
+                     
                   <i className="fas fa-image"></i>
                   <div>
                     <div className="report-info-label">Attached Image</div>
@@ -405,16 +725,57 @@ const Reports: React.FC = () => {
               <button className="report-btn-secondary" onClick={closeModal}>
                 <i className="fas fa-times"></i> Close
               </button>
-              {!selectedReport.condition.toLowerCase().includes('resolved') && (
-                <button 
-                  className="report-btn-primary"
-                  onClick={() => {
-                    handleStatusChange(selectedReport.id, 'Resolved');
-                    closeModal();
-                  }}
-                >
-                  <i className="fas fa-check"></i> Mark as Resolved
-                </button>
+              
+              {!selectedReport.condition.toLowerCase().includes('resolved') && 
+               !selectedReport.condition.toLowerCase().includes('disposed') && (
+                <>
+                  {/* Show In Progress for Under Maintenance */}
+                  {selectedReport.condition.toLowerCase().includes('maintenance') && (
+                    <button 
+                      className="report-btn-status in-progress"
+                      onClick={() => {
+                        handleStatusChange(selectedReport.id, 'In Progress');
+                        closeModal();
+                      }}
+                    >
+                      <i className="fas fa-spinner"></i> In Progress
+                    </button>
+                  )}
+
+                  {/* Show In Repair for Defective/Damaged/Unserviceable */}
+                  {(selectedReport.condition.toLowerCase().includes('defective') || 
+                    selectedReport.condition.toLowerCase().includes('damaged') ||
+                    selectedReport.condition.toLowerCase().includes('unserviceable')) && (
+                    <button 
+                      className="report-btn-status in-repair"
+                      onClick={() => {
+                        handleStatusChange(selectedReport.id, 'In Repair');
+                        closeModal();
+                      }}
+                    >
+                      <i className="fas fa-tools"></i> In Repair
+                    </button>
+                  )}
+
+                  {/* Dispose button for all non-resolved items */}
+                  <button 
+                    className="report-btn-danger"
+                    onClick={() => handleDisposeAsset(selectedReport)}
+                  >
+                    <i className="fas fa-trash-alt"></i> Dispose Item
+                  </button>
+
+                  {/* Mark as Resolved button */}
+                  <button 
+                    className="report-btn-primary"
+                    onClick={() => {
+                      handleStatusChange(selectedReport.id, 'Resolved');
+                      closeModal();
+                    }}
+                  >
+                    <i className="fas fa-check"></i> Mark as Resolved
+                  </button>
+                </>
               )}
             </div>
           </div>

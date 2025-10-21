@@ -3,7 +3,7 @@
    ========================= */
 
 :root {
-  --bg-page: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --bg-page: linear-gradient(135deg, #73db7c98 0%, #75ff7579 100%);
   --card-bg: #ffffff;
   --muted: #64748b;
   --text: #0f172a;
@@ -78,7 +78,6 @@
   left: 0;
   right: 0;
   height: 6px;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
 }
 
 @media (hover: hover) {
