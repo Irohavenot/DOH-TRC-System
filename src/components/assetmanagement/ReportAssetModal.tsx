@@ -57,7 +57,7 @@ const ReportAssetModal: React.FC<ReportAssetModalProps> = ({
         createdAt: serverTimestamp(),
       };
 
-      await addDoc(collection(db, "Asset_Reports"), reportData);
+      await addDoc(collection(db, "Reported_Issues"), reportData);
 
       toast.success("Report submitted successfully.");
       onClose();
