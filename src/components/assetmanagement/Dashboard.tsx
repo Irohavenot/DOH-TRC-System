@@ -42,8 +42,8 @@ import ManageConsumableRequests from './ManageConsumableRequests';
 
 const Dashboard = () => {
   const { fullName, loading } = useCurrentUserFullName();
-  const [currentView, setCurrentView] = useState<'dashboard' | 'qr' | 'generate' | 'requestsdata' | 'reports' | 'reports-analytics' | 'profile' | 'assets' | 'people' | 'request-consumables' | 'manage-consumable-requests'>('dashboard');
-  const [activeView, setActiveView] = useState<'dashboard' | 'generate' | 'reports' | 'requestsdata' | 'reports-analytics' | 'qr' | 'profile' | 'assets' | 'people' | 'request-consumables' | 'manage-consumable-requests'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'qr' | 'generate' | 'requestsdata' | 'reports' | 'reports-analytics' | 'profile' | 'assets' | 'people' | 'request-consumables' | 'manage-consumable-requests'>('assets');
+  const [activeView, setActiveView] = useState<'dashboard' | 'generate' | 'reports' | 'requestsdata' | 'reports-analytics' | 'qr' | 'profile' | 'assets' | 'people' | 'request-consumables' | 'manage-consumable-requests'>('assets');
   const [searchQuery, setSearchQuery] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
@@ -321,7 +321,7 @@ const Dashboard = () => {
             </button>
           </div>
           <nav className="menu">
-            <Link
+            {/* <Link
               to="#"
               className={`menu-items ${activeView === 'dashboard' ? 'active' : ''}`}
               onClick={() => {
@@ -331,7 +331,7 @@ const Dashboard = () => {
             >
               <LayoutDashboard className="menu-icon" />
               <span>Dashboard</span>
-            </Link>
+            </Link> */}
 
             <Link
               to="#"
@@ -418,7 +418,7 @@ const Dashboard = () => {
               <span>QR Scanner</span>
             </Link>
 
-            <Link
+            {/* <Link
               to="#"
               className={`menu-item ${activeView === 'requestsdata' ? 'active' : ''}`}
               onClick={() => {
@@ -428,7 +428,7 @@ const Dashboard = () => {
             >
               <Clipboard className="menu-icon" />
               <span>Request</span>
-            </Link>
+            </Link> */}
 
             <Link
               to="/"

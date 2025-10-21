@@ -6,6 +6,7 @@ import AssetDetailsModal from "../assetmanagement/AssetDetailsModal";
 import EditAssetModal from "../assetmanagement/EditAssetModal";
 import ReportAssetModal from "../assetmanagement/ReportAssetModal";
 import QRModal from "../assetmanagement/QRModal";
+import HistoryModal from "../assetmanagement/HistoryModal";
 import { db } from "../../firebase/firebase";
 import {
   collection,
@@ -23,6 +24,15 @@ const USERS_COLLECTION = "IT_Supply_Users";
 (QrScanner as any).WORKER_PATH = QrScannerWorkerPath;
 
 type TSOrString = any | string | null;
+
+interface HistoryEntry {
+  changedAt?: any;
+  changedBy?: string;
+  from?: string;
+  to?: string;
+  reason?: string;
+  maintainedBy?: string;
+}
 
 interface AssetDoc {
   docId?: string;
@@ -44,7 +54,7 @@ interface AssetDoc {
   status?: string;
   updatedAt?: TSOrString;
   updatedBy?: string;
-  assetHistory?: any[];
+  assetHistory?: HistoryEntry[];
   iconClass?: string;
   timeLeft?: string;
 }
@@ -148,6 +158,8 @@ const WebQRScanner: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [uidToNameMap, setUidToNameMap] = useState<Record<string, string>>({});
 
   // Fetch user name map
@@ -330,6 +342,18 @@ const WebQRScanner: React.FC = () => {
     }, 150);
   };
 
+  const handleViewQR = () => {
+    if (asset && asset.qrcode) {
+      setShowQRModal(true);
+    }
+  };
+
+  const handleViewHistory = () => {
+    if (asset) {
+      setShowHistoryModal(true);
+    }
+  };
+
   const mapAssetToModal = (a: AssetDoc) => ({
     id: a.docId || "",
     title: a.assetName || "",
@@ -351,6 +375,15 @@ const WebQRScanner: React.FC = () => {
     renewdate: fmtDate(a.renewdate),
     assetHistory: a.assetHistory || [],
     iconClass: a.iconClass,
+  });
+
+  const mapAssetToQRModal = (a: AssetDoc) => ({
+    id: a.docId || "",
+    assetId: a.assetId,
+    assetName: a.assetName,
+    serialNo: a.serialNo || "",
+    qrcode: a.qrcode || "",
+    assetUrl: a.assetUrl,
   });
 
   return (
@@ -432,9 +465,11 @@ const WebQRScanner: React.FC = () => {
           onClose={handleCloseModal}
           asset={mapAssetToModal(asset)}
           onEdit={() => setEditOpen(true)}
-          onViewQR={() => console.log("View QR clicked")}
+          onViewQR={handleViewQR}
           onReport={() => setReportOpen(true)}
-          onViewHistory={() => console.log("View history clicked")}
+          onViewHistory={(history, assetName, assetId) => {
+            setShowHistoryModal(true);
+          }}
           extraButton={
             <button
               className="scanqr-btn scanqr-btn-outline"
@@ -443,6 +478,25 @@ const WebQRScanner: React.FC = () => {
               <i className="fas fa-qrcode"></i> Scan Another
             </button>
           }
+        />
+      )}
+
+      {/* QR Modal */}
+      {asset && (
+        <QRModal
+          isOpen={showQRModal}
+          onClose={() => setShowQRModal(false)}
+          asset={mapAssetToQRModal(asset)}
+        />
+      )}
+
+      {/* History Modal */}
+      {asset && (
+        <HistoryModal
+          isOpen={showHistoryModal}
+          onClose={() => setShowHistoryModal(false)}
+          history={asset.assetHistory || []}
+          assetName={asset.assetName}
         />
       )}
 
