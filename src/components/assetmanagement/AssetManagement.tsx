@@ -11,7 +11,8 @@ import {
   updateDoc,
   deleteDoc,
   getDocs,
-  addDoc
+  addDoc,
+  where
 } from 'firebase/firestore';
 import QRModal from './QRModal';
 import { toast } from 'react-toastify';
@@ -82,6 +83,40 @@ const AssetManagement: React.FC = () => {
   const [editingAsset, setEditingAsset] = useState<any>(null);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportingAsset, setReportingAsset] = useState<{ id: string; docId: string; name: string } | null>(null);
+const [currentUserDocId, setCurrentUserDocId] = useState<string | null>(null);
+
+  // Fetch current user's document ID from IT_Supply_Users
+   useEffect(() => {
+  const fetchCurrentUserDocIdByEmail = async () => {
+    const currentEmail = auth.currentUser?.email;
+    if (!currentEmail) {
+      console.log("No authenticated user email found");
+      setCurrentUserDocId(null);
+      return;
+    }
+
+    try {
+      const usersRef = collection(db, "IT_Supply_Users");
+      const q = query(usersRef, where("Email", "==", currentEmail));
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        const userDoc = snapshot.docs[0];
+        setCurrentUserDocId(userDoc.id);
+        console.log("Matched userDocId via email:", userDoc.id);
+      } else {
+        console.warn("No IT_Supply_Users document matches email:", currentEmail);
+        setCurrentUserDocId(null);
+      }
+    } catch (error) {
+      console.error("Error fetching user doc by email:", error);
+      setCurrentUserDocId(null);
+    }
+  };
+
+  fetchCurrentUserDocIdByEmail();
+}, []);
+
 
   // Fetch reported assets
   useEffect(() => {
@@ -254,9 +289,16 @@ const AssetManagement: React.FC = () => {
       });
     }
 
-    if (showMyAssets) {
-      const currentUserId = auth.currentUser?.uid;
-      result = result.filter(card => card.personnelId === currentUserId);
+    if (showMyAssets && currentUserDocId) {
+      console.log("Filtering for current user doc ID:", currentUserDocId);
+      result = result.filter(card => {
+        const match = card.personnel === currentUserDocId;
+        if (match) {
+          console.log("Match found:", card.title, "personnelId:", card.personnel);
+        }
+        return match;
+      });
+      console.log("My Assets count:", result.length);
     }
 
     if (showReported) {
@@ -264,11 +306,10 @@ const AssetManagement: React.FC = () => {
     }
 
     return result;
-  }, [cards, statusFilter, showMyAssets, showReported]);
+  }, [cards, statusFilter, showMyAssets, showReported, currentUserDocId]);
 
   const counts = useMemo(() => {
     let permanent = 0, normal = 0, aboutToExpire = 0, expired = 0, myAssets = 0, reported = 0;
-    const currentUserId = auth.currentUser?.uid;
     
     for (const c of cards) {
       if (c.iconClass === 'icon-blue') permanent++;
@@ -276,11 +317,11 @@ const AssetManagement: React.FC = () => {
       else if (c.iconClass === 'icon-orange') aboutToExpire++;
       else if (c.iconClass === 'icon-red') expired++;
       
-      if (c.personnelId === currentUserId) myAssets++;
+      if (currentUserDocId && c.personnelId === currentUserDocId) myAssets++;
       if (c.hasReports) reported++;
     }
     return { permanent, normal, aboutToExpire, expired, myAssets, reported };
-  }, [cards]);
+  }, [cards, currentUserDocId]);
 
   const handleCardOptionsToggle = (index: number) => setOpenCardOptionsId(prev => (prev === index ? null : index));
 
@@ -319,9 +360,8 @@ const AssetManagement: React.FC = () => {
   };
 
   const getCurrentUserFullName = (): string => {
-    const uid = auth.currentUser?.uid;
-    if (uid && uidToNameMap[uid]) {
-      return uidToNameMap[uid];
+    if (currentUserDocId && uidToNameMap[currentUserDocId]) {
+      return uidToNameMap[currentUserDocId];
     }
     return auth.currentUser?.email || 'Unknown User';
   };
