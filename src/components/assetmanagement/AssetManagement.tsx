@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import "../../assets/assetmanagement.css";
+
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { db, auth } from '../../firebase/firebase';
+import AssetDetailsModal from './AssetDetailsModal';
 import {
   collection,
   query,
@@ -83,40 +85,39 @@ const AssetManagement: React.FC = () => {
   const [editingAsset, setEditingAsset] = useState<any>(null);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportingAsset, setReportingAsset] = useState<{ id: string; docId: string; name: string } | null>(null);
-const [currentUserDocId, setCurrentUserDocId] = useState<string | null>(null);
+  const [currentUserDocId, setCurrentUserDocId] = useState<string | null>(null);
 
   // Fetch current user's document ID from IT_Supply_Users
-   useEffect(() => {
-  const fetchCurrentUserDocIdByEmail = async () => {
-    const currentEmail = auth.currentUser?.email;
-    if (!currentEmail) {
-      console.log("No authenticated user email found");
-      setCurrentUserDocId(null);
-      return;
-    }
+  useEffect(() => {
+    const fetchCurrentUserDocIdByEmail = async () => {
+      const currentEmail = auth.currentUser?.email;
+      if (!currentEmail) {
+        console.log("No authenticated user email found");
+        setCurrentUserDocId(null);
+        return;
+      }
 
-    try {
-      const usersRef = collection(db, "IT_Supply_Users");
-      const q = query(usersRef, where("Email", "==", currentEmail));
-      const snapshot = await getDocs(q);
+      try {
+        const usersRef = collection(db, "IT_Supply_Users");
+        const q = query(usersRef, where("Email", "==", currentEmail));
+        const snapshot = await getDocs(q);
 
-      if (!snapshot.empty) {
-        const userDoc = snapshot.docs[0];
-        setCurrentUserDocId(userDoc.id);
-        console.log("Matched userDocId via email:", userDoc.id);
-      } else {
-        console.warn("No IT_Supply_Users document matches email:", currentEmail);
+        if (!snapshot.empty) {
+          const userDoc = snapshot.docs[0];
+          setCurrentUserDocId(userDoc.id);
+          console.log("Matched userDocId via email:", userDoc.id, "for email:", currentEmail);
+        } else {
+          console.warn("No IT_Supply_Users document matches email:", currentEmail);
+          setCurrentUserDocId(null);
+        }
+      } catch (error) {
+        console.error("Error fetching user doc by email:", error);
         setCurrentUserDocId(null);
       }
-    } catch (error) {
-      console.error("Error fetching user doc by email:", error);
-      setCurrentUserDocId(null);
-    }
-  };
+    };
 
-  fetchCurrentUserDocIdByEmail();
-}, []);
-
+    fetchCurrentUserDocIdByEmail();
+  }, []);
 
   // Fetch reported assets
   useEffect(() => {
@@ -224,6 +225,17 @@ const [currentUserDocId, setCurrentUserDocId] = useState<string | null>(null);
     })();
   }, []);
 
+  // Debug: Check assets personnel fields
+  useEffect(() => {
+    const checkAssets = async () => {
+      const snapshot = await getDocs(collection(db, "IT_Assets"));
+      snapshot.forEach(doc => {
+        console.log("Asset:", doc.id, "Personnel:", doc.data().personnel);
+      });
+    };
+    checkAssets();
+  }, []);
+
   const computeBadge = (licenseType?: string, expirationDate?: string) => {
     if (licenseType && NON_EXPIRING.has(licenseType)) return { iconClass: 'icon-blue' as const, timeLeft: 'No Expiration' };
     if (!expirationDate) return { iconClass: 'icon-orange' as const, timeLeft: 'No Expiration Date' };
@@ -240,6 +252,7 @@ const [currentUserDocId, setCurrentUserDocId] = useState<string | null>(null);
   };
 
   const cards = useMemo(() => rawAssets.map((d: any) => {
+    console.log("Asset personnel:", d.id, d.personnel); // Debug personnel field
     const personnelName = d.personnel ? uidToNameMap[d.personnel] || d.personnel : undefined;
     const resolveByEmail = (email?: string) => { if (!email) return undefined; return emailToNameMap[email.trim().toLowerCase()] || email; };
     const createdByName = resolveByEmail(d.createdBy);
@@ -292,13 +305,13 @@ const [currentUserDocId, setCurrentUserDocId] = useState<string | null>(null);
     if (showMyAssets && currentUserDocId) {
       console.log("Filtering for current user doc ID:", currentUserDocId);
       result = result.filter(card => {
-        const match = card.personnel === currentUserDocId;
+        const match = card.personnelId === currentUserDocId;
         if (match) {
-          console.log("Match found:", card.title, "personnelId:", card.personnel);
+          console.log("Match found:", card.title, "personnelId:", card.personnelId);
         }
         return match;
       });
-      console.log("My Assets count:", result.length);
+      console.log("Filtered cards:", result); // Debug filtered cards
     }
 
     if (showReported) {
@@ -497,121 +510,34 @@ const [currentUserDocId, setCurrentUserDocId] = useState<string | null>(null);
   return (
     <div className="content-here">
       {/* View More Modal */}
-      {selectedCard && (
-        <div className="view-modal-backdrop" onClick={() => { setSelectedCard(null); setShowMoreDetails(false); }}>
-          <div className="modal view-more-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Asset Details</h2>
-              {selectedCard.qrcode && (
-                <button className="view-qr-fab" onClick={(e) => { e.stopPropagation(); openQR(selectedCard); }} title="View QR">
-                  <i className="fas fa-qrcode" /> <span>View QR</span>
-                </button>
-              )}
-            </div>
 
-            <div className="modal-image">
-              {selectedCard.image ? (<img src={selectedCard.image} alt="Asset" />) : (<img src="printer.jpg" alt="Asset" />)}
-            </div>
-
-            <div className="modal-details">
-              <h2>Asset Details</h2>
-              <table className="modal-table">
-                <tbody>
-                  <tr><td><strong>Asset Name:</strong></td><td>{selectedCard.title}</td></tr>
-                  <tr><td><strong>Category:</strong></td><td>{selectedCard.team}</td></tr>
-                  
-                  {shouldShowSubType(selectedCard.team) && selectedCard.subType && (
-                    <tr>
-                      <td><strong>{getSubTypeLabel(selectedCard.team)}:</strong></td>
-                      <td>{selectedCard.subType}</td>
-                    </tr>
-                  )}
-                  
-                  <tr><td><strong>Serial Number:</strong></td><td>{selectedCard.serial}</td></tr>
-                  <tr><td><strong>License Status:</strong></td><td>{selectedCard.timeLeft}</td></tr>
-                  
-                  {selectedCard.licenseType && (
-                    <tr>
-                      <td><strong>Operational Period:</strong></td>
-                      <td>{selectedCard.licenseType}</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-
-              <div className={`extra-details-wrapper ${showMoreDetails ? 'visible' : 'hidden'}`}>
-                <div className="extra-details-divider" />
-                <table className="modal-table extra-details">
-                  <tbody>
-                    {selectedCard.personnel && (<tr><td><strong>Assigned To:</strong></td><td>{selectedCard.personnel}</td></tr>)}
-                    {selectedCard.purchaseDate && (<tr><td><strong>Purchase Date:</strong></td><td>{selectedCard.purchaseDate}</td></tr>)}
-                    {selectedCard.status && (<tr><td><strong>Status:</strong></td><td>{selectedCard.status}</td></tr>)}
-                    {selectedCard.renewdate && (<tr><td><strong>Renewal Date:</strong></td><td>{selectedCard.renewdate}</td></tr>)}
-                    {selectedCard.createdAt && (<tr><td><strong>Created At:</strong></td><td>{selectedCard.createdAt}</td></tr>)}
-                    {selectedCard.createdBy && (<tr><td><strong>Created By:</strong></td><td>{selectedCard.createdBy}</td></tr>)}
-                    {selectedCard.updatedAt && (<tr><td><strong>Updated At:</strong></td><td>{selectedCard.updatedAt}</td></tr>)}
-                    {selectedCard.updatedBy && (<tr><td><strong>Updated By:</strong></td><td>{selectedCard.updatedBy}</td></tr>)}
-                  </tbody>
-                </table>
-
-                {selectedCard.assetHistory && selectedCard.assetHistory.length > 0 && (
-                  <div style={{ marginTop: '16px', textAlign: 'center' }}>
-                    <button
-                      className="show-more-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setHistoryAsset({
-                          id: selectedCard.id,
-                          name: selectedCard.title,
-                          history: selectedCard.assetHistory || [],
-                        });
-                        setShowHistoryModal(true);
-                      }}
-                    >
-                      <i className="fas fa-history" /> View Full History ({selectedCard.assetHistory.length})
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="show-more-section">
-                <button className="show-more-btn" onClick={() => setShowMoreDetails(prev => !prev)}>
-                  {showMoreDetails ? (<><i className="fas fa-chevron-up" /> Show Less Details</>) : (<><i className="fas fa-chevron-down" /> Show More Details</>)}
-                </button>
-              </div>
-
-              <div className="buttons-container">
-                <button className="close-btn" onClick={() => { setSelectedCard(null); setShowMoreDetails(false); }}>Close</button>
-                <button 
-                  className="edits-button" 
-                  onClick={() => {
-                    const idx = filteredCards.findIndex(c => c.id === selectedCard.id);
-                    if (idx >= 0) handleEditCard(idx);
-                  }}
-                >
-                  Edit
-                </button>
-                <button 
-                  className="edits-button report-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (selectedCard) {
-                      setReportingAsset({
-                        id: selectedCard.assetId || selectedCard.id,
-                        docId: selectedCard.id,
-                        name: selectedCard.title,
-                      });
-                      setReportModalOpen(true);
-                    }
-                  }}
-                >
-                  <i className="fas fa-exclamation-triangle" /> Report Issue
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+        <AssetDetailsModal
+          isOpen={!!selectedCard}
+          onClose={() => {
+            setSelectedCard(null);
+            setShowMoreDetails(false);
+          }}
+          asset={selectedCard}
+          onViewQR={openQR}
+          onEdit={() => {
+            const idx = filteredCards.findIndex(c => c.id === selectedCard?.id);
+            if (idx >= 0) handleEditCard(idx);
+          }}
+          onReport={() => {
+            if (selectedCard) {
+              setReportingAsset({
+                id: selectedCard.assetId || selectedCard.id,
+                docId: selectedCard.id,
+                name: selectedCard.title,
+              });
+              setReportModalOpen(true);
+            }
+          }}
+          onViewHistory={(history, assetName, assetId) => {
+            setHistoryAsset({ id: assetId, name: assetName, history });
+            setShowHistoryModal(true);
+          }}
+        />
 
       <EditAssetModal
         isOpen={editModalOpen}
@@ -740,62 +666,65 @@ const [currentUserDocId, setCurrentUserDocId] = useState<string | null>(null);
         </div>
       ) : (
         <div className="cards-grid">
-          {filteredCards.map((card, index) => (
-            <div className="card" key={card.id}>
-              <div className="card-badges">
-                {card.personnelId === auth.currentUser?.uid && (
-                  <span className="card-badge my-asset">Mine</span>
-                )}
-                {card.hasReports && (
-                  <span className="card-badge reported">
-                    <i className="fas fa-exclamation-circle" />
-                    {card.reportCount}
-                  </span>
-                )}
-              </div>
-
-              <div className="card-top">
-                <div className="card-top-left">
-                  <div className={`card-icon ${card.iconClass}`}>
-                    <i className={`fas ${card.team.toLowerCase().includes('hardware') ? 'fa-laptop' : 'fa-code'}`} />
-                  </div>
-                  <button className="view-more-btn" onClick={() => setSelectedCard(card)}>View More</button>
+          {filteredCards.map((card, index) => {
+            console.log("Rendering card:", card.title); // Debug rendering
+            return (
+              <div className="card" key={card.id}>
+                <div className="card-badges">
+                  {card.personnelId === currentUserDocId && (
+                    <span className="card-badge my-asset">Mine</span>
+                  )}
+                  {card.hasReports && (
+                    <span className="card-badge reported">
+                      <i className="fas fa-exclamation-circle" />
+                      {card.reportCount}
+                    </span>
+                  )}
                 </div>
-                <div className="card-options">
-                  <button className="options-btn" onClick={() => handleCardOptionsToggle(index)}>⋮</button>
-                  {openCardOptionsId === index && (
-                    <div className="card-options-menu">
-                      <button className="edit-btn" onClick={() => handleEditCard(index)}><i className="fas fa-edit"></i> Edit Asset</button>
-                      <button className="delete-btn" onClick={() => handleDeleteCard(index)}><i className="fas fa-trash-alt"></i> Delete Asset</button>
+
+                <div className="card-top">
+                  <div className="card-top-left">
+                    <div className={`card-icon ${card.iconClass}`}>
+                      <i className={`fas ${card.team.toLowerCase().includes('hardware') ? 'fa-laptop' : 'fa-code'}`} />
+                    </div>
+                    <button className="view-more-btn" onClick={() => setSelectedCard(card)}>View More</button>
+                  </div>
+                  <div className="card-options">
+                    <button className="options-btn" onClick={() => handleCardOptionsToggle(index)}>⋮</button>
+                    {openCardOptionsId === index && (
+                      <div className="card-options-menu">
+                        <button className="edit-btn" onClick={() => handleEditCard(index)}><i className="fas fa-edit"></i> Edit Asset</button>
+                        <button className="delete-btn" onClick={() => handleDeleteCard(index)}><i className="fas fa-trash-alt"></i> Delete Asset</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <h2>{card.title}</h2>
+                
+                <div className="card-meta">
+                  <div className="card-meta-item">
+                    <i className="fas fa-layer-group" />
+                    {card.team}
+                  </div>
+                  <div className="card-meta-item">
+                    <i className="fas fa-barcode" />
+                    {card.serial}
+                  </div>
+                  {card.personnel && (
+                    <div className="card-meta-item">
+                      <i className="fas fa-user" />
+                      {card.personnel}
                     </div>
                   )}
                 </div>
-              </div>
-              
-              <h2>{card.title}</h2>
-              
-              <div className="card-meta">
-                <div className="card-meta-item">
-                  <i className="fas fa-layer-group" />
-                  {card.team}
+                
+                <div className="card-time-badge">
+                  {card.timeLeft}
                 </div>
-                <div className="card-meta-item">
-                  <i className="fas fa-barcode" />
-                  {card.serial}
-                </div>
-                {card.personnel && (
-                  <div className="card-meta-item">
-                    <i className="fas fa-user" />
-                    {card.personnel}
-                  </div>
-                )}
               </div>
-              
-              <div className="card-time-badge">
-                {card.timeLeft}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
