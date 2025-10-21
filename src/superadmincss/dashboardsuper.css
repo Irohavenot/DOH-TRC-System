@@ -2,12 +2,6 @@
    SUPER ADMIN DASHBOARD - IMPROVED & RESPONSIVE CSS
    ============================================================================ */
 
-body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Roboto', sans-serif;
-}
-
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -27,20 +21,15 @@ body {
   background: linear-gradient(135deg, #004d40, #00695c);
 }
 
-.logo-link {
-  display: flex;
-  align-items: center;
-  text-decoration: none;
-  color: inherit;
-}
-
-.dashboard-bodys {
+.dashadmin-body {
   font-family: 'Roboto', sans-serif;
   min-height: 100vh;
   background-color: #f5f5f5;
+  margin: 0;
+  padding: 0;
 }
 
-.dashboard-containers {
+.dashadmin-container {
   display: flex;
   height: 100vh;
   width: 100%;
@@ -49,7 +38,7 @@ body {
 /* ============================================================================
    SIDEBAR STYLES
    ============================================================================ */
-.sidebar {
+.dashadmin-sidebar {
   border-radius: 0px 20px 20px 0px;
   width: 250px;
   background: linear-gradient(135deg, #6a9e9c, #0c836f);
@@ -62,30 +51,30 @@ body {
   z-index: 100;
 }
 
-.collapsed .sidebar {
+.dashadmin-collapsed .dashadmin-sidebar {
   width: 75px;
 }
 
-.collapsed .sidebar .menu-items span,
-.collapsed .sidebar-header .logos {
+.dashadmin-collapsed .dashadmin-sidebar .dashadmin-menu-item span,
+.dashadmin-collapsed .dashadmin-sidebar-header .dashadmin-logo-text {
   display: none;
 }
 
-.collapsed .dashboard-logos {
+.dashadmin-collapsed .dashadmin-logo {
   opacity: 0;
   visibility: hidden;
   width: 0;
   height: 0;
 }
 
-.collapsed .logos {
+.dashadmin-collapsed .dashadmin-logo-text {
   opacity: 0;
   visibility: hidden;
   width: 0;
   height: 0;
 }
 
-.sidebar-header {
+.dashadmin-sidebar-header {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -94,7 +83,7 @@ body {
   border-bottom: 2px solid rgba(255, 255, 255, 0.2);
 }
 
-.dashboard-logos {
+.dashadmin-logo {
   width: 60px;
   height: 60px;
   border-radius: 50%;
@@ -104,12 +93,12 @@ body {
   transition: all 0.3s ease;
 }
 
-.dashboard-logos:hover {
+.dashadmin-logo:hover {
   transform: scale(1.05);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
 }
 
-.logos {
+.dashadmin-logo-text {
   font-size: 16px;
   font-weight: 700;
   margin-left: 8px;
@@ -117,7 +106,7 @@ body {
   letter-spacing: 0.5px;
 }
 
-.toggle-sidebar-btns {
+.dashadmin-toggle-btn {
   background: rgba(255, 255, 255, 0.2);
   border: none;
   color: white;
@@ -129,20 +118,20 @@ body {
   transition: all 0.3s ease;
 }
 
-.toggle-sidebar-btns:hover {
+.dashadmin-toggle-btn:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: scale(1.1);
 }
 
 /* Menu Items */
-.menus {
+.dashadmin-menu {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   padding: 0 1rem;
 }
 
-.menu-items {
+.dashadmin-menu-item {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -155,19 +144,19 @@ body {
   position: relative;
 }
 
-.menu-items:hover {
+.dashadmin-menu-item:hover {
   background-color: rgba(1, 92, 81, 0.8);
   transform: translateX(5px);
 }
 
-.menu-items.active {
+.dashadmin-menu-item.dashadmin-active {
   background-color: #f8faf9;
   color: #004d40;
   font-weight: 600;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.menu-items.active::before {
+.dashadmin-menu-item.dashadmin-active::before {
   content: '';
   position: absolute;
   left: 0;
@@ -178,28 +167,28 @@ body {
   border-radius: 0 4px 4px 0;
 }
 
-.menu-items.logouts {
+.dashadmin-menu-item.dashadmin-logout {
   margin-top: auto;
   margin-bottom: 1rem;
   background-color: rgba(198, 40, 40, 0.2);
 }
 
-.menu-items.logouts:hover {
+.dashadmin-menu-item.dashadmin-logout:hover {
   background-color: rgba(198, 40, 40, 0.4);
 }
 
-.menu-icons {
+.dashadmin-menu-icon {
   width: 20px;
   height: 20px;
   flex-shrink: 0;
 }
 
-.collapsed .menu-items {
+.dashadmin-collapsed .dashadmin-menu-item {
   justify-content: center;
   padding: 12px;
 }
 
-.collapsed .menu-items.active {
+.dashadmin-collapsed .dashadmin-menu-item.dashadmin-active {
   background-color: #015c51;
   border-radius: 50%;
   width: 45px;
@@ -207,14 +196,14 @@ body {
   color: white;
 }
 
-.collapsed .menu-items.active::before {
+.dashadmin-collapsed .dashadmin-menu-item.dashadmin-active::before {
   display: none;
 }
 
 /* ============================================================================
    MAIN CONTENT AREA
    ============================================================================ */
-.main-content-admin {
+.dashadmin-main-content {
   background-color: #ffffff;
   flex-grow: 1;
   padding: clamp(20px, 3vw, 40px);
@@ -225,7 +214,7 @@ body {
 /* ============================================================================
    TABLE NAVIGATION TABS
    ============================================================================ */
-.table-nav-tabs {
+.dashadmin-table-nav-tabs {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 2rem;
@@ -235,7 +224,7 @@ body {
   padding-bottom: 0;
 }
 
-.tab-button {
+.dashadmin-tab-button {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -252,20 +241,20 @@ body {
   position: relative;
 }
 
-.tab-button:hover {
+.dashadmin-tab-button:hover {
   background-color: #f0faf9;
   border-radius: 8px 8px 0 0;
   color: #015c51;
 }
 
-.tab-button.active {
+.dashadmin-tab-button.dashadmin-tab-active {
   color: #015c51;
   border-bottom-color: #015c51;
   background-color: #f8fffe;
   font-weight: 700;
 }
 
-.tab-button.active::after {
+.dashadmin-tab-button.dashadmin-tab-active::after {
   content: '';
   position: absolute;
   bottom: -3px;
@@ -275,22 +264,22 @@ body {
   background: linear-gradient(90deg, #015c51, #00796b);
 }
 
-.tab-button svg {
+.dashadmin-tab-button svg {
   flex-shrink: 0;
 }
 
 /* ============================================================================
    TABLE SECTION
    ============================================================================ */
-.table-section {
-  animation: fadeIn 0.4s ease;
+.dashadmin-table-section {
+  animation: dashadminFadeIn 0.4s ease;
   background: white;
   border-radius: 12px;
   padding: 1.5rem;
   box-shadow: 0 2px 12px rgba(0, 77, 64, 0.08);
 }
 
-@keyframes fadeIn {
+@keyframes dashadminFadeIn {
   from {
     opacity: 0;
     transform: translateY(15px);
@@ -301,7 +290,7 @@ body {
   }
 }
 
-.table-header-section {
+.dashadmin-table-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -310,7 +299,7 @@ body {
   gap: 1rem;
 }
 
-h2 {
+.dashadmin-table-section h2 {
   font-size: clamp(1.25rem, 2vw, 1.75rem);
   color: #004d40;
   margin: 0;
@@ -319,7 +308,7 @@ h2 {
   padding-bottom: 0.5rem;
 }
 
-h2::after {
+.dashadmin-table-section h2::after {
   content: '';
   position: absolute;
   bottom: 0;
@@ -330,7 +319,7 @@ h2::after {
   border-radius: 2px;
 }
 
-.info-text {
+.dashadmin-info-text {
   color: #666;
   font-size: 0.95rem;
   margin-bottom: 1rem;
@@ -342,21 +331,21 @@ h2::after {
 }
 
 /* Department Dropdown */
-.department-dropdown {
+.dashadmin-department-dropdown {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
 }
 
-.department-dropdown label {
+.dashadmin-department-dropdown label {
   font-size: clamp(0.9rem, 1.5vw, 1rem);
   font-weight: 600;
   color: #015c51;
   white-space: nowrap;
 }
 
-.department-dropdown select {
+.dashadmin-department-dropdown select {
   padding: 0.75rem 1.25rem;
   border: 2px solid #B2DFDB;
   border-radius: 10px;
@@ -370,18 +359,18 @@ h2::after {
   font-weight: 500;
 }
 
-.department-dropdown select:focus {
+.dashadmin-department-dropdown select:focus {
   border-color: #015c51;
   box-shadow: 0 0 0 4px rgba(1, 92, 81, 0.1);
 }
 
-.department-dropdown select:hover {
+.dashadmin-department-dropdown select:hover {
   border-color: #00796b;
   background-color: #f9fffe;
 }
 
 /* Info Counters */
-.info-counters {
+.dashadmin-info-counters {
   margin: 1.25rem 0;
   padding: 1rem;
   background: linear-gradient(135deg, #f0faf9, #e8f5f3);
@@ -389,7 +378,7 @@ h2::after {
   border-left: 5px solid #015c51;
 }
 
-.info-counters p {
+.dashadmin-info-counters p {
   margin: 0.3rem 0;
   color: #004d40;
   font-weight: 600;
@@ -399,9 +388,9 @@ h2::after {
 /* ============================================================================
    TABLES - IMPROVED & RESPONSIVE
    ============================================================================ */
-.people-table,
-.pending-table,
-.rejected-table {
+.dashadmin-people-table,
+.dashadmin-pending-table,
+.dashadmin-rejected-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 1rem;
@@ -411,21 +400,21 @@ h2::after {
   box-shadow: 0 2px 12px rgba(0, 77, 64, 0.1);
 }
 
-.people-table th,
-.people-table td,
-.pending-table th,
-.pending-table td,
-.rejected-table th,
-.rejected-table td {
+.dashadmin-people-table th,
+.dashadmin-people-table td,
+.dashadmin-pending-table th,
+.dashadmin-pending-table td,
+.dashadmin-rejected-table th,
+.dashadmin-rejected-table td {
   padding: clamp(12px, 1.5vw, 16px) clamp(14px, 2vw, 18px);
   text-align: left;
   border-bottom: 1px solid #e8f4f3;
   color: #004d40;
 }
 
-.people-table th,
-.pending-table th,
-.rejected-table th {
+.dashadmin-people-table th,
+.dashadmin-pending-table th,
+.dashadmin-rejected-table th {
   background: linear-gradient(135deg, #B2DFDB 0%, #d4efec 100%);
   color: #004d40;
   font-weight: 700;
@@ -437,34 +426,34 @@ h2::after {
   z-index: 10;
 }
 
-.people-table td,
-.pending-table td,
-.rejected-table td {
+.dashadmin-people-table td,
+.dashadmin-pending-table td,
+.dashadmin-rejected-table td {
   font-size: clamp(0.85rem, 1.5vw, 0.95rem);
 }
 
-.people-table tbody tr,
-.pending-table tbody tr,
-.rejected-table tbody tr {
+.dashadmin-people-table tbody tr,
+.dashadmin-pending-table tbody tr,
+.dashadmin-rejected-table tbody tr {
   transition: all 0.2s ease;
 }
 
-.people-table tbody tr:hover,
-.pending-table tbody tr:hover,
-.rejected-table tbody tr:hover {
+.dashadmin-people-table tbody tr:hover,
+.dashadmin-pending-table tbody tr:hover,
+.dashadmin-rejected-table tbody tr:hover {
   background-color: #f1fdfb;
   transform: scale(1.002);
   box-shadow: 0 2px 8px rgba(0, 77, 64, 0.05);
 }
 
-.people-table tr:last-child td,
-.pending-table tr:last-child td,
-.rejected-table tr:last-child td {
+.dashadmin-people-table tr:last-child td,
+.dashadmin-pending-table tr:last-child td,
+.dashadmin-rejected-table tr:last-child td {
   border-bottom: none;
 }
 
 /* Status Badges */
-.status-badge {
+.dashadmin-status-badge {
   display: inline-block;
   padding: 0.5rem 1rem;
   border-radius: 20px;
@@ -476,24 +465,24 @@ h2::after {
   transition: all 0.2s ease;
 }
 
-.status-badge:hover {
+.dashadmin-status-badge:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.status-badge.active {
+.dashadmin-status-badge.dashadmin-status-active {
   background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
   color: #1b5e20;
   border: 2px solid #4caf50;
 }
 
-.status-badge.pending {
+.dashadmin-status-badge.dashadmin-status-pending {
   background: linear-gradient(135deg, #fff3e0, #ffe0b2);
   color: #e65100;
   border: 2px solid #ff9800;
 }
 
-.status-badge.rejected {
+.dashadmin-status-badge.dashadmin-status-rejected {
   background: linear-gradient(135deg, #ffebee, #ffcdd2);
   color: #b71c1c;
   border: 2px solid #f44336;
@@ -502,17 +491,14 @@ h2::after {
 /* ============================================================================
    ACTION BUTTONS
    ============================================================================ */
-.button-approve {
+.dashadmin-button-group {
   display: flex;
   justify-content: center;
   gap: 0.5rem;
   flex-wrap: wrap;
 }
 
-.button-approve .approve-btn,
-.button-approve .reject-btn,
-.button-approve .view-btn,
-.button-approve .disable-btn {
+.dashadmin-btn {
   padding: 0.5rem 1.25rem;
   border: none;
   border-radius: 8px;
@@ -524,45 +510,71 @@ h2::after {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
-.button-approve .approve-btn {
+.dashadmin-approve-btn,
+.dashadmin-confirm-btn {
   background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);
   color: white;
 }
 
-.button-approve .approve-btn:hover {
+.dashadmin-approve-btn:hover,
+.dashadmin-confirm-btn:hover {
   background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
   box-shadow: 0 4px 12px rgba(46, 125, 50, 0.4);
   transform: translateY(-2px);
 }
 
-.button-approve .reject-btn,
-.button-approve .disable-btn {
+.dashadmin-reject-btn,
+.dashadmin-disable-btn {
   background: linear-gradient(135deg, #c62828 0%, #d32f2f 100%);
   color: white;
 }
 
-.button-approve .reject-btn:hover,
-.button-approve .disable-btn:hover {
+.dashadmin-reject-btn:hover,
+.dashadmin-disable-btn:hover {
   background: linear-gradient(135deg, #b71c1c 0%, #c62828 100%);
   box-shadow: 0 4px 12px rgba(198, 40, 40, 0.4);
   transform: translateY(-2px);
 }
 
-.button-approve .view-btn {
+.dashadmin-view-btn {
   background: linear-gradient(135deg, #0277bd 0%, #0288d1 100%);
   color: white;
 }
 
-.button-approve .view-btn:hover {
+.dashadmin-view-btn:hover {
   background: linear-gradient(135deg, #01579b 0%, #0277bd 100%);
   box-shadow: 0 4px 12px rgba(2, 119, 189, 0.4);
   transform: translateY(-2px);
 }
 
+.dashadmin-yes-btn {
+  background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);
+  color: white;
+}
+
+.dashadmin-yes-btn:hover {
+  background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+  box-shadow: 0 6px 16px rgba(46, 125, 50, 0.4);
+  transform: translateY(-3px);
+}
+
+.dashadmin-cancel-btn,
+.dashadmin-no-btn {
+  background: linear-gradient(135deg, #757575 0%, #616161 100%);
+  color: white;
+}
+
+.dashadmin-cancel-btn:hover,
+.dashadmin-no-btn:hover {
+  background: linear-gradient(135deg, #616161 0%, #424242 100%);
+  box-shadow: 0 6px 16px rgba(117, 117, 117, 0.4);
+  transform: translateY(-3px);
+}
+
 /* ============================================================================
    MODAL STYLES
    ============================================================================ */
-.modal-admin {
+.dashadmin-modal {
   position: fixed;
   inset: 0;
   width: 100vw;
@@ -573,10 +585,10 @@ h2::after {
   justify-content: center;
   align-items: center;
   z-index: 9999;
-  animation: modalFadeIn 0.3s ease;
+  animation: dashadminModalFadeIn 0.3s ease;
 }
 
-@keyframes modalFadeIn {
+@keyframes dashadminModalFadeIn {
   from {
     opacity: 0;
   }
@@ -585,7 +597,7 @@ h2::after {
   }
 }
 
-.modal-contents {
+.dashadmin-modal-content {
   background: #fff;
   padding: clamp(1.5rem, 3vw, 2.5rem);
   border-radius: 16px;
@@ -594,15 +606,15 @@ h2::after {
   max-width: 500px;
   text-align: center;
   margin: 1rem;
-  animation: modalSlideUp 0.3s ease;
+  animation: dashadminModalSlideUp 0.3s ease;
   position: relative;
 }
 
-.modal-contents.modal-large {
+.dashadmin-modal-content.dashadmin-modal-large {
   max-width: 600px;
 }
 
-@keyframes modalSlideUp {
+@keyframes dashadminModalSlideUp {
   from {
     opacity: 0;
     transform: translateY(40px) scale(0.95);
@@ -613,21 +625,21 @@ h2::after {
   }
 }
 
-.modal-contents h3 {
+.dashadmin-modal-content h3 {
   margin-bottom: 1.25rem;
   color: #004d40;
   font-size: clamp(1.2rem, 2vw, 1.5rem);
   font-weight: 700;
 }
 
-.modal-contents p {
+.dashadmin-modal-content p {
   margin-bottom: 1.5rem;
   color: #333;
   font-size: clamp(0.95rem, 1.5vw, 1.05rem);
   line-height: 1.6;
 }
 
-.warning-text {
+.dashadmin-warning-text {
   color: #c62828;
   font-weight: 600;
   background-color: #ffebee;
@@ -636,7 +648,7 @@ h2::after {
   border-left: 4px solid #c62828;
 }
 
-.suggested-position {
+.dashadmin-suggested-position {
   background: linear-gradient(135deg, #fff3e0, #ffe0b2);
   padding: 1rem;
   border-radius: 8px;
@@ -646,7 +658,7 @@ h2::after {
   border-left: 4px solid #ff9800;
 }
 
-.modal-contents select {
+.dashadmin-modal-content select {
   width: 100%;
   padding: 0.875rem 1.25rem;
   margin-bottom: 1.25rem;
@@ -659,38 +671,38 @@ h2::after {
   font-weight: 500;
 }
 
-.modal-contents select:focus {
+.dashadmin-modal-content select:focus {
   border-color: #015c51;
   box-shadow: 0 0 0 4px rgba(1, 92, 81, 0.1);
   background-color: #f9fffe;
 }
 
 /* ID Picture Preview */
-.id-picture-preview {
+.dashadmin-id-picture {
   margin: 1.5rem 0;
   text-align: center;
 }
 
-.id-picture-preview p {
+.dashadmin-id-picture p {
   font-weight: 700;
   color: #004d40;
   margin-bottom: 1rem;
   font-size: 1.05rem;
 }
 
-.id-picture-preview img {
+.dashadmin-id-picture img {
   border: 3px solid #B2DFDB;
   box-shadow: 0 4px 16px rgba(0, 77, 64, 0.15);
   transition: all 0.3s ease;
 }
 
-.id-picture-preview img:hover {
+.dashadmin-id-picture img:hover {
   transform: scale(1.05);
   box-shadow: 0 6px 20px rgba(0, 77, 64, 0.25);
 }
 
 /* Profile Details */
-.profile-details {
+.dashadmin-profile-details {
   text-align: left;
   margin: 1.5rem 0;
   background: #f9fffe;
@@ -699,7 +711,7 @@ h2::after {
   border: 2px solid #B2DFDB;
 }
 
-.profile-row {
+.dashadmin-profile-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -707,192 +719,128 @@ h2::after {
   border-bottom: 1px solid #e0f2f1;
 }
 
-.profile-row:last-child {
+.dashadmin-profile-row:last-child {
   border-bottom: none;
 }
 
-.profile-row strong {
+.dashadmin-profile-row strong {
   color: #004d40;
   font-weight: 700;
   min-width: 120px;
 }
 
-.profile-row span {
+.dashadmin-profile-row span {
   color: #333;
   font-weight: 500;
   text-align: right;
-}
-
-/* Modal Buttons */
-.button-approves {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-top: 1.5rem;
-}
-
-.button-approves .confirm-btn,
-.button-approves .yes,
-.button-approves .cancel-btn,
-.button-approves .no {
-  padding: 0.875rem 2rem;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: clamp(0.9rem, 1.5vw, 1rem);
-  font-weight: 700;
-  transition: all 0.3s ease;
-  min-width: 120px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.button-approves .confirm-btn,
-.button-approves .yes {
-  background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);
-  color: white;
-}
-
-.button-approves .confirm-btn:hover,
-.button-approves .yes:hover {
-  background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
-  box-shadow: 0 6px 16px rgba(46, 125, 50, 0.4);
-  transform: translateY(-3px);
-}
-
-.button-approves .cancel-btn,
-.button-approves .no {
-  background: linear-gradient(135deg, #757575 0%, #616161 100%);
-  color: white;
-}
-
-.button-approves .cancel-btn:hover,
-.button-approves .no:hover {
-  background: linear-gradient(135deg, #616161 0%, #424242 100%);
-  box-shadow: 0 6px 16px rgba(117, 117, 117, 0.4);
-  transform: translateY(-3px);
 }
 
 /* ============================================================================
    RESPONSIVE DESIGN
    ============================================================================ */
 @media (max-width: 1024px) {
-  .table-header-section {
+  .dashadmin-table-header {
     flex-direction: column;
     align-items: flex-start;
   }
   
-  .department-dropdown {
+  .dashadmin-department-dropdown {
     width: 100%;
   }
   
-  .department-dropdown select {
+  .dashadmin-department-dropdown select {
     width: 100%;
     max-width: none;
   }
 }
 
 @media (max-width: 768px) {
-  .dashboard-containers {
+  .dashadmin-container {
     flex-direction: column;
   }
   
-  .sidebar {
+  .dashadmin-sidebar {
     border-radius: 0px 20px 20px 0px;
     width: 15.6rem;
   }
   
-  .main-content-admin {
+  .dashadmin-main-content {
     padding: 1rem;
   }
   
-  .table-nav-tabs {
+  .dashadmin-table-nav-tabs {
     gap: 0.25rem;
   }
   
-  .tab-button span {
+  .dashadmin-tab-button span {
     display: none;
   }
   
-  .tab-button {
+  .dashadmin-tab-button {
     padding: 0.75rem;
     justify-content: center;
   }
   
   /* Make tables scrollable on mobile */
-  .people-table,
-  .pending-table,
-  .rejected-table {
+  .dashadmin-people-table,
+  .dashadmin-pending-table,
+  .dashadmin-rejected-table {
     display: block;
     overflow-x: auto;
     white-space: nowrap;
   }
   
-  .people-table thead,
-  .people-table tbody,
-  .people-table tr,
-  .pending-table thead,
-  .pending-table tbody,
-  .pending-table tr,
-  .rejected-table thead,
-  .rejected-table tbody,
-  .rejected-table tr {
+  .dashadmin-people-table thead,
+  .dashadmin-people-table tbody,
+  .dashadmin-people-table tr,
+  .dashadmin-pending-table thead,
+  .dashadmin-pending-table tbody,
+  .dashadmin-pending-table tr,
+  .dashadmin-rejected-table thead,
+  .dashadmin-rejected-table tbody,
+  .dashadmin-rejected-table tr {
     display: table;
     width: 100%;
     table-layout: fixed;
   }
   
-  .people-table th,
-  .people-table td,
-  .pending-table th,
-  .pending-table td,
-  .rejected-table th,
-  .rejected-table td {
+  .dashadmin-people-table th,
+  .dashadmin-people-table td,
+  .dashadmin-pending-table th,
+  .dashadmin-pending-table td,
+  .dashadmin-rejected-table th,
+  .dashadmin-rejected-table td {
     padding: 8px;
     font-size: 0.85rem;
   }
   
-  .button-approve {
+  .dashadmin-button-group {
     flex-direction: column;
     gap: 0.375rem;
   }
   
-  .button-approve .approve-btn,
-  .button-approve .reject-btn,
-  .button-approve .view-btn,
-  .button-approve .disable-btn {
+  .dashadmin-button-group .dashadmin-btn {
     width: 100%;
   }
   
-  .profile-row {
+  .dashadmin-profile-row {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
   }
   
-  .profile-row span {
+  .dashadmin-profile-row span {
     text-align: left;
   }
 }
 
 @media (max-width: 480px) {
-  .modal-contents {
+  .dashadmin-modal-content {
     padding: 1.25rem;
     max-width: calc(100% - 2rem);
   }
   
-  .button-approves {
-    flex-direction: column;
-  }
-  
-  .button-approves .confirm-btn,
-  .button-approves .yes,
-  .button-approves .cancel-btn,
-  .button-approves .no {
-    width: 100%;
-  }
-  
-  h2 {
+  .dashadmin-table-section h2 {
     font-size: 1.1rem;
   }
 }
@@ -900,11 +848,10 @@ h2::after {
 /* ============================================================================
    ACCESSIBILITY
    ============================================================================ */
-.tab-button:focus-visible,
-.button-approve button:focus-visible,
-.button-approves button:focus-visible,
-.department-dropdown select:focus-visible,
-.modal-contents select:focus-visible {
+.dashadmin-tab-button:focus-visible,
+.dashadmin-btn:focus-visible,
+.dashadmin-department-dropdown select:focus-visible,
+.dashadmin-modal-content select:focus-visible {
   outline: 3px solid #015c51;
   outline-offset: 2px;
 }
@@ -913,21 +860,20 @@ h2::after {
    PRINT STYLES
    ============================================================================ */
 @media print {
-  .sidebar,
-  .table-nav-tabs,
-  .button-approve,
-  .button-approves,
-  .modal-admin {
+  .dashadmin-sidebar,
+  .dashadmin-table-nav-tabs,
+  .dashadmin-button-group,
+  .dashadmin-modal {
     display: none !important;
   }
   
-  .main-content-admin {
+  .dashadmin-main-content {
     padding: 0;
   }
   
-  .people-table,
-  .pending-table,
-  .rejected-table {
+  .dashadmin-people-table,
+  .dashadmin-pending-table,
+  .dashadmin-rejected-table {
     box-shadow: none;
     border: 1px solid #ccc;
   }
@@ -945,8 +891,7 @@ h2::after {
     transition-duration: 0.01ms !important;
   }
   
-  .button-approve button:hover,
-  .button-approves button:hover {
+  .dashadmin-btn:hover {
     transform: none;
   }
 }

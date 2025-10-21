@@ -295,11 +295,11 @@ const DashboardSuperAdmin = () => {
   };
 
   return (
-    <div className="dashboard-bodys">
-      <div className={`dashboard-containers ${sidebarCollapsed ? 'collapsed' : ''}`}>
+    <div className="dashadmin-body">
+      <div className={`dashadmin-container ${sidebarCollapsed ? 'dashadmin-collapsed' : ''}`}>
         {/* Sidebar */}
-        <aside className="sidebar">
-          <div className="sidebar-header">
+        <aside className="dashadmin-sidebar">
+          <div className="dashadmin-sidebar-header">
             <div
               onClick={() => {
                 setCurrentView('dashadmin');
@@ -319,129 +319,129 @@ const DashboardSuperAdmin = () => {
               aria-label="Go to dashboard"
             >
               <img
-                className="dashboard-logos"
+                className="dashadmin-logo"
                 src="/logosaproject.jpg"
                 alt="DOH Logo"
               />
             </div>
 
-            <div className="logos">DOH-TRC Argao</div>
-            <button className="toggle-sidebar-btns" onClick={toggleSidebar}>☰</button>
+            <div className="dashadmin-logo-text">DOH-TRC Argao</div>
+            <button className="dashadmin-toggle-btn" onClick={toggleSidebar}>☰</button>
           </div>
-          <nav className="menus">
+          <nav className="dashadmin-menu">
             <Link
               to="#"
-              className={`menu-items ${activeView === 'dashadmin' ? 'active' : ''}`}
+              className={`dashadmin-menu-item ${activeView === 'dashadmin' ? 'dashadmin-active' : ''}`}
               onClick={() => {
                 setCurrentView('dashadmin');
                 setActiveView('dashadmin');
               }}
             >
-              <LayoutDashboard className="menu-icons" />
+              <LayoutDashboard className="dashadmin-menu-icon" />
               <span>Dashboard</span>
             </Link>
             <Link
               to="#"
-              className={`menu-items ${activeView === 'supply' ? 'active' : ''}`}
+              className={`dashadmin-menu-item ${activeView === 'supply' ? 'dashadmin-active' : ''}`}
               onClick={() => {
                 setCurrentView('supply');
                 setActiveView('supply');
               }}
             >
-              <Boxes className="menu-icons" />
+              <Boxes className="dashadmin-menu-icon" />
               <span>Supply Unit</span>
             </Link>
             <Link
               to="#"
-              className={`menu-items ${activeView === 'clinical' ? 'active' : ''}`}
+              className={`dashadmin-menu-item ${activeView === 'clinical' ? 'dashadmin-active' : ''}`}
               onClick={() => {
                 setCurrentView('clinical');
                 setActiveView('clinical');
               }}
             >
-              <FlaskConical className="menu-icons" />
+              <FlaskConical className="dashadmin-menu-icon" />
               <span>Clinical Lab</span>
             </Link>
             <Link
               to="#"
-              className={`menu-items ${activeView === 'radiology' ? 'active' : ''}`}
+              className={`dashadmin-menu-item ${activeView === 'radiology' ? 'dashadmin-active' : ''}`}
               onClick={() => {
                 setCurrentView('radiology');
                 setActiveView('radiology');
               }}
             >
-              <ScanLine className="menu-icons" />
+              <ScanLine className="dashadmin-menu-icon" />
               <span>Radiology</span>
             </Link>
             <Link
               to="#"
-              className={`menu-items ${activeView === 'dental' ? 'active' : ''}`}
+              className={`dashadmin-menu-item ${activeView === 'dental' ? 'dashadmin-active' : ''}`}
               onClick={() => {
                 setCurrentView('dental');
                 setActiveView('dental');
               }}
             >
-              <Syringe className="menu-icons" />
+              <Syringe className="dashadmin-menu-icon" />
               <span>Dental</span>
             </Link>
             <Link
               to="#"
-              className={`menu-items ${activeView === 'dde' ? 'active' : ''}`}
+              className={`dashadmin-menu-item ${activeView === 'dde' ? 'dashadmin-active' : ''}`}
               onClick={() => {
                 setCurrentView('dde');
                 setActiveView('dde');
               }}
             >
-              <Stethoscope className="menu-icons" />
+              <Stethoscope className="dashadmin-menu-icon" />
               <span>DDE</span>
             </Link>
             <Link
               to="#"
-              className={`menu-items ${activeView === 'notif' ? 'active' : ''}`}
+              className={`dashadmin-menu-item ${activeView === 'notif' ? 'dashadmin-active' : ''}`}
               onClick={() => {
                 setCurrentView('notif');
                 setActiveView('notif');
               }}
             >
-              <Bell className="menu-icons" />
+              <Bell className="dashadmin-menu-icon" />
               <span>Notifications</span>
             </Link>
-            <Link to="/" className="menu-items logouts">
-              <LogOut className="menu-icons" />
+            <Link to="/" className="dashadmin-menu-item dashadmin-logout">
+              <LogOut className="dashadmin-menu-icon" />
               <span>Sign Out</span>
             </Link>
           </nav>
         </aside>
 
         {/* Main content */}
-        <div className="main-content-admin">
+        <div className="dashadmin-main-content">
           {currentView === 'dashadmin' && (
             <>
               {/* Table Navigation Tabs */}
-              <div className="table-nav-tabs">
+              <div className="dashadmin-table-nav-tabs">
                 <button
-                  className={`tab-button ${activeTableView === 'approved' ? 'active' : ''}`}
+                  className={`dashadmin-tab-button ${activeTableView === 'approved' ? 'dashadmin-tab-active' : ''}`}
                   onClick={() => setActiveTableView('approved')}
                 >
                   <UserCheck size={18} />
                   <span>Approved ({approvedAccounts.length})</span>
                 </button>
                 <button
-                  className={`tab-button ${activeTableView === 'pending' ? 'active' : ''}`}
+                  className={`dashadmin-tab-button ${activeTableView === 'pending' ? 'dashadmin-tab-active' : ''}`}
                   onClick={() => setActiveTableView('pending')}
                 >
                   <Clock size={18} />
                   <span>Pending Review ({pendingAccounts.length})</span>
                 </button>
                 <button
-                  className={`tab-button ${activeTableView === 'activation' ? 'active' : ''}`}
+                  className={`dashadmin-tab-button ${activeTableView === 'activation' ? 'dashadmin-tab-active' : ''}`}
                   onClick={() => setActiveTableView('activation')}
                 >
                   <Users size={18} />
                   <span>Pending Activation ({pendingActivation.length})</span>
                 </button>
                 <button
-                  className={`tab-button ${activeTableView === 'rejected' ? 'active' : ''}`}
+                  className={`dashadmin-tab-button ${activeTableView === 'rejected' ? 'dashadmin-tab-active' : ''}`}
                   onClick={() => setActiveTableView('rejected')}
                 >
                   <UserX size={18} />
@@ -451,10 +451,10 @@ const DashboardSuperAdmin = () => {
 
               {/* Approved Accounts Table */}
               {activeTableView === 'approved' && (
-                <div className="table-section">
-                  <div className="table-header-section">
+                <div className="dashadmin-table-section">
+                  <div className="dashadmin-table-header">
                     <h2>Approved Accounts</h2>
-                    <div className="department-dropdown">
+                    <div className="dashadmin-department-dropdown">
                       <label>Filter by Department: </label>
                       <select
                         value={selectedDepartment}
@@ -470,8 +470,9 @@ const DashboardSuperAdmin = () => {
                       </select>
                     </div>
                   </div>
+   
 
-                  <div className="info-counters">
+                  <div className="dashadmin-info-counters">
                     <p>
                       <strong>
                         Total Approved in{" "}
@@ -481,7 +482,7 @@ const DashboardSuperAdmin = () => {
                     </p>
                   </div>
 
-                  <table className="people-table">
+                  <table className="dashadmin-people-table">
                     <thead>
                       <tr>
                         <th>Full Name</th>
@@ -499,21 +500,21 @@ const DashboardSuperAdmin = () => {
                           <td>{p.Email}</td>
                           <td>
                             {p.ActivationStatus === "activated" ? (
-                              <span className="status-badge active">Active</span>
+                              <span className="dashadmin-status-badge dashadmin-status-active">Active</span>
                             ) : (
-                              <span className="status-badge pending">Pending Activation</span>
+                              <span className="dashadmin-status-badge dashadmin-status-pending">Pending Activation</span>
                             )}
                           </td>
                           <td>
-                            <div className="button-approve">
+                            <div className="dashadmin-button-group">
                               <button 
-                                className="view-btn" 
+                                className="dashadmin-btn dashadmin-view-btn" 
                                 onClick={() => setViewingUser(p)}
                               >
                                 View Profile
                               </button>
                               <button 
-                                className="disable-btn" 
+                                className="dashadmin-btn dashadmin-disable-btn" 
                                 onClick={() => setDisablingUser(p)}
                               >
                                 Disable
@@ -529,12 +530,12 @@ const DashboardSuperAdmin = () => {
 
               {/* Pending Review Table */}
               {activeTableView === 'pending' && (
-                <div className="table-section">
+                <div className="dashadmin-table-section">
                   <h2>Pending Accounts for Review</h2>
-                  <div className="info-counters">
+                  <div className="dashadmin-info-counters">
                     <p><strong>Pending Accounts:</strong> {pendingAccounts.length}</p>
                   </div>
-                  <table className="pending-table">
+                  <table className="dashadmin-pending-table">
                     <thead>
                       <tr>
                         <th>Full Name</th>
@@ -550,9 +551,9 @@ const DashboardSuperAdmin = () => {
                           <td>{p.Email}</td>
                           <td>{p.Position || 'Not specified'}</td>
                           <td>
-                            <div className='button-approve'>
-                              <button className='approve-btn' onClick={() => setApprovingUser(p)}>Approve</button>
-                              <button className='reject-btn' onClick={() => setRejectingUser(p)}>Reject</button>
+                            <div className='dashadmin-button-group'>
+                              <button className='dashadmin-btn dashadmin-approve-btn' onClick={() => setApprovingUser(p)}>Approve</button>
+                              <button className='dashadmin-btn dashadmin-reject-btn' onClick={() => setRejectingUser(p)}>Reject</button>
                             </div>
                           </td>
                         </tr>
@@ -564,13 +565,13 @@ const DashboardSuperAdmin = () => {
 
               {/* Pending Activation Table */}
               {activeTableView === 'activation' && (
-                <div className="table-section">
+                <div className="dashadmin-table-section">
                   <h2>Pending Activation Accounts</h2>
-                  <p className="info-text">These users have been approved but haven't activated their accounts yet.</p>
-                  <div className="info-counters">
+                  <p className="dashadmin-info-text">These users have been approved but haven't activated their accounts yet.</p>
+                  <div className="dashadmin-info-counters">
                     <p><strong>Pending Activation:</strong> {pendingActivation.length}</p>
                   </div>
-                  <table className="people-table">
+                  <table className="dashadmin-people-table">
                     <thead>
                       <tr>
                         <th>Full Name</th>
@@ -585,7 +586,7 @@ const DashboardSuperAdmin = () => {
                           <td>{getFullName(p)}</td>
                           <td>{p.Department || 'N/A'}</td>
                           <td>{p.Email}</td>
-                          <td><span className="status-badge pending">Pending Activation</span></td>
+                          <td><span className="dashadmin-status-badge dashadmin-status-pending">Pending Activation</span></td>
                         </tr>
                       ))}
                     </tbody>
@@ -595,12 +596,12 @@ const DashboardSuperAdmin = () => {
 
               {/* Rejected Accounts Table */}
               {activeTableView === 'rejected' && (
-                <div className="table-section">
+                <div className="dashadmin-table-section">
                   <h2>Rejected Accounts</h2>
-                  <div className="info-counters">
+                  <div className="dashadmin-info-counters">
                     <p><strong>Rejected Accounts:</strong> {rejectedAccounts.length}</p>
                   </div>
-                  <table className="rejected-table">
+                  <table className="dashadmin-rejected-table">
                     <thead>
                       <tr>
                         <th>Full Name</th>
@@ -627,10 +628,10 @@ const DashboardSuperAdmin = () => {
 
               {/* Approve Modal */}
               {approvingUser && (
-                <div className="modal-admin">
-                  <div className="modal-contents">
+                <div className="dashadmin-modal">
+                  <div className="dashadmin-modal-content">
                     <h3>Assign Department to {approvingUser.FirstName}</h3>
-                    <p className="suggested-position">
+                    <p className="dashadmin-suggested-position">
                       <strong>Suggested Position:</strong> {approvingUser.Position || 'Not specified'}
                     </p>
                     <select
@@ -647,7 +648,7 @@ const DashboardSuperAdmin = () => {
                     </select>
 
                     {approvingUser.IDPictureBase64 && (
-                      <div className="id-picture-preview">
+                      <div className="dashadmin-id-picture">
                         <p>ID Picture:</p>
                         <img
                           src={approvingUser.IDPictureBase64}
@@ -657,9 +658,9 @@ const DashboardSuperAdmin = () => {
                       </div>
                     )}
 
-                    <div className='button-approves'>
-                      <button className='confirm-btn' onClick={confirmApprove}>Confirm</button>
-                      <button className='cancel-btn' onClick={() => setApprovingUser(null)}>Cancel</button>
+                    <div className='dashadmin-button-group'>
+                      <button className='dashadmin-btn dashadmin-confirm-btn' onClick={confirmApprove}>Confirm</button>
+                      <button className='dashadmin-btn dashadmin-cancel-btn' onClick={() => setApprovingUser(null)}>Cancel</button>
                     </div>
                   </div>
                 </div>
@@ -667,12 +668,12 @@ const DashboardSuperAdmin = () => {
 
               {/* Reject Modal */}
               {rejectingUser && (
-                <div className="modal-admin">
-                  <div className="modal-contents">
+                <div className="dashadmin-modal">
+                  <div className="dashadmin-modal-content">
                     <p>Do you want to reject {rejectingUser.FirstName}?</p>
-                    <div className='button-approves'>
-                      <button className='yes' onClick={confirmReject}>Yes, Reject</button>
-                      <button className='no' onClick={() => setRejectingUser(null)}>Cancel</button>
+                    <div className='dashadmin-button-group'>
+                      <button className='dashadmin-btn dashadmin-yes-btn' onClick={confirmReject}>Yes, Reject</button>
+                      <button className='dashadmin-btn dashadmin-no-btn' onClick={() => setRejectingUser(null)}>Cancel</button>
                     </div>
                   </div>
                 </div>
@@ -680,12 +681,12 @@ const DashboardSuperAdmin = () => {
 
               {/* View Profile Modal */}
               {viewingUser && (
-                <div className="modal-admin">
-                  <div className="modal-contents modal-large">
+                <div className="dashadmin-modal">
+                  <div className="dashadmin-modal-content dashadmin-modal-large">
                     <h3>User Profile</h3>
                     
                     {viewingUser.IDPictureBase64 && (
-                      <div className="id-picture-preview">
+                      <div className="dashadmin-id-picture">
                         <img
                           src={viewingUser.IDPictureBase64}
                           alt="Profile"
@@ -694,37 +695,37 @@ const DashboardSuperAdmin = () => {
                       </div>
                     )}
 
-                    <div className="profile-details">
-                      <div className="profile-row">
+                    <div className="dashadmin-profile-details">
+                      <div className="dashadmin-profile-row">
                         <strong>Full Name:</strong>
                         <span>{getFullName(viewingUser)}</span>
                       </div>
-                      <div className="profile-row">
+                      <div className="dashadmin-profile-row">
                         <strong>Email:</strong>
                         <span>{viewingUser.Email}</span>
                       </div>
-                      <div className="profile-row">
+                      <div className="dashadmin-profile-row">
                         <strong>Department:</strong>
                         <span>{viewingUser.Department || 'N/A'}</span>
                       </div>
-                      <div className="profile-row">
+                      <div className="dashadmin-profile-row">
                         <strong>Position:</strong>
                         <span>{viewingUser.Position || 'N/A'}</span>
                       </div>
-                      <div className="profile-row">
+                      <div className="dashadmin-profile-row">
                         <strong>Status:</strong>
                         <span>
                           {viewingUser.ActivationStatus === "activated" ? (
-                            <span className="status-badge active">Active</span>
+                            <span className="dashadmin-status-badge dashadmin-status-active">Active</span>
                           ) : (
-                            <span className="status-badge pending">Pending Activation</span>
+                            <span className="dashadmin-status-badge dashadmin-status-pending">Pending Activation</span>
                           )}
                         </span>
                       </div>
                     </div>
 
-                    <div className='button-approves'>
-                      <button className='cancel-btn' onClick={() => setViewingUser(null)}>Close</button>
+                    <div className='dashadmin-button-group'>
+                      <button className='dashadmin-btn dashadmin-cancel-btn' onClick={() => setViewingUser(null)}>Close</button>
                     </div>
                   </div>
                 </div>
@@ -732,14 +733,14 @@ const DashboardSuperAdmin = () => {
 
               {/* Disable User Modal */}
               {disablingUser && (
-                <div className="modal-admin">
-                  <div className="modal-contents">
+                <div className="dashadmin-modal">
+                  <div className="dashadmin-modal-content">
                     <h3>Disable User Account?</h3>
                     <p>Are you sure you want to disable the account of <strong>{getFullName(disablingUser)}</strong>?</p>
-                    <p className="warning-text">This user will no longer be able to access the system.</p>
-                    <div className='button-approves'>
-                      <button className='yes' onClick={handleDisableUser}>Yes, Disable</button>
-                      <button className='no' onClick={() => setDisablingUser(null)}>Cancel</button>
+                    <p className="dashadmin-warning-text">This user will no longer be able to access the system.</p>
+                    <div className='dashadmin-button-group'>
+                      <button className='dashadmin-btn dashadmin-yes-btn' onClick={handleDisableUser}>Yes, Disable</button>
+                      <button className='dashadmin-btn dashadmin-no-btn' onClick={() => setDisablingUser(null)}>Cancel</button>
                     </div>
                   </div>
                 </div>
