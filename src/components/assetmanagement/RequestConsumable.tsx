@@ -1,76 +1,120 @@
 import React, { useState } from "react";
-import axios from "axios";
-import "../../assets/request.css";
+import { db, auth } from "../../firebase/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { toast } from "react-toastify";
+import "../../assets/requestconsumables.css";
 
-const RequestConsumable: React.FC = () => {
+const RequestConsumables: React.FC = () => {
   const [itemName, setItemName] = useState("");
-  const [quantity, setQuantity] = useState(1);
-  const [reason, setReason] = useState("");
+  const [consumableType, setConsumableType] = useState("");
+  const [quantity, setQuantity] = useState<number>(1);
+  const [unit, setUnit] = useState("");
+  const [priority, setPriority] = useState("Normal");
+  const [neededBy, setNeededBy] = useState("");
+  const [department, setDepartment] = useState("");
+  const [remarks, setRemarks] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const currentUser = auth.currentUser;
+
+  const consumableTypes = [
+    "Medical/Clinical Consumable",
+    "Sanitation Supplies",
+    "Office Consumable",
+    "Kitchen Supply",
+    "Maintenance Supply",
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!itemName || !consumableType || !quantity || !unit || !department) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
     setLoading(true);
-    console.log("Submitting request:", { itemName, quantity, reason });
 
     try {
-      const response = await axios.post("/api/consumables/request", {
-        itemName,
-        quantity,
-        reason,
+      const userName =
+        currentUser?.displayName || currentUser?.email || "Unknown User";
+
+      const requestId = `REQ-${Date.now()}`; // unique request ID
+
+      await addDoc(collection(db, "requested_consumables"), {
+        requestId,
+        name: itemName.trim(),
+        type: consumableType,
+        quantity: Number(quantity),
+        unit: unit.trim(),
+        priority,
+        neededBy: priority === "Urgent" ? neededBy : "",
+        department: department.trim(),
+        remarks: remarks.trim(),
+        status: "Pending",
+        requestedBy: userName,
+        requestedByUid: currentUser?.uid,
+        requestedAt: serverTimestamp(),
       });
-      console.log("Response:", response.data);
-      alert(`Request for "${itemName}" submitted successfully!`);
+
+      // Create notification for admin
+      await addDoc(collection(db, "notifications"), {
+        message: `New ${priority.toLowerCase()} consumable request: ${itemName} (${consumableType}) by ${userName}`,
+        type: "requestedConsumable",
+        isRead: false,
+        createdAt: serverTimestamp(),
+      });
+
+      toast.success("Consumable request submitted!");
       setItemName("");
+      setConsumableType("");
       setQuantity(1);
-      setReason("");
-    } catch (error: any) {
-      console.error("Submission error:", error);
-      if (error.response) {
-        console.error("Response data:", error.response.data);
-        console.error("Response status:", error.response.status);
-        console.error("Response headers:", error.response.headers);
-        alert(error.response.data.message || "Successfully submitted the request.");
-      } else if (error.request) {
-        console.error("Request made but no response:", error.request);
-        alert("No response from server. Please try again later.");
-      } else {
-        console.error("Error setting up request:", error.message);
-        alert("Error submitting request. Please check console for details.");
-      }
+      setUnit("");
+      setPriority("Normal");
+      setNeededBy("");
+      setDepartment("");
+      setRemarks("");
+    } catch (error) {
+      console.error("Error submitting request:", error);
+      toast.error("Failed to submit request.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="request-container">
-      <h2>Request Consumable Item</h2>
-      <form onSubmit={handleSubmit} className="request-form">
-        <div>
-          <label htmlFor="itemName">Item Name</label>
-          <select
-            id="itemName"
+    <div className="reqconsumable-function-container">
+      <h2 className="reqconsumable-function-title">Request New Consumable</h2>
+
+      <form className="reqconsumable-function-form" onSubmit={handleSubmit}>
+        <div className="reqconsumable-function-field">
+          <label>Consumable Name</label>
+          <input
+            type="text"
+            placeholder="Enter item name (e.g., Alcohol Bottles)"
             value={itemName}
             onChange={(e) => setItemName(e.target.value)}
             required
+          />
+        </div>
+
+        <div className="reqconsumable-function-field">
+          <label>Consumable Type</label>
+          <select
+            value={consumableType}
+            onChange={(e) => setConsumableType(e.target.value)}
+            required
           >
-            <option value="" disabled>
-              Select a consumable
-            </option>
-            <option value="Printer Ink">Printer Ink</option>
-            <option value="Bond Paper">Bond Paper</option>
-            <option value="USB Drive">USB Drive</option>
-            <option value="Battery AA">Battery AA</option>
-            <option value="Stapler">Stapler</option>
-            {/* Add more options as needed */}
+            <option value="">-- Select Type --</option>
+            {consumableTypes.map((type) => (
+              <option key={type}>{type}</option>
+            ))}
           </select>
         </div>
 
-        <div>
-          <label htmlFor="quantity">Quantity</label>
+        <div className="reqconsumable-function-field">
+          <label>Quantity</label>
           <input
-            id="quantity"
             type="number"
             min={1}
             value={quantity}
@@ -79,13 +123,57 @@ const RequestConsumable: React.FC = () => {
           />
         </div>
 
-        <div>
-          <label htmlFor="reason">Reason for Request</label>
-          <textarea
-            id="reason"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
+        <div className="reqconsumable-function-field">
+          <label>Unit</label>
+          <input
+            type="text"
+            placeholder="e.g., bottles, boxes"
+            value={unit}
+            onChange={(e) => setUnit(e.target.value)}
             required
+          />
+        </div>
+
+        <div className="reqconsumable-function-field">
+          <label>Department</label>
+          <input
+            type="text"
+            placeholder="e.g., Nursing, Admin, etc."
+            value={department}
+            onChange={(e) => setDepartment(e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="reqconsumable-function-field">
+          <label>Priority</label>
+          <select
+            value={priority}
+            onChange={(e) => setPriority(e.target.value)}
+          >
+            <option value="Normal">Normal</option>
+            <option value="Urgent">Urgent</option>
+          </select>
+        </div>
+
+        {priority === "Urgent" && (
+          <div className="reqconsumable-function-field">
+            <label>Needed By</label>
+            <input
+              type="date"
+              value={neededBy}
+              onChange={(e) => setNeededBy(e.target.value)}
+              required={priority === "Urgent"}
+            />
+          </div>
+        )}
+
+        <div className="reqconsumable-function-field">
+          <label>Remarks</label>
+          <textarea
+            placeholder="Optional notes..."
+            value={remarks}
+            onChange={(e) => setRemarks(e.target.value)}
           />
         </div>
 
@@ -97,4 +185,4 @@ const RequestConsumable: React.FC = () => {
   );
 };
 
-export default RequestConsumable;
+export default RequestConsumables;

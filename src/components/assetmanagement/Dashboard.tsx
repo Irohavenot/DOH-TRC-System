@@ -20,6 +20,7 @@ import { toast } from "react-toastify";
 import { useCurrentUserFullName } from "../../hooks/useCurrentUserFullName"; 
 import DashboardSuperAdmin from '../superadmin/DashboardSuperAdmin';
 import SearchInput from './SearchInput';
+
 import{
   LayoutDashboard,
   PlusCircle,
@@ -36,11 +37,13 @@ import {
   doc, 
   updateDoc 
 } from "firebase/firestore";
+import RequestConsumables from './RequestConsumable';
+import ManageConsumableRequests from './ManageConsumableRequests';
 
 const Dashboard = () => {
   const { fullName, loading } = useCurrentUserFullName();
-  const [currentView, setCurrentView] = useState<'dashboard' | 'qr' | 'generate' | 'requestsdata' | 'reports' | 'reports-analytics' | 'profile' | 'assets' | 'people'>('dashboard');
-  const [activeView, setActiveView] = useState<'dashboard' | 'generate' | 'reports' | 'requestsdata' |'reports-analytics' | 'qr' | 'profile' | 'assets' | 'people'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'qr' | 'generate' | 'requestsdata' | 'reports' | 'reports-analytics' | 'profile' | 'assets' | 'people' | 'request-consumables' | 'manage-consumable-requests'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'generate' | 'reports' | 'requestsdata' | 'reports-analytics' | 'qr' | 'profile' | 'assets' | 'people' | 'request-consumables' | 'manage-consumable-requests'>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
@@ -353,6 +356,31 @@ const Dashboard = () => {
               <PlusCircle className="menu-icon" />
               <span>Add Asset</span>
             </Link>
+            <Link
+                to="#"
+                className={`menu-items ${activeView === 'request-consumables' ? 'active' : ''}`}
+                onClick={() => {
+                  setCurrentView('request-consumables');
+                  setActiveView('request-consumables');
+                  navigate('/request-consumables');
+                }}
+              >
+                <i className="fas fa-boxes menu-icon"></i>
+                <span>Request Consumables</span>
+              </Link>
+
+              <Link
+                to="#"
+                className={`menu-items ${activeView === 'manage-consumable-requests' ? 'active' : ''}`}
+                onClick={() => {
+                  setCurrentView('manage-consumable-requests');
+                  setActiveView('manage-consumable-requests');
+                  navigate('/manage-consumable-requests');
+                }}
+              >
+                <i className="fas fa-tasks menu-icon"></i>
+                <span>Manage Requests</span>
+              </Link>
 
             <Link
               to="#"
@@ -675,6 +703,8 @@ const Dashboard = () => {
             {currentView === 'generate' && <QRCodeGenerator />}
             {currentView === 'profile' && <ProfilePage />}
             {currentView === 'reports' && <Reports />}
+            {currentView === 'request-consumables' && <RequestConsumables />}
+            {currentView === 'manage-consumable-requests' && <ManageConsumableRequests />}
             {currentView === 'reports-analytics' && <ReportsAnalytics />}
             {currentView === 'people' && <People />}
             {currentView === 'requestsdata' && <Requests />}

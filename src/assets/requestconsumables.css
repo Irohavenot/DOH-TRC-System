@@ -1,0 +1,250 @@
+/* Request Consumables Styling - Professional Modern Design */
+.reqconsumable-function-container {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(5, 150, 105, 0.4);
+  overflow: hidden;
+}
+
+.reqconsumable-function-title {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  padding: 2.5rem 3rem 1.5rem 3rem;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.1);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  letter-spacing: 0.5px;
+}
+
+.reqconsumable-function-form {
+  background: #ffffff;
+  padding: 3rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  border-radius: 0 0 20px 20px;
+}
+
+.reqconsumable-function-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: relative;
+}
+
+/* Full width fields */
+.reqconsumable-function-field:nth-child(1),
+.reqconsumable-function-field:nth-child(2),
+.reqconsumable-function-field:nth-last-child(2),
+.reqconsumable-function-field:last-child {
+  grid-column: 1 / -1;
+}
+
+.reqconsumable-function-field label {
+  font-weight: 700;
+  color: #1f2937;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.reqconsumable-function-field label::before {
+  content: "";
+  width: 4px;
+  height: 16px;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  border-radius: 2px;
+}
+
+.reqconsumable-function-field input,
+.reqconsumable-function-field select,
+.reqconsumable-function-field textarea {
+  padding: 1rem 1.25rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: #f9fafb;
+  color: #1f2937;
+  font-family: inherit;
+}
+
+.reqconsumable-function-field input:hover,
+.reqconsumable-function-field select:hover,
+.reqconsumable-function-field textarea:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+.reqconsumable-function-field input:focus,
+.reqconsumable-function-field select:focus,
+.reqconsumable-function-field textarea:focus {
+  outline: none;
+  border-color: #059669;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.1);
+  transform: translateY(-1px);
+}
+
+.reqconsumable-function-field input::placeholder,
+.reqconsumable-function-field textarea::placeholder {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.reqconsumable-function-field textarea {
+  min-height: 120px;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+.reqconsumable-function-field select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 20px;
+  padding-right: 3rem;
+}
+
+/* Submit Button Container */
+.reqconsumable-function-form > button[type="submit"] {
+  grid-column: 1 / -1;
+  margin-top: 1rem;
+  padding: 1.25rem 2.5rem;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 20px rgba(5, 150, 105, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: relative;
+  overflow: hidden;
+}
+
+.reqconsumable-function-form > button[type="submit"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.reqconsumable-function-form > button[type="submit"]:hover:not(:disabled)::before {
+  left: 100%;
+}
+
+.reqconsumable-function-form > button[type="submit"]:hover:not(:disabled) {
+  background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(5, 150, 105, 0.5);
+}
+
+.reqconsumable-function-form > button[type="submit"]:active:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.reqconsumable-function-form > button[type="submit"]:disabled {
+  background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+/* Priority Badge Styling */
+.reqconsumable-function-field select[value="Urgent"] {
+  border-color: #fbbf24;
+  background-color: #fef3c7;
+}
+
+/* Animated Input Focus Effect */
+@keyframes inputGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(5, 150, 105, 0.15);
+  }
+}
+
+.reqconsumable-function-field input:focus,
+.reqconsumable-function-field select:focus,
+.reqconsumable-function-field textarea:focus {
+  animation: inputGlow 2s ease-in-out infinite;
+}
+
+/* Required Field Indicator */
+.reqconsumable-function-field input[required] + label::after,
+.reqconsumable-function-field select[required] + label::after {
+  content: "*";
+  color: #ef4444;
+  margin-left: 0.25rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .reqconsumable-function-container {
+    margin: 1rem;
+    border-radius: 16px;
+  }
+
+  .reqconsumable-function-title {
+    font-size: 1.75rem;
+    padding: 2rem 1.5rem 1rem 1.5rem;
+  }
+
+  .reqconsumable-function-form {
+    grid-template-columns: 1fr;
+    padding: 2rem 1.5rem;
+    gap: 1.5rem;
+  }
+
+  .reqconsumable-function-field {
+    grid-column: 1 / -1 !important;
+  }
+
+  .reqconsumable-function-form > button[type="submit"] {
+    font-size: 1rem;
+    padding: 1rem 2rem;
+  }
+}
+
+/* Loading Animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.reqconsumable-function-form > button[type="submit"]:disabled::after {
+  content: "";
+  position: absolute;
+  right: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border: 3px solid #ffffff;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
