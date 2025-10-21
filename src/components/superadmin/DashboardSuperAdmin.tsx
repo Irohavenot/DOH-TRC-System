@@ -3,7 +3,7 @@ import {
   createUserWithEmailAndPassword, 
   sendPasswordResetEmail 
 } from "firebase/auth";
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { auth, db } from "../../firebase/firebase";
 import { collection, getDocs, updateDoc, doc, setDoc, deleteDoc } from "firebase/firestore";
 
@@ -17,7 +17,6 @@ import Radiology from "./Radiology";
 import Dental from "./Dental";
 import DDE from "./DDE";
 import Notifications from "./Notifications";
-import { useNavigate } from 'react-router-dom';
 
 import {
   LayoutDashboard,
@@ -87,32 +86,40 @@ const DashboardSuperAdmin = () => {
     setSidebarCollapsed(!sidebarCollapsed);
   };
 
-  // Fetch accounts from Firestore
+  // ✅ Fetch accounts from Firestore with corrected filtering logic
   useEffect(() => {
     const fetchAccounts = async () => {
       try {
-        // Fetch active users
         const querySnapshot = await getDocs(collection(db, "IT_Supply_Users"));
         const users: User[] = querySnapshot.docs.map((docSnap) => ({
           id: docSnap.id,
           ...docSnap.data(),
         })) as User[];
 
-        // Approved users are those with Status === "approved" (regardless of ActivationStatus)
-        setApprovedAccounts(users.filter((u) => u.Status === "approved"));
-        setPendingAccounts(users.filter((u) => u.Status === "pending"));
-        setPendingActivation(users.filter((u) => 
-          u.Status === "approved" && 
-          (u.ActivationStatus === "pending" || !u.ActivationStatus)
-        ));
+        // ✅ Fixed logic
+        setApprovedAccounts(
+          users.filter(
+            (u) => u.Status === "approved" && u.ActivationStatus === "completed"
+          )
+        );
 
-        // Fetch rejected users
+        setPendingAccounts(users.filter((u) => u.Status === "pending"));
+
+        setPendingActivation(
+          users.filter(
+            (u) =>
+              u.Status === "approved" &&
+              (u.ActivationStatus === "pending" || !u.ActivationStatus)
+          )
+        );
+
         const rejectedSnapshot = await getDocs(collection(db, "Rejected_Users"));
         const rejected: RejectedUser[] = rejectedSnapshot.docs.map((docSnap) => ({
           id: docSnap.id,
           ...docSnap.data(),
         })) as RejectedUser[];
         setRejectedAccounts(rejected);
+
       } catch (error) {
         console.error("Error fetching accounts:", error);
       }
@@ -120,13 +127,11 @@ const DashboardSuperAdmin = () => {
     fetchAccounts();
   }, []);
 
-  // Helper function to get full name
   const getFullName = (user: User | RejectedUser) => {
     const mi = user.MiddleInitial ? `${user.MiddleInitial}. ` : '';
     return `${user.FirstName} ${mi}${user.LastName}`;
   };
 
-  // Helper function to format date
   const formatDate = (timestamp: any) => {
     if (!timestamp) return 'N/A';
     try {
@@ -201,7 +206,6 @@ const DashboardSuperAdmin = () => {
         Department: assignedDepartment,
         ActivationStatus: "pending",
       };
-      setApprovedAccounts(prev => [...prev, updatedUser]);
       setPendingActivation(prev => [...prev, updatedUser]);
 
       setApprovingUser(null);
@@ -287,13 +291,11 @@ const DashboardSuperAdmin = () => {
     }
   };
 
-  // Get filtered approved accounts
   const getFilteredApprovedAccounts = () => {
     return approvedAccounts.filter(
       (p) => selectedDepartment === "All" || p.Department === selectedDepartment
     );
   };
-
   return (
     <div className="dashadmin-body">
       <div className={`dashadmin-container ${sidebarCollapsed ? 'dashadmin-collapsed' : ''}`}>
@@ -499,7 +501,7 @@ const DashboardSuperAdmin = () => {
                           <td>{p.Department || 'N/A'}</td>
                           <td>{p.Email}</td>
                           <td>
-                            {p.ActivationStatus === "activated" ? (
+                            {p.ActivationStatus === "completed" ? (
                               <span className="dashadmin-status-badge dashadmin-status-active">Active</span>
                             ) : (
                               <span className="dashadmin-status-badge dashadmin-status-pending">Pending Activation</span>
