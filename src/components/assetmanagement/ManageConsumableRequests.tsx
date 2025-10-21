@@ -14,9 +14,11 @@ import "../../assets/manageconsumablerequests.css";
 
 const ManageConsumableRequests: React.FC = () => {
   const [requests, setRequests] = useState<any[]>([]);
+  const [deletedRequests, setDeletedRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
   const [selected, setSelected] = useState<any | null>(null);
+  const [viewMode, setViewMode] = useState<"active" | "deleted">("active");
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -35,9 +37,35 @@ const ManageConsumableRequests: React.FC = () => {
     }
   };
 
+  const fetchDeletedRequests = async () => {
+    setLoading(true);
+    try {
+      const querySnap = await getDocs(collection(db, "deleted_requests"));
+      const list = querySnap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setDeletedRequests(list);
+    } catch (error) {
+      console.error("Error fetching deleted requests:", error);
+      toast.error("Failed to fetch deleted requests.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchRequests();
-  }, []);
+    if (viewMode === "active") {
+      fetchRequests();
+    } else {
+      fetchDeletedRequests();
+    }
+  }, [viewMode]);
+
+  const generateDeleteId = () => {
+    const randomNum = Math.floor(1000000 + Math.random() * 9000000);
+    return `DEL-${randomNum}`;
+  };
 
   const handleApprove = async (id: string) => {
     try {
@@ -91,12 +119,61 @@ const ManageConsumableRequests: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!window.confirm("Delete this request permanently?")) return;
     try {
+      const req = requests.find((r) => r.id === id);
+      if (!req) return;
+
+      const currentUser = auth.currentUser;
+      const deleteId = generateDeleteId();
+
+      await addDoc(collection(db, "deleted_requests"), {
+        ...req,
+        originalId: req.id,
+        deleteId: deleteId,
+        deletedBy: currentUser?.email || "Unknown",
+        deletedAt: serverTimestamp(),
+      });
+
       await deleteDoc(doc(db, "requested_consumables", id));
-      toast.success("Request deleted.");
+      
+      toast.success(`Request archived with ID: ${deleteId}`);
       setSelected(null);
       fetchRequests();
     } catch (error) {
       toast.error("Failed to delete request.");
+      console.error(error);
+    }
+  };
+
+  const handleRestore = async (id: string) => {
+    if (!window.confirm("Restore this request?")) return;
+    try {
+      const req = deletedRequests.find((r) => r.id === id);
+      if (!req) return;
+
+      const { deleteId, deletedBy, deletedAt, originalId, id: _, ...originalData } = req;
+
+      await addDoc(collection(db, "requested_consumables"), originalData);
+
+      await deleteDoc(doc(db, "deleted_requests", id));
+      
+      toast.success("Request restored successfully!");
+      setSelected(null);
+      fetchDeletedRequests();
+    } catch (error) {
+      toast.error("Failed to restore request.");
+      console.error(error);
+    }
+  };
+
+  const handlePermanentDelete = async (id: string) => {
+    if (!window.confirm("Permanently delete this request? This cannot be undone.")) return;
+    try {
+      await deleteDoc(doc(db, "deleted_requests", id));
+      toast.success("Request permanently deleted.");
+      setSelected(null);
+      fetchDeletedRequests();
+    } catch (error) {
+      toast.error("Failed to permanently delete request.");
     }
   };
 
@@ -105,21 +182,41 @@ const ManageConsumableRequests: React.FC = () => {
       ? requests
       : requests.filter((req) => req.status === filter);
 
+  const currentList = viewMode === "active" ? filteredRequests : deletedRequests;
+
   return (
     <div className="mcreq-function-container">
       <div className="mcreq-function-header">
         <h2>Consumable Requests</h2>
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="mcreq-function-filter"
-        >
-          <option>All</option>
-          <option>Pending</option>
-          <option>Approved</option>
-          <option>Rejected</option>
-          <option>Released</option>
-        </select>
+        <div className="mcreq-header-controls">
+          <div className="mcreq-view-toggle">
+            <button
+              className={`toggle-btn ${viewMode === "active" ? "active" : ""}`}
+              onClick={() => setViewMode("active")}
+            >
+              Active Requests
+            </button>
+            <button
+              className={`toggle-btn ${viewMode === "deleted" ? "active" : ""}`}
+              onClick={() => setViewMode("deleted")}
+            >
+              Deleted Archive ({deletedRequests.length})
+            </button>
+          </div>
+          {viewMode === "active" && (
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="mcreq-function-filter"
+            >
+              <option>All</option>
+              <option>Pending</option>
+              <option>Approved</option>
+              <option>Rejected</option>
+              <option>Released</option>
+            </select>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -128,55 +225,79 @@ const ManageConsumableRequests: React.FC = () => {
         <table className="mcreq-function-table">
           <thead>
             <tr>
-              <th>Request ID</th>
+              <th>{viewMode === "deleted" ? "Delete ID" : "Request ID"}</th>
               <th>Item Name</th>
               <th>Type</th>
               <th>Quantity</th>
-              <th>Priority</th>
+              {viewMode === "active" && <th>Priority</th>}
               <th>Status</th>
+              {viewMode === "deleted" && <th>Deleted By</th>}
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filteredRequests.map((req) => (
-              <tr
-                key={req.id}
-                className={req.priority === "Urgent" ? "urgent-row" : ""}
-              >
-                <td>{req.requestId}</td>
-                <td>{req.name}</td>
-                <td>{req.type}</td>
-                <td>
-                  {req.quantity} {req.unit}
-                </td>
-                <td>
-                  <span className={`priority-badge ${req.priority.toLowerCase()}`}>
-                    {req.priority}
-                  </span>
-                </td>
-                <td>
-                  <span className={`status-badge ${req.status.toLowerCase()}`}>
-                    {req.status}
-                  </span>
-                </td>
-                <td>
-                  <button className="view-btn" onClick={() => setSelected(req)}>
-                    View Details
-                  </button>
+            {currentList.length === 0 ? (
+              <tr>
+                <td colSpan={viewMode === "active" ? 7 : 7} style={{ textAlign: "center", padding: "2rem" }}>
+                  No {viewMode === "deleted" ? "deleted" : ""} requests found
                 </td>
               </tr>
-            ))}
+            ) : (
+              currentList.map((req) => (
+                <tr
+                  key={req.id}
+                  className={req.priority === "Urgent" ? "urgent-row" : ""}
+                >
+                  <td>{viewMode === "deleted" ? req.deleteId : req.requestId}</td>
+                  <td>{req.name}</td>
+                  <td>{req.type}</td>
+                  <td>
+                    {req.quantity} {req.unit}
+                  </td>
+                  {viewMode === "active" && (
+                    <td>
+                      <span className={`priority-badge ${req.priority.toLowerCase()}`}>
+                        {req.priority}
+                      </span>
+                    </td>
+                  )}
+                  <td>
+                    <span className={`status-badge ${req.status.toLowerCase()}`}>
+                      {req.status}
+                    </span>
+                  </td>
+                  {viewMode === "deleted" && (
+                    <td>{req.deletedBy}</td>
+                  )}
+                  <td>
+                    <button className="view-btn" onClick={() => setSelected(req)}>
+                      View Details
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       )}
 
-      {/* Modal */}
       {selected && (
         <div className="mcreq-function-modal" onClick={() => setSelected(null)}>
           <div className="mcreq-function-modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3>Request Details</h3>
+            <h3>{viewMode === "deleted" ? "Deleted Request Details" : "Request Details"}</h3>
             <div className="modal-details">
-              <p><strong>Request ID:</strong> {selected.requestId}</p>
+              {viewMode === "deleted" && (
+                <>
+                  <p><strong>Delete ID:</strong> {selected.deleteId}</p>
+                  <p><strong>Original Request ID:</strong> {selected.requestId}</p>
+                  <p><strong>Deleted By:</strong> {selected.deletedBy}</p>
+                  <p><strong>Deleted At:</strong> {selected.deletedAt?.toDate?.()?.toLocaleString() || "N/A"}</p>
+                  <div className="modal-divider"></div>
+                </>
+              )}
+              {viewMode === "active" && (
+                <p><strong>Request ID:</strong> {selected.requestId}</p>
+              )}
               <p><strong>Item Name:</strong> {selected.name}</p>
               <p><strong>Type:</strong> {selected.type}</p>
               <p><strong>Quantity:</strong> {selected.quantity} {selected.unit}</p>
@@ -205,26 +326,39 @@ const ManageConsumableRequests: React.FC = () => {
                 Close
               </button>
               
-              {selected.status === "Pending" && (
+              {viewMode === "active" ? (
                 <>
-                  <button className="approve-btn" onClick={() => handleApprove(selected.id)}>
-                    Approve
+                  {selected.status === "Pending" && (
+                    <>
+                      <button className="approve-btn" onClick={() => handleApprove(selected.id)}>
+                        Approve
+                      </button>
+                      <button className="reject-btn" onClick={() => handleReject(selected.id)}>
+                        Reject
+                      </button>
+                    </>
+                  )}
+                  
+                  {selected.status === "Approved" && (
+                    <button className="release-btn" onClick={() => handleRelease(selected.id)}>
+                      Release to Inventory
+                    </button>
+                  )}
+                  
+                  <button className="delete-btn" onClick={() => handleDelete(selected.id)}>
+                    Delete
                   </button>
-                  <button className="reject-btn" onClick={() => handleReject(selected.id)}>
-                    Reject
+                </>
+              ) : (
+                <>
+                  <button className="restore-btn" onClick={() => handleRestore(selected.id)}>
+                    Restore Request
+                  </button>
+                  <button className="delete-btn" onClick={() => handlePermanentDelete(selected.id)}>
+                    Delete Permanently
                   </button>
                 </>
               )}
-              
-              {selected.status === "Approved" && (
-                <button className="release-btn" onClick={() => handleRelease(selected.id)}>
-                  Release to Inventory
-                </button>
-              )}
-              
-              <button className="delete-btn" onClick={() => handleDelete(selected.id)}>
-                Delete
-              </button>
             </div>
           </div>
         </div>

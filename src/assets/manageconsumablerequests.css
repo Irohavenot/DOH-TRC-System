@@ -24,6 +24,44 @@
   margin: 0;
 }
 
+.mcreq-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* View Toggle Buttons */
+.mcreq-view-toggle {
+  display: flex;
+  gap: 0.5rem;
+  background: #f3f4f6;
+  padding: 0.25rem;
+  border-radius: 10px;
+}
+
+.mcreq-view-toggle .toggle-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #6b7280;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.mcreq-view-toggle .toggle-btn:hover {
+  color: #374151;
+}
+
+.mcreq-view-toggle .toggle-btn.active {
+  background: #ffffff;
+  color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
 .mcreq-function-filter {
   padding: 0.75rem 1.5rem;
   border: 2px solid #e5e7eb;
@@ -227,6 +265,13 @@
   margin: 1.5rem 0;
 }
 
+.modal-divider {
+  height: 2px;
+  background: #e5e7eb;
+  margin: 1.5rem 0;
+  border-radius: 1px;
+}
+
 .mcreq-function-modal-content p {
   margin: 1.25rem 0;
   font-size: 1rem;
@@ -238,7 +283,7 @@
 }
 
 .mcreq-function-modal-content p strong {
-  min-width: 140px;
+  min-width: 160px;
   color: #1f2937;
   font-weight: 700;
 }
@@ -308,6 +353,17 @@
   box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
 }
 
+.mcreq-function-modal-actions .restore-btn {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: #ffffff;
+}
+
+.mcreq-function-modal-actions .restore-btn:hover {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(139, 92, 246, 0.3);
+}
+
 .mcreq-function-modal-actions .delete-btn {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   color: #ffffff;
@@ -328,6 +384,12 @@
 }
 
 /* Responsive Design */
+@media (max-width: 1200px) {
+  .mcreq-header-controls {
+    flex-wrap: wrap;
+  }
+}
+
 @media (max-width: 1024px) {
   .mcreq-function-table {
     font-size: 0.875rem;
@@ -354,6 +416,25 @@
   .mcreq-function-header h2 {
     font-size: 1.5rem;
     text-align: center;
+  }
+
+  .mcreq-header-controls {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .mcreq-view-toggle {
+    width: 100%;
+  }
+
+  .mcreq-view-toggle .toggle-btn {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .mcreq-function-filter {
+    width: 100%;
   }
 
   .mcreq-function-table {
