@@ -45,6 +45,8 @@ interface AssetDoc {
   updatedAt?: TSOrString;
   updatedBy?: string;
   assetHistory?: any[];
+  iconClass?: string;
+  timeLeft?: string;
 }
 
 function fmtDate(val?: TSOrString): string {
@@ -132,9 +134,11 @@ const WebQRScanner: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const scannerRef = useRef<QrScanner | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const scanProcessedRef = useRef<boolean>(false);
 
   const [nextAction, setNextAction] = useState<"camera" | "upload" | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
+  const [showVideoElement, setShowVideoElement] = useState(false);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [errMsg, setErrMsg] = useState<string>("");
@@ -164,51 +168,31 @@ const WebQRScanner: React.FC = () => {
 
   const stopCamera = useCallback(() => {
     try {
-      scannerRef.current?.stop();
-      scannerRef.current?.destroy();
-    } catch {}
-    scannerRef.current = null;
+      if (scannerRef.current) {
+        scannerRef.current.stop();
+        scannerRef.current.destroy();
+        scannerRef.current = null;
+      }
+    } catch (err) {
+      console.error("Error stopping camera:", err);
+    }
     setCameraActive(false);
+    setShowVideoElement(false);
+    scanProcessedRef.current = false;
   }, []);
 
-  useEffect(() => () => stopCamera(), [stopCamera]);
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, [stopCamera]);
 
-  const startCamera = async () => {
-    setNextAction("camera");
-    setErrMsg("");
-    setScanText("");
-    setAsset(null);
-    setShowModal(false);
-    setImagePreviewUrl(null);
-
-    if (!window.isSecureContext && window.location.protocol !== "https:" && window.location.hostname !== "localhost") {
-      setErrMsg("Camera requires HTTPS or localhost.");
-      return;
-    }
-
-    try {
-      if (!videoRef.current) {
-        setErrMsg("Video element not ready.");
-        return;
-      }
-      scannerRef.current = new QrScanner(
-        videoRef.current,
-        (result) => {
-          const text = typeof result === "string" ? result : (result as any).data;
-          onScan(text || "");
-        },
-        { preferredCamera: "environment", highlightScanRegion: true, maxScansPerSecond: 8 }
-      );
-      await scannerRef.current.start();
-      setCameraActive(true);
-    } catch (err: any) {
-      setErrMsg(err?.message || "Unable to access camera.");
-      setCameraActive(false);
-    }
-  };
-
-  const onScan = async (text: string) => {
-    if (!text) return;
+  const onScan = useCallback(async (text: string) => {
+    // Prevent duplicate scans
+    if (!text || scanProcessedRef.current) return;
+    
+    scanProcessedRef.current = true;
     setScanText(text);
     setLoading(true);
     stopCamera();
@@ -219,44 +203,132 @@ const WebQRScanner: React.FC = () => {
         setErrMsg("No matching asset found.");
         setShowModal(false);
         setLoading(false);
+        scanProcessedRef.current = false;
         return;
       }
       const { iconClass, timeLeft } = computeBadge(found.licenseType, found.expirationDate);
       setAsset({ ...found, iconClass, timeLeft });
       setShowModal(true);
+      setErrMsg("");
     } catch (e: any) {
       setErrMsg(e?.message || "Failed to resolve scanned asset.");
     } finally {
       setLoading(false);
     }
+  }, [stopCamera]);
+
+  // Initialize camera when video element is ready
+  useEffect(() => {
+    if (!showVideoElement || !videoRef.current || scannerRef.current) return;
+
+    const initCamera = async () => {
+      try {
+        const scanner = new QrScanner(
+          videoRef.current!,
+          (result) => {
+            const text = typeof result === "string" ? result : (result as any).data;
+            onScan(text || "");
+          },
+          {
+            preferredCamera: "environment",
+            highlightScanRegion: true,
+            maxScansPerSecond: 5,
+            highlightCodeOutline: true,
+          }
+        );
+
+        await scanner.start();
+        scannerRef.current = scanner;
+        setCameraActive(true);
+        setErrMsg("");
+      } catch (err: any) {
+        console.error("Camera initialization error:", err);
+        setErrMsg(err?.message || "Unable to access camera. Please check permissions.");
+        setCameraActive(false);
+        setShowVideoElement(false);
+      }
+    };
+
+    initCamera();
+  }, [showVideoElement, onScan]);
+
+  const startCamera = () => {
+    setNextAction("camera");
+    setErrMsg("");
+    setScanText("");
+    setAsset(null);
+    setShowModal(false);
+    setImagePreviewUrl(null);
+    scanProcessedRef.current = false;
+
+    // Check for secure context
+    if (!window.isSecureContext && window.location.protocol !== "https:" && window.location.hostname !== "localhost") {
+      setErrMsg("Camera requires HTTPS or localhost.");
+      return;
+    }
+
+    // Check for camera permissions
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setErrMsg("Camera access is not supported in this browser.");
+      return;
+    }
+
+    // Show video element which will trigger the useEffect to initialize camera
+    setShowVideoElement(true);
   };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    
     setNextAction("upload");
     setErrMsg("");
     setAsset(null);
     setShowModal(false);
+    setScanText("");
+    scanProcessedRef.current = false;
+    
     const previewUrl = URL.createObjectURL(file);
     setImagePreviewUrl(previewUrl);
     stopCamera();
+    setLoading(true);
 
     try {
       const result = await QrScanner.scanImage(file, { returnDetailedScanResult: true });
       const text = typeof result === "string" ? result : (result as any).data;
       setImagePreviewUrl(null);
-      onScan(text || "");
+      await onScan(text || "");
     } catch (err: any) {
-      setErrMsg(err?.message || "Could not read QR from image.");
+      setErrMsg(err?.message || "Could not read QR code from image. Please try another image.");
       setImagePreviewUrl(null);
+      setLoading(false);
+      scanProcessedRef.current = false;
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = "";
       URL.revokeObjectURL(previewUrl);
     }
   };
 
-  const handleCloseModal = () => setShowModal(false);
+  const handleCloseModal = () => {
+    setShowModal(false);
+    scanProcessedRef.current = false;
+  };
+
+  const handleScanAnother = () => {
+    setShowModal(false);
+    setErrMsg("");
+    setScanText("");
+    setAsset(null);
+    scanProcessedRef.current = false;
+    
+    setTimeout(() => {
+      if (nextAction === "upload") {
+        fileInputRef.current?.click();
+      } else {
+        startCamera();
+      }
+    }, 150);
+  };
 
   const mapAssetToModal = (a: AssetDoc) => ({
     id: a.docId || "",
@@ -291,11 +363,11 @@ const WebQRScanner: React.FC = () => {
       <div className="scanqr-actions">
         {!cameraActive ? (
           <button className="scanqr-btn scanqr-btn-primary" onClick={startCamera}>
-            Open Camera
+            <i className="fas fa-camera"></i> Open Camera
           </button>
         ) : (
           <button className="scanqr-btn scanqr-btn-danger" onClick={stopCamera}>
-            Stop Camera
+            <i className="fas fa-stop"></i> Stop Camera
           </button>
         )}
 
@@ -307,29 +379,49 @@ const WebQRScanner: React.FC = () => {
             onChange={handleImageUpload}
             className="scanqr-file-input"
           />
-          Upload Image
+          <i className="fas fa-upload"></i> Upload Image
         </label>
       </div>
 
-      {errMsg && <div className="scanqr-alert scanqr-alert-error">{errMsg}</div>}
-      {loading && <div className="scanqr-alert scanqr-alert-info">Resolving asset…</div>}
-      {scanText && !loading && (
+      {errMsg && (
+        <div className="scanqr-alert scanqr-alert-error">
+          <i className="fas fa-exclamation-circle"></i> {errMsg}
+        </div>
+      )}
+      
+      {loading && (
+        <div className="scanqr-alert scanqr-alert-info">
+          <i className="fas fa-spinner fa-spin"></i> Resolving asset…
+        </div>
+      )}
+      
+      {scanText && !loading && !showModal && (
         <div className="scanqr-alert scanqr-alert-success">
-          <strong>Scan Result:</strong> {scanText}
+          <i className="fas fa-check-circle"></i> <strong>Scan Result:</strong> {scanText}
         </div>
       )}
 
-      {cameraActive && (
+      {showVideoElement && (
         <div className="scanqr-preview">
-          <video ref={videoRef} className="scanqr-video" playsInline />
-          <p className="scanqr-hint">Point your camera at a QR code.</p>
+          <video 
+            ref={videoRef} 
+            className="scanqr-video" 
+            playsInline 
+            muted
+            autoPlay
+          />
+          <p className="scanqr-hint">
+            <i className="fas fa-qrcode"></i> Point your camera at a QR code
+          </p>
         </div>
       )}
 
       {imagePreviewUrl && (
         <div className="scanqr-preview">
           <img src={imagePreviewUrl} alt="Uploaded Preview" className="scanqr-image-preview" />
-          <p className="scanqr-hint">Scanning image…</p>
+          <p className="scanqr-hint">
+            <i className="fas fa-spinner fa-spin"></i> Scanning image…
+          </p>
         </div>
       )}
 
@@ -346,16 +438,9 @@ const WebQRScanner: React.FC = () => {
           extraButton={
             <button
               className="scanqr-btn scanqr-btn-outline"
-              onClick={() => {
-                setShowModal(false);
-                setTimeout(() => {
-                  if (nextAction === "upload") {
-                    fileInputRef.current?.click();
-                  } else startCamera();
-                }, 150);
-              }}
+              onClick={handleScanAnother}
             >
-              Scan Another
+              <i className="fas fa-qrcode"></i> Scan Another
             </button>
           }
         />
@@ -371,10 +456,12 @@ const WebQRScanner: React.FC = () => {
         onSaved={() => {
           setEditOpen(false);
           setShowModal(false);
+          scanProcessedRef.current = false;
         }}
         onDeleted={() => {
           setEditOpen(false);
           setShowModal(false);
+          scanProcessedRef.current = false;
         }}
       />
 
