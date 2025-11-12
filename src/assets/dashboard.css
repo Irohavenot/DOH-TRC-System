@@ -89,19 +89,19 @@ body {
   overflow-y: auto;
 }
 .main-header {
-  position:sticky;
-  top: 0;
-  margin-right: -3%;
-  margin-left: -3.9%;
-  left: 18%;
-  right: 0;
-  height: 11%;
-  background-color: #F1FDFB;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 5%;
-  z-index: 500;
+    position: sticky;
+    top: 0;
+    margin-right: -3.5%;
+    margin-left: -5.9%;
+    /* left: 18%; */
+    right: 0;
+    height: 9%;
+    background-color: #F1FDFB;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0px 5%;
+    z-index: 500;
 }
 
 .welcome-text {
@@ -219,11 +219,20 @@ margin-left: -1px;
 .content-here {
   margin-top: -5px;
   background-color: #B2DFDB;
-  padding: 2%;
-  width: 100%;
+  padding: 1.5%;
+  width: auto;
   box-sizing: border-box;
+  align-content: center;
 }
-
+.content-here h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #004d40 0%, #007a66 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.5px;
+}
 @media (max-width: 480px) {
   .new-item-cards-container {
     grid-template-columns: 1fr;

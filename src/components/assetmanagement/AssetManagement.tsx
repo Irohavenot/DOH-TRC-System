@@ -567,7 +567,7 @@ const AssetManagement: React.FC = () => {
         assetDocId={reportingAsset?.docId || ''}
         assetName={reportingAsset?.name || ''}
       />
-
+    <div className='assetmanagement-container'>
       <h1>Asset Management</h1>
 
       <div className="filter-section">
@@ -726,8 +726,9 @@ const AssetManagement: React.FC = () => {
             );
           })}
         </div>
+      
       )}
-
+    </div>
       <HistoryModal
         isOpen={showHistoryModal}
         onClose={() => setShowHistoryModal(false)}

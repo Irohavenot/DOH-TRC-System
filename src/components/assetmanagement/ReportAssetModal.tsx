@@ -77,7 +77,12 @@ const ReportAssetModal: React.FC<ReportAssetModalProps> = ({
     <div className="report-asset-backdrop" onClick={onClose}>
       <div className="report-asset-function" onClick={(e) => e.stopPropagation()}>
         <div className="report-asset-header">
+          <div className="report-asset-title-date">
           <h2>Report Asset Issue</h2>
+            <span className="report-asset-date">
+              <b>Date:</b> {new Date().toLocaleDateString()}
+            </span>
+            </div>
           <p className="report-asset-subtitle">
             Reporting: <strong>{assetName}</strong>
           </p>
