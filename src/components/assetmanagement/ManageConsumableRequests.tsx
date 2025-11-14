@@ -260,10 +260,35 @@ const ManageConsumableRequests: React.FC = () => {
     }
   };
 
-  const filteredRequests =
-    filter === "All"
-      ? requests
-      : requests.filter((req) => req.status === filter);
+  const filteredRequests = requests.filter((req) => {
+  if (filter === "All") return true;
+
+  if (filter === "RequestedToday") {
+    const today = new Date();
+    const reqDate = req.requestedAt?.toDate?.() || new Date(req.requestedAt);
+    return (
+      reqDate.getFullYear() === today.getFullYear() &&
+      reqDate.getMonth() === today.getMonth() &&
+      reqDate.getDate() === today.getDate()
+    );
+  }
+
+  if (filter === "Urgent") {
+    return req.priority === "Urgent";
+  }
+
+  if (filter === "Normal") {
+    return req.priority === "Normal";
+  }
+
+  // Keep original status filters
+  if (filter === "Pending" || filter === "Approved") {
+    return req.status === filter;
+  }
+
+  return true;
+});
+
 
   const currentList = viewMode === "active" ? filteredRequests : viewMode === "deleted" ? deletedRequests : releasedRequests;
 
@@ -298,12 +323,15 @@ const ManageConsumableRequests: React.FC = () => {
               onChange={(e) => setFilter(e.target.value)}
               className="mcreq-function-filter"
             >
-              <option>All</option>
-              <option>Pending</option>
-              <option>Approved</option>
-              <option>Rejected</option>
-              <option>Released</option>
+              <option value="All">All</option>
+              <option value="RequestedToday">Requested Today</option>
+              <option value="Urgent">Urgent</option>
+              <option value="Normal">Normal Requests</option>
+              <option value="Pending">Pending</option>
+              <option value="Approved">Approved</option>
             </select>
+
+
           )}
         </div>
       </div>

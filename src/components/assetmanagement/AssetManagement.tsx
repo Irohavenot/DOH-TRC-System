@@ -23,6 +23,7 @@ import EditAssetModal from './EditAssetModal';
 import ReportAssetModal from './ReportAssetModal';
 
 const NON_EXPIRING = new Set(['Perpetual', 'OEM', 'Open Source']);
+const currentUserUID = auth.currentUser?.uid;
 
 type FilterKey = 'all' | 'permanent' | 'normal' | 'aboutToExpire' | 'expired';
 
@@ -511,33 +512,34 @@ const AssetManagement: React.FC = () => {
     <div className="content-here">
       {/* View More Modal */}
 
-        <AssetDetailsModal
-          isOpen={!!selectedCard}
-          onClose={() => {
-            setSelectedCard(null);
-            setShowMoreDetails(false);
-          }}
-          asset={selectedCard}
-          onViewQR={openQR}
-          onEdit={() => {
-            const idx = filteredCards.findIndex(c => c.id === selectedCard?.id);
-            if (idx >= 0) handleEditCard(idx);
-          }}
-          onReport={() => {
-            if (selectedCard) {
-              setReportingAsset({
-                id: selectedCard.assetId || selectedCard.id,
-                docId: selectedCard.id,
-                name: selectedCard.title,
-              });
-              setReportModalOpen(true);
-            }
-          }}
-          onViewHistory={(history, assetName, assetId) => {
-            setHistoryAsset({ id: assetId, name: assetName, history });
-            setShowHistoryModal(true);
-          }}
-        />
+       <AssetDetailsModal
+              isOpen={!!selectedCard}
+              onClose={() => {
+                setSelectedCard(null);
+                setShowMoreDetails(false);
+              }}
+              asset={selectedCard}
+              onViewQR={openQR}
+              onEdit={() => {
+                const idx = filteredCards.findIndex(c => c.id === selectedCard?.id);
+                if (idx >= 0) handleEditCard(idx);
+              }}
+              onReport={() => {
+                if (selectedCard) {
+                  setReportingAsset({
+                    id: selectedCard.assetId || selectedCard.id,
+                    docId: selectedCard.id,
+                    name: selectedCard.title,
+                  });
+                  setReportModalOpen(true);
+                }
+              }}
+              onViewHistory={(history, assetName, assetId) => {
+                setHistoryAsset({ id: assetId, name: assetName, history });
+                setShowHistoryModal(true);
+              }}
+              currentUserDocId={currentUserDocId}   // <-- ADD THIS
+            />
 
       <EditAssetModal
         isOpen={editModalOpen}

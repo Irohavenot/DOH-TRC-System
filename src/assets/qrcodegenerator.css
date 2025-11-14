@@ -3,7 +3,7 @@
   border: 1px solid #B2DFDB;
   border-radius: 16px;
   padding: 1rem;
-  max-width: 960px;
+  min-width: 50rem;
   background: linear-gradient(135deg, #ffffff 0%, #f8fffe 100%);
   box-shadow: 0 4px 20px rgba(0, 77, 64, 0.08);
   display: flex;
@@ -15,6 +15,7 @@
 .asset-form { 
   width: 100%; 
 }
+.confi
 
 .asset-form h3 {
   display: flex; 
@@ -128,6 +129,9 @@
     width: 100%;
     padding-top: 0.5rem;
     border-top: 2px solid #B2DFDB;
+}
+.qrgenerator-container{
+  place-items: center;
 }
 
 .action-center {
@@ -289,8 +293,21 @@
 
 /* ===== Confirm modal ===== */
 .confirm-modal { 
-  width: 600px; 
-  max-width: calc(100% - 2rem); 
+  padding: 2.5vh;
+    background-color: white;
+    width: 38%;
+    max-width: 800px;
+    z-index: 10000;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: stretch;
+    max-height: 80vh;
+    overflow-y: auto;
+    border-radius: 10px;
+    flex-wrap: nowrap;
+    align-content: space-around;
+    flex-direction: column;
+
 }
 
 .confirm-preview { 

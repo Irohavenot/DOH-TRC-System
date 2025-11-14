@@ -413,6 +413,7 @@
     ];
 
     return (
+    <div className='qrgenerator-container'>  
       <div className="add-asset-function">
         {/* Toast */}
         {toast && (
@@ -688,7 +689,7 @@
         {/* Confirm Add Modal */}
         {showConfirm && (
           <div className="modal-overlay">
-            <div className="modal confirm-modal">
+            <div className="confirm-modal">
               <h3>Confirm Add Asset?</h3>
 
               <div className="confirm-preview">
@@ -778,6 +779,7 @@
           </div>
         )}
       </div>
+     </div> 
     );
   };
 

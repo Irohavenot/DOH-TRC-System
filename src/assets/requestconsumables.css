@@ -1,6 +1,6 @@
 /* Request Consumables Styling - Professional Modern Design */
 .reqconsumable-function-container {
-  max-width: 900px;
+ min-width: 50rem;
   padding: 0;
   background: linear-gradient(135deg, #059669 0%, #047857 100%);
   border-radius: 20px;
@@ -24,10 +24,12 @@
   padding: 3rem;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  gap: 1rem;
   border-radius: 0 0 20px 20px;
 }
-
+.reqconsumable-outer-container{
+  place-items: center;
+}
 .reqconsumable-function-field {
   display: flex;
   flex-direction: column;

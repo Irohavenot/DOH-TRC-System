@@ -32,14 +32,17 @@ interface Asset {
   createdAt?: any;
 }
 const ReportsAnalytics: React.FC = () => {
+  const currentDate = new Date();
   const [category, setCategory] = useState("");
-  const [month, setMonth] = useState("");
-  const [year, setYear] = useState("");
+  const [month, setMonth] = useState(String(currentDate.getMonth() + 1).padStart(2, "0"));
+  const [year, setYear] = useState(String(currentDate.getFullYear()));
   const [status, setStatus] = useState("");
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<string[]>([]);
   const [uidToNameMap, setUidToNameMap] = useState<Record<string, string>>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Fetch categories
   useEffect(() => {
@@ -388,13 +391,26 @@ const ReportsAnalytics: React.FC = () => {
   };
 
   const clearFilters = () => {
-    setMonth("");
-    setYear("");
+    const currentDate = new Date();
+    setMonth(String(currentDate.getMonth() + 1).padStart(2, "0"));
+    setYear(String(currentDate.getFullYear()));
     setStatus("");
     setCategory("");
+    setCurrentPage(1);
   };
 
   const hasActiveFilters = month || year || status || category;
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredAssets.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedAssets = filteredAssets.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [month, year, status, category]);
 
   return (
     <div className="reports-analytics-wrapper">
@@ -505,20 +521,20 @@ const ReportsAnalytics: React.FC = () => {
               />
               <Line 
                 type="monotone" 
-                dataKey="underMaintenance" 
-                stroke="#FFC107" 
+                dataKey="damaged" 
+                stroke="#F44336" 
                 strokeWidth={3}
                 name="Unserviceable" 
-                dot={{ fill: '#FFC107', r: 4 }}
+                dot={{ fill: '#F44336', r: 4 }}
                 activeDot={{ r: 6 }}
               />
               <Line 
                 type="monotone" 
-                dataKey="damaged" 
-                stroke="#F44336" 
+                dataKey="underMaintenance" 
+                stroke="#FFC107" 
                 strokeWidth={3}
                 name="Defective" 
-                dot={{ fill: '#F44336', r: 4 }}
+                dot={{ fill: '#FFC107', r: 4 }}
                 activeDot={{ r: 6 }}
               />
             </LineChart>
@@ -555,42 +571,66 @@ const ReportsAnalytics: React.FC = () => {
             <p className="analytics-loading-text">Loading assets...</p>
           </div>
         ) : (
-          <table className="analytics-data-table">
-            <thead>
-              <tr>
-                <th>Asset Name</th>
-                <th>Asset ID</th>
-                <th>Category</th>
-                <th>Status</th>
-                <th>Assigned To</th>
-                <th>Serial No</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredAssets.length > 0 ? (
-                filteredAssets.map((asset, idx) => (
-                  <tr key={idx}>
-                    <td>{asset.assetName}</td>
-                    <td>{asset.assetId}</td>
-                    <td>{asset.category}</td>
-                    <td>
-                      <span className={`analytics-status-pill analytics-status-${computeAssetStatus(asset.licenseType, asset.expirationDate).toLowerCase()}`}>
-                        {computeAssetStatus(asset.licenseType, asset.expirationDate)}
-                      </span>
-                    </td>
-                    <td>{asset.personnel ? uidToNameMap[asset.personnel] || asset.personnel : 'Unassigned'}</td>
-                    <td>{asset.serialNo}</td>
-                    <td>{asset.assignedDate || asset.purchaseDate || 'N/A'}</td>
-                  </tr>
-                ))
-              ) : (
+          <>
+            <table className="analytics-data-table">
+              <thead>
                 <tr>
-                  <td colSpan={7}>No assets found for selected filters.</td>
+                  <th>Asset Name</th>
+                  <th>Asset ID</th>
+                  <th>Category</th>
+                  <th>Status</th>
+                  <th>Assigned To</th>
+                  <th>Serial No</th>
+                  <th>Date</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {paginatedAssets.length > 0 ? (
+                  paginatedAssets.map((asset, idx) => (
+                    <tr key={idx}>
+                      <td>{asset.assetName}</td>
+                      <td>{asset.assetId}</td>
+                      <td>{asset.category}</td>
+                      <td>
+                        <span className={`analytics-status-pill analytics-status-${computeAssetStatus(asset.licenseType, asset.expirationDate).toLowerCase()}`}>
+                          {computeAssetStatus(asset.licenseType, asset.expirationDate)}
+                        </span>
+                      </td>
+                      <td>{asset.personnel ? uidToNameMap[asset.personnel] || asset.personnel : 'Unassigned'}</td>
+                      <td>{asset.serialNo}</td>
+                      <td>{asset.assignedDate || asset.purchaseDate || 'N/A'}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={7}>No assets found for selected filters.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+
+            {filteredAssets.length > itemsPerPage && (
+              <div className="analytics-pagination">
+                <button 
+                  className="analytics-pagination-btn" 
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </button>
+                <span className="analytics-pagination-info">
+                  Page {currentPage} of {totalPages} ({filteredAssets.length} total assets)
+                </span>
+                <button 
+                  className="analytics-pagination-btn" 
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
         )}
 
         <div className="analytics-action-buttons">

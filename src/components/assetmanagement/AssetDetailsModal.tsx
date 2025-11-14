@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import '../../assets/AssetDetailsModal.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import '../../assets/assetmanagement.css';
+
 interface HistoryEntry {
   changedAt?: any;
   changedBy?: string;
@@ -25,7 +26,7 @@ interface AssetDetailsModalProps {
     assetUrl?: string;
     qrcode?: string | null;
     personnel?: string;
-    personnelId?: string;
+    personnelId?: string;       // <-- used for matching UID
     purchaseDate?: string;
     status?: string;
     licenseType?: string;
@@ -43,6 +44,7 @@ interface AssetDetailsModalProps {
   onEdit?: () => void;
   onReport?: () => void;
   onViewHistory?: (history: HistoryEntry[], assetName: string, assetId: string) => void;
+  currentUserDocId?: string | null;
 }
 
 const AssetDetailsModal: React.FC<AssetDetailsModalProps> = ({
@@ -53,12 +55,20 @@ const AssetDetailsModal: React.FC<AssetDetailsModalProps> = ({
   onEdit,
   onReport,
   onViewHistory,
+  currentUserDocId,   // <-- YOU FORGOT TO DESTRUCTURE THIS EARLIER
 }) => {
   const [showMoreDetails, setShowMoreDetails] = useState(false);
   const [imageError, setImageError] = useState(false);
 
+  // 🔥 FIXED: now this will evaluate correctly
+  const isAssignedPersonnel = !!(
+    asset?.personnelId &&
+    currentUserDocId &&
+    asset.personnelId === currentUserDocId
+  );
+
+
   useEffect(() => {
-    console.log('Asset image URL:', asset?.image);
     setImageError(false);
   }, [asset]);
 
@@ -254,16 +264,20 @@ const AssetDetailsModal: React.FC<AssetDetailsModalProps> = ({
             </button>
           </div>
 
-          <div className="viewmore-buttons-container">
+            <div className="viewmore-buttons-container">
             <button className="viewmore-close-btn" onClick={handleClose}>
               Close
             </button>
-            {onEdit && (
+
+            {/* show Edit ONLY when current user matches the IT_Supply_Users doc id assigned to the asset */}
+            {isAssignedPersonnel && onEdit && (
               <button className="viewmore-action-button" onClick={onEdit}>
                 Edit
               </button>
             )}
-            {onReport && (
+
+            {/* show Report ONLY when the current user is NOT the assigned personnel */}
+            {!isAssignedPersonnel && onReport && (
               <button className="viewmore-action-button viewmore-report-btn" onClick={onReport}>
                 <i className="fas fa-exclamation-triangle" /> Report Issue
               </button>
