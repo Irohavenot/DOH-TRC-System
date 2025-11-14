@@ -23,12 +23,18 @@ interface Report {
 }
 
 const Reports: React.FC = () => {
-  const [month, setMonth] = useState<string>('');
-  const [year, setYear] = useState<string>('');
+  // Set default to current month and year
+  const currentDate = new Date();
+  const currentMonth = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+  const currentYear = currentDate.getFullYear().toString();
+  
+  const [month, setMonth] = useState<string>(currentMonth);
+  const [year, setYear] = useState<string>(currentYear);
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState<{ [key: string]: number }>({});
 
   // Fetch reports from Firestore
   useEffect(() => {
@@ -368,6 +374,39 @@ const Reports: React.FC = () => {
     return matchesMonth && matchesYear;
   });
 
+  // Pagination constants
+  const ITEMS_PER_PAGE = 7;
+
+  // Group reports by month/year
+  const groupedReports = filteredReports.reduce((acc, report) => {
+    const date = report.createdAt;
+    const monthYear = `${date.toLocaleString('default', { month: 'long' })} ${date.getFullYear()}`;
+    if (!acc[monthYear]) acc[monthYear] = [];
+    acc[monthYear].push(report);
+    return acc;
+  }, {} as Record<string, Report[]>);
+
+  // Get current page for a month group
+  const getPageForGroup = (monthYear: string) => currentPage[monthYear] || 1;
+
+  // Set page for a month group
+  const setPageForGroup = (monthYear: string, page: number) => {
+    setCurrentPage(prev => ({ ...prev, [monthYear]: page }));
+  };
+
+  // Get paginated reports for a month group
+  const getPaginatedReports = (reportsInMonth: Report[], monthYear: string) => {
+    const page = getPageForGroup(monthYear);
+    const startIndex = (page - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return reportsInMonth.slice(startIndex, endIndex);
+  };
+
+  // Get total pages for a month group
+  const getTotalPages = (reportsInMonth: Report[]) => {
+    return Math.ceil(reportsInMonth.length / ITEMS_PER_PAGE);
+  };
+
   // Get status color
   const getStatusColor = (status: string) => {
     const statusLower = status.toLowerCase();
@@ -459,111 +498,137 @@ const Reports: React.FC = () => {
           </thead>
           <tbody>
             {filteredReports.length > 0 ? (
-              Object.entries(
-                filteredReports.reduce((acc, report) => {
-                  const date = report.createdAt;
-                  const monthYear = `${date.toLocaleString('default', { month: 'long' })} ${date.getFullYear()}`;
-                  if (!acc[monthYear]) acc[monthYear] = [];
-                  acc[monthYear].push(report);
-                  return acc;
-                }, {} as Record<string, Report[]>)
-              ).map(([monthYear, reportsInMonth], groupIndex) => (
-                <React.Fragment key={groupIndex}>
-                  <tr className="month-header">
-                    <td colSpan={7}>
-                      {monthYear}
-                    </td>
-                  </tr>
-                  {reportsInMonth.map((report, index) => (
-                    <tr key={`${groupIndex}-${index}`}>
-                      <td>{report.createdAt.toLocaleDateString()}</td>
-                      <td>{report.assetName}</td>
-                      <td className="asset-id-cell">{report.assetId}</td>
-                      <td>
-                        <div className="issue-cell">
-                          <span className="issue-text">{truncateText(report.reason)}</span>
-                          <button 
-                            className="view-details-btn"
-                            onClick={() => openModal(report)}
-                          >
-                            <i className="fas fa-eye"></i> View
-                          </button>
-                        </div>
-                      </td>
-                      <td>{report.reportedBy}</td>
-                      <td>
-                        <span 
-                          className="status-badge"
-                          style={{ backgroundColor: getStatusColor(report.condition) }}
-                        >
-                          {report.condition}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="action-buttons">
-                          {report.condition.toLowerCase().includes('maintenance') && (
-                            <>
-                              <button
-                                className="action-btn in-progress"
-                                onClick={() => handleStatusChange(report.id, 'In Progress')}
-                              >
-                                In Progress
-                              </button>
-                              <button
-                                className="action-btn resolved"
-                                onClick={() => handleStatusChange(report.id, 'Resolved')}
-                              >
-                                Resolved
-                              </button>
-                            </>
-                          )}
-
-                          {(report.condition.toLowerCase().includes('defective') || 
-                            report.condition.toLowerCase().includes('unserviceable') ||
-                            report.condition.toLowerCase().includes('damaged')) && (
-                            <>
-                              <button
-                                className="action-btn in-repair"
-                                onClick={() => handleStatusChange(report.id, 'In Repair')}
-                              >
-                                <i className="fas fa-tools"></i> In Repair
-                              </button>
-                              <button
-                                className="action-btn resolved"
-                                onClick={() => handleStatusChange(report.id, 'Resolved')}
-                              >
-                                Resolved
-                              </button>
-                            </>
-                          )}
-
-                          {(report.condition.toLowerCase().includes('progress') || 
-                            report.condition.toLowerCase().includes('repair')) && (
-                            <button
-                              className="action-btn resolved"
-                              onClick={() => handleStatusChange(report.id, 'Resolved')}
-                            >
-                              Resolved
-                            </button>
-                          )}
-
-                          {report.condition.toLowerCase().includes('resolved') && (
-                            <span className="status-completed">
-                              <i className="fas fa-check-circle"></i> Completed
-                            </span>
-                          )}
-
-                          {report.condition.toLowerCase().includes('disposed') && (
-                            <span className="status-completed">
-                              <i className="fas fa-trash"></i> Disposed
-                            </span>
-                          )}
+              Object.entries(groupedReports).map(([monthYear, reportsInMonth], groupIndex) => {
+                const paginatedReports = getPaginatedReports(reportsInMonth, monthYear);
+                const totalPages = getTotalPages(reportsInMonth);
+                const currentPageNum = getPageForGroup(monthYear);
+                
+                return (
+                  <React.Fragment key={groupIndex}>
+                    <tr className="month-header">
+                      <td colSpan={7}>
+                        <div className="month-header-content">
+                          <span>{monthYear}</span>
+                          <span className="month-total">Total: {reportsInMonth.length} reports</span>
                         </div>
                       </td>
                     </tr>
-                  ))}
-                </React.Fragment>
-              ))
+                    {paginatedReports.map((report, index) => (
+                      <tr key={`${groupIndex}-${index}`}>
+                        <td>{report.createdAt.toLocaleDateString()}</td>
+                        <td>{report.assetName}</td>
+                        <td className="asset-id-cell">{report.assetId}</td>
+                        <td>
+                          <div className="issue-cell">
+                            <span className="issue-text">{truncateText(report.reason)}</span>
+                            <button 
+                              className="view-details-btn"
+                              onClick={() => openModal(report)}
+                            >
+                              <i className="fas fa-eye"></i> View
+                            </button>
+                          </div>
+                        </td>
+                        <td>{report.reportedBy}</td>
+                        <td>
+                          <span 
+                            className="status-badge"
+                            style={{ backgroundColor: getStatusColor(report.condition) }}
+                          >
+                            {report.condition}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="action-buttons">
+                            {report.condition.toLowerCase().includes('maintenance') && (
+                              <>
+                                <button
+                                  className="action-btn in-progress"
+                                  onClick={() => handleStatusChange(report.id, 'In Progress')}
+                                >
+                                  In Progress
+                                </button>
+                                <button
+                                  className="action-btn resolved"
+                                  onClick={() => handleStatusChange(report.id, 'Resolved')}
+                                >
+                                  Resolved
+                                </button>
+                              </>
+                            )}
+
+                            {(report.condition.toLowerCase().includes('defective') || 
+                              report.condition.toLowerCase().includes('unserviceable') ||
+                              report.condition.toLowerCase().includes('damaged')) && (
+                              <>
+                                <button
+                                  className="action-btn in-repair"
+                                  onClick={() => handleStatusChange(report.id, 'In Repair')}
+                                >
+                                  <i className="fas fa-tools"></i> In Repair
+                                </button>
+                                <button
+                                  className="action-btn resolved"
+                                  onClick={() => handleStatusChange(report.id, 'Resolved')}
+                                >
+                                  Resolved
+                                </button>
+                              </>
+                            )}
+
+                            {(report.condition.toLowerCase().includes('progress') || 
+                              report.condition.toLowerCase().includes('repair')) && (
+                              <button
+                                className="action-btn resolved"
+                                onClick={() => handleStatusChange(report.id, 'Resolved')}
+                              >
+                                Resolved
+                              </button>
+                            )}
+
+                            {report.condition.toLowerCase().includes('resolved') && (
+                              <span className="status-completed">
+                                <i className="fas fa-check-circle"></i> Completed
+                              </span>
+                            )}
+
+                            {report.condition.toLowerCase().includes('disposed') && (
+                              <span className="status-completed">
+                                <i className="fas fa-trash"></i> Disposed
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {totalPages > 1 && (
+                      <tr className="pagination-row">
+                        <td colSpan={7}>
+                          <div className="pagination-controls">
+                            <button
+                              className="pagination-btn"
+                              onClick={() => setPageForGroup(monthYear, currentPageNum - 1)}
+                              disabled={currentPageNum === 1}
+                            >
+                              <i className="fas fa-chevron-left"></i> Previous
+                            </button>
+                            <span className="pagination-info">
+                              Page {currentPageNum} of {totalPages}
+                            </span>
+                            <button
+                              className="pagination-btn"
+                              onClick={() => setPageForGroup(monthYear, currentPageNum + 1)}
+                              disabled={currentPageNum === totalPages}
+                            >
+                              Next <i className="fas fa-chevron-right"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })
             ) : (
               <tr>
                 <td colSpan={7} className="empty-message">
@@ -706,8 +771,6 @@ const Reports: React.FC = () => {
 
               {selectedReport.image && (
                 <div className="report-modal-info-item full-width">
-
-                     
                   <i className="fas fa-image"></i>
                   <div>
                     <div className="report-info-label">Attached Image</div>

@@ -26,6 +26,7 @@ const NON_EXPIRING = new Set(['Perpetual', 'OEM', 'Open Source']);
 const currentUserUID = auth.currentUser?.uid;
 
 type FilterKey = 'all' | 'permanent' | 'normal' | 'aboutToExpire' | 'expired';
+type CategoryFilterKey = 'all' | 'Asset' | 'License' | 'Accessory' | 'Component';
 
 interface HistoryEntry {
   changedAt?: any;
@@ -66,6 +67,7 @@ interface Card {
 
 const AssetManagement: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<FilterKey>('all');
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilterKey>('all');
   const [showMyAssets, setShowMyAssets] = useState(false);
   const [showReported, setShowReported] = useState(false);
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
@@ -253,7 +255,7 @@ const AssetManagement: React.FC = () => {
   };
 
   const cards = useMemo(() => rawAssets.map((d: any) => {
-    console.log("Asset personnel:", d.id, d.personnel); // Debug personnel field
+    console.log("Asset personnel:", d.id, d.personnel);
     const personnelName = d.personnel ? uidToNameMap[d.personnel] || d.personnel : undefined;
     const resolveByEmail = (email?: string) => { if (!email) return undefined; return emailToNameMap[email.trim().toLowerCase()] || email; };
     const createdByName = resolveByEmail(d.createdBy);
@@ -303,6 +305,10 @@ const AssetManagement: React.FC = () => {
       });
     }
 
+    if (categoryFilter !== 'all') {
+      result = result.filter(card => card.team === categoryFilter);
+    }
+
     if (showMyAssets && currentUserDocId) {
       console.log("Filtering for current user doc ID:", currentUserDocId);
       result = result.filter(card => {
@@ -312,7 +318,7 @@ const AssetManagement: React.FC = () => {
         }
         return match;
       });
-      console.log("Filtered cards:", result); // Debug filtered cards
+      console.log("Filtered cards:", result);
     }
 
     if (showReported) {
@@ -320,7 +326,7 @@ const AssetManagement: React.FC = () => {
     }
 
     return result;
-  }, [cards, statusFilter, showMyAssets, showReported, currentUserDocId]);
+  }, [cards, statusFilter, categoryFilter, showMyAssets, showReported, currentUserDocId]);
 
   const counts = useMemo(() => {
     let permanent = 0, normal = 0, aboutToExpire = 0, expired = 0, myAssets = 0, reported = 0;
@@ -411,7 +417,6 @@ const AssetManagement: React.FC = () => {
         assetName: card.title
       });
 
-      // Create comprehensive audit record
       const auditRecord = {
         assetId: card.assetId || '',
         assetName: card.title || '',
@@ -442,11 +447,9 @@ const AssetManagement: React.FC = () => {
         originalId: card.id,
       };
 
-      // Save to Deleted_Assets first
       const deletedDocRef = await addDoc(collection(db, "Deleted_Assets"), auditRecord);
       console.log("Audit record created:", deletedDocRef.id);
       
-      // Then delete from IT_Assets
       await deleteDoc(assetRef);
       console.log("Asset deleted from IT_Assets:", card.id);
       
@@ -488,11 +491,12 @@ const AssetManagement: React.FC = () => {
 
   const clearAllFilters = () => {
     setStatusFilter('all');
+    setCategoryFilter('all');
     setShowMyAssets(false);
     setShowReported(false);
   };
 
-  const hasActiveFilters = statusFilter !== 'all' || showMyAssets || showReported;
+  const hasActiveFilters = statusFilter !== 'all' || categoryFilter !== 'all' || showMyAssets || showReported;
 
   const shouldShowSubType = (category?: string) => {
     if (!category) return false;
@@ -510,36 +514,34 @@ const AssetManagement: React.FC = () => {
 
   return (
     <div className="content-here">
-      {/* View More Modal */}
-
-       <AssetDetailsModal
-              isOpen={!!selectedCard}
-              onClose={() => {
-                setSelectedCard(null);
-                setShowMoreDetails(false);
-              }}
-              asset={selectedCard}
-              onViewQR={openQR}
-              onEdit={() => {
-                const idx = filteredCards.findIndex(c => c.id === selectedCard?.id);
-                if (idx >= 0) handleEditCard(idx);
-              }}
-              onReport={() => {
-                if (selectedCard) {
-                  setReportingAsset({
-                    id: selectedCard.assetId || selectedCard.id,
-                    docId: selectedCard.id,
-                    name: selectedCard.title,
-                  });
-                  setReportModalOpen(true);
-                }
-              }}
-              onViewHistory={(history, assetName, assetId) => {
-                setHistoryAsset({ id: assetId, name: assetName, history });
-                setShowHistoryModal(true);
-              }}
-              currentUserDocId={currentUserDocId}   // <-- ADD THIS
-            />
+      <AssetDetailsModal
+        isOpen={!!selectedCard}
+        onClose={() => {
+          setSelectedCard(null);
+          setShowMoreDetails(false);
+        }}
+        asset={selectedCard}
+        onViewQR={openQR}
+        onEdit={() => {
+          const idx = filteredCards.findIndex(c => c.id === selectedCard?.id);
+          if (idx >= 0) handleEditCard(idx);
+        }}
+        onReport={() => {
+          if (selectedCard) {
+            setReportingAsset({
+              id: selectedCard.assetId || selectedCard.id,
+              docId: selectedCard.id,
+              name: selectedCard.title,
+            });
+            setReportModalOpen(true);
+          }
+        }}
+        onViewHistory={(history, assetName, assetId) => {
+          setHistoryAsset({ id: assetId, name: assetName, history });
+          setShowHistoryModal(true);
+        }}
+        currentUserDocId={currentUserDocId}
+      />
 
       <EditAssetModal
         isOpen={editModalOpen}
@@ -569,168 +571,183 @@ const AssetManagement: React.FC = () => {
         assetDocId={reportingAsset?.docId || ''}
         assetName={reportingAsset?.name || ''}
       />
-    <div className='assetmanagement-container'>
-      <h1>Asset Management</h1>
 
-      <div className="filter-section">
-        <div className="quick-filters">
-          <div className="filter-section-label">
-            <i className="fas fa-filter" />
-            <span>Quick Filters</span>
-          </div>
-          <div className="filter-tabs">
-            <button 
-              className={`multi-select ${showMyAssets ? 'active' : ''}`}
-              onClick={() => setShowMyAssets(!showMyAssets)}
-            >
-              <i className="fas fa-user" />
-              My Assets
-              <span>{counts.myAssets}</span>
-            </button>
+      <div className='assetmanagement-container'>
+        <h1>Asset Management</h1>
 
-            <button 
-              className={`multi-select reported ${showReported ? 'active' : ''}`}
-              onClick={() => setShowReported(!showReported)}
-            >
-              <i className="fas fa-exclamation-triangle" />
-              Reported Issues
-              <span>{counts.reported}</span>
-            </button>
+        <div className="filter-section">
+          <div className="quick-filters">
+            <div className="filter-section-label">
+              <i className="fas fa-filter" />
+              <span>Quick Filters</span>
+            </div>
+            <div className="filter-tabs">
+              <div className="category-filter-wrapper">
+                <select 
+                  className="category-filter-select"
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value as CategoryFilterKey)}
+                >
+                  <option value="all">All Categories</option>
+                  <option value="Asset">Asset</option>
+                  <option value="License">License</option>
+                  <option value="Accessory">Accessory</option>
+                  <option value="Component">Component</option>
+                </select>
+              </div>
+
+              <button 
+                className={`multi-select ${showMyAssets ? 'active' : ''}`}
+                onClick={() => setShowMyAssets(!showMyAssets)}
+              >
+                <i className="fas fa-user" />
+                My Assets
+                <span>{counts.myAssets}</span>
+              </button>
+
+              <button 
+                className={`multi-select reported ${showReported ? 'active' : ''}`}
+                onClick={() => setShowReported(!showReported)}
+              >
+                <i className="fas fa-exclamation-triangle" />
+                Reported Issues
+                <span>{counts.reported}</span>
+              </button>
+            </div>
           </div>
+
+          <div>
+            <div className="filter-section-label">
+              <i className="fas fa-clock" />
+              <span>Status</span>
+            </div>
+            <div className="filter-tabs">
+              <button 
+                className={`status-filter status-all ${statusFilter === 'all' ? 'active' : ''}`}
+                onClick={() => setStatusFilter('all')}
+              >
+                All Assets
+                <span>{cards.length}</span>
+              </button>
+              <button 
+                className={`status-filter status-permanent ${statusFilter === 'permanent' ? 'active' : ''}`}
+                onClick={() => setStatusFilter('permanent')}
+              >
+                Permanent
+                <span>{counts.permanent}</span>
+              </button>
+              <button 
+                className={`status-filter status-normal ${statusFilter === 'normal' ? 'active' : ''}`}
+                onClick={() => setStatusFilter('normal')}
+              >
+                Normal
+                <span>{counts.normal}</span>
+              </button>
+              <button 
+                className={`status-filter status-expire ${statusFilter === 'aboutToExpire' ? 'active' : ''}`}
+                onClick={() => setStatusFilter('aboutToExpire')}
+              >
+                Expiring Soon
+                <span>{counts.aboutToExpire}</span>
+              </button>
+              <button 
+                className={`status-filter status-expired ${statusFilter === 'expired' ? 'active' : ''}`}
+                onClick={() => setStatusFilter('expired')}
+              >
+                Expired
+                <span>{counts.expired}</span>
+              </button>
+            </div>
+          </div>
+
+          {hasActiveFilters && (
+            <div className="active-filters-summary">
+              <i className="fas fa-info-circle" />
+              <span>
+                Showing <strong>{filteredCards.length}</strong> of <strong>{cards.length}</strong> assets
+              </span>
+              <button className="clear-filters-btn" onClick={clearAllFilters}>
+                Clear All
+              </button>
+            </div>
+          )}
         </div>
 
-        <div>
-          <div className="filter-section-label">
-            <i className="fas fa-clock" />
-            <span>Status</span>
+        {loading ? (
+          <div className="loading-state">
+            <div className="loading-spinner"></div>
           </div>
-          <div className="filter-tabs">
-            <button 
-              className={`status-filter status-all ${statusFilter === 'all' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('all')}
-            >
-              All Assets
-              <span>{cards.length}</span>
-            </button>
-            <button 
-              className={`status-filter status-permanent ${statusFilter === 'permanent' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('permanent')}
-            >
-              Permanent
-              <span>{counts.permanent}</span>
-            </button>
-            <button 
-              className={`status-filter status-normal ${statusFilter === 'normal' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('normal')}
-            >
-              Normal
-              <span>{counts.normal}</span>
-            </button>
-            <button 
-              className={`status-filter status-expire ${statusFilter === 'aboutToExpire' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('aboutToExpire')}
-            >
-              Expiring Soon
-              <span>{counts.aboutToExpire}</span>
-            </button>
-            <button 
-              className={`status-filter status-expired ${statusFilter === 'expired' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('expired')}
-            >
-              Expired
-              <span>{counts.expired}</span>
-            </button>
+        ) : filteredCards.length === 0 ? (
+          <div className="empty-state">
+            <i className="fas fa-inbox" />
+            <p>No assets found</p>
+            <p>Try adjusting your filters</p>
           </div>
-        </div>
+        ) : (
+          <div className="cards-grid">
+            {filteredCards.map((card, index) => {
+              console.log("Rendering card:", card.title);
+              return (
+                <div className="card" key={card.id}>
+                  <div className="card-badges">
+                    {card.personnelId === currentUserDocId && (
+                      <span className="card-badge my-asset">Mine</span>
+                    )}
+                    {card.hasReports && (
+                      <span className="card-badge reported">
+                        <i className="fas fa-exclamation-circle" />
+                        {card.reportCount}
+                      </span>
+                    )}
+                  </div>
 
-        {hasActiveFilters && (
-          <div className="active-filters-summary">
-            <i className="fas fa-info-circle" />
-            <span>
-              Showing <strong>{filteredCards.length}</strong> of <strong>{cards.length}</strong> assets
-            </span>
-            <button className="clear-filters-btn" onClick={clearAllFilters}>
-              Clear All
-            </button>
+                  <div className="card-top">
+                    <div className="card-top-left">
+                      <div className={`card-icon ${card.iconClass}`}>
+                        <i className={`fas ${card.team.toLowerCase().includes('hardware') ? 'fa-laptop' : 'fa-code'}`} />
+                      </div>
+                      <button className="view-more-btn" onClick={() => setSelectedCard(card)}>View More</button>
+                    </div>
+                    <div className="card-options">
+                      <button className="options-btn" onClick={() => handleCardOptionsToggle(index)}>⋮</button>
+                      {openCardOptionsId === index && (
+                        <div className="card-options-menu">
+                          <button className="edit-btn" onClick={() => handleEditCard(index)}><i className="fas fa-edit"></i> Edit Asset</button>
+                          <button className="delete-btn" onClick={() => handleDeleteCard(index)}><i className="fas fa-trash-alt"></i> Delete Asset</button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <h2>{card.title}</h2>
+                  
+                  <div className="card-meta">
+                    <div className="card-meta-item">
+                      <i className="fas fa-layer-group" />
+                      {card.team}
+                    </div>
+                    <div className="card-meta-item">
+                      <i className="fas fa-barcode" />
+                      {card.serial}
+                    </div>
+                    {card.personnel && (
+                      <div className="card-meta-item">
+                        <i className="fas fa-user" />
+                        {card.personnel}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="card-time-badge">
+                    {card.timeLeft}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
-      {loading ? (
-        <div className="loading-state">
-          <div className="loading-spinner"></div>
-        </div>
-      ) : filteredCards.length === 0 ? (
-        <div className="empty-state">
-          <i className="fas fa-inbox" />
-          <p>No assets found</p>
-          <p>Try adjusting your filters</p>
-        </div>
-      ) : (
-        <div className="cards-grid">
-          {filteredCards.map((card, index) => {
-            console.log("Rendering card:", card.title); // Debug rendering
-            return (
-              <div className="card" key={card.id}>
-                <div className="card-badges">
-                  {card.personnelId === currentUserDocId && (
-                    <span className="card-badge my-asset">Mine</span>
-                  )}
-                  {card.hasReports && (
-                    <span className="card-badge reported">
-                      <i className="fas fa-exclamation-circle" />
-                      {card.reportCount}
-                    </span>
-                  )}
-                </div>
-
-                <div className="card-top">
-                  <div className="card-top-left">
-                    <div className={`card-icon ${card.iconClass}`}>
-                      <i className={`fas ${card.team.toLowerCase().includes('hardware') ? 'fa-laptop' : 'fa-code'}`} />
-                    </div>
-                    <button className="view-more-btn" onClick={() => setSelectedCard(card)}>View More</button>
-                  </div>
-                  <div className="card-options">
-                    <button className="options-btn" onClick={() => handleCardOptionsToggle(index)}>⋮</button>
-                    {openCardOptionsId === index && (
-                      <div className="card-options-menu">
-                        <button className="edit-btn" onClick={() => handleEditCard(index)}><i className="fas fa-edit"></i> Edit Asset</button>
-                        <button className="delete-btn" onClick={() => handleDeleteCard(index)}><i className="fas fa-trash-alt"></i> Delete Asset</button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <h2>{card.title}</h2>
-                
-                <div className="card-meta">
-                  <div className="card-meta-item">
-                    <i className="fas fa-layer-group" />
-                    {card.team}
-                  </div>
-                  <div className="card-meta-item">
-                    <i className="fas fa-barcode" />
-                    {card.serial}
-                  </div>
-                  {card.personnel && (
-                    <div className="card-meta-item">
-                      <i className="fas fa-user" />
-                      {card.personnel}
-                    </div>
-                  )}
-                </div>
-                
-                <div className="card-time-badge">
-                  {card.timeLeft}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      
-      )}
-    </div>
       <HistoryModal
         isOpen={showHistoryModal}
         onClose={() => setShowHistoryModal(false)}
