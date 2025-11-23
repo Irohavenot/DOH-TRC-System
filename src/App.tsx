@@ -16,12 +16,9 @@ import ScanQR from './components/assetmanagement/ScanQr';
 import RequestConsumable from './components/assetmanagement/RequestConsumable';
 import Requests from './components/assetmanagement/Requests';
 import DashboardSuperAdmin from './components/superadmin/DashboardSuperAdmin';
+import PositionConfig from './components/superadmin/Position_Config';
 import Profile from './components/superadmin/Profile';
 import Supply from './components/superadmin/Supply';
-import ClinicalLab from './components/superadmin/ClinicalLab';
-import Radiology from './components/superadmin/Radiology';
-import Dental from './components/superadmin/Dental';
-import DDE from './components/superadmin/DDE';
 import Notifications from './components/superadmin/Notifications';
 import VerifyAccount from "./components/Verification";
 import Trial from './components/superadmin/trial';
@@ -67,12 +64,9 @@ const App: React.FC = () => {
               <Route path="/dashadmin" element={<DashboardSuperAdmin />} />
               <Route path="/deleted-assets" element={<DeletedAssets />} />
               <Route path="/profiled" element={<Profile />} /> 
-              <Route path="/supply" element={<Supply />} />  
-              <Route path="/clinical" element={<ClinicalLab />} /> 
-              <Route path="/radiology" element={<Radiology />} /> 
-              <Route path="/dental" element={<Dental />} /> 
-              <Route path="/dde" element={<DDE />} /> 
               <Route path="/notif" element={<Notifications />} /> 
+              <Route path="/supply" element={<Supply />} /> 
+              <Route path="/position-config" element={<PositionConfig />} />
               <Route path="/request-consumable" element={<RequestConsumable />} /> 
               <Route path="/requestsdata" element={<Requests />} /> 
               <Route path="/trial" element={<Trial />} /> 

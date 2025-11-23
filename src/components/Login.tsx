@@ -1,3 +1,4 @@
+// Login.tsx (Updated)
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { auth, provider, db } from "../firebase/firebase";
@@ -245,7 +246,7 @@ const handleGoogleSignIn = async () => {
     }
   }
 };
-  const handleRegisterChoice = (role: "Medical" | "IT") => {
+  const handleRegisterChoice = (role: "Medical" | "IT" | "Other") => {
     localStorage.setItem("registerRole", role);
     setShowRegisterModal(false);
     toggle();
@@ -317,6 +318,9 @@ const handleGoogleSignIn = async () => {
               </button>
               <button className="role-btn" onClick={() => handleRegisterChoice("IT")}>
                 IT Department Personnel
+              </button>
+              <button className="role-btn" onClick={() => handleRegisterChoice("Other")}>
+                Other Department Personnel
               </button>
             </div>
             <button className="close-btn" onClick={() => setShowRegisterModal(false)}>

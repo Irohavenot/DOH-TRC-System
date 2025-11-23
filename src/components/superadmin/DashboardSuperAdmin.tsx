@@ -12,11 +12,8 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 
 import Profile from "./Profile";
 import Supply from "./Supply";
-import ClinicalLab from "./ClinicalLab";
-import Radiology from "./Radiology";
-import Dental from "./Dental";
-import DDE from "./DDE";
 import Notifications from "./Notifications";
+import PositionConfig from './Position_Config';
 
 import {
   LayoutDashboard,
@@ -65,8 +62,8 @@ type TableView = 'approved' | 'pending' | 'activation' | 'rejected';
 
 const DashboardSuperAdmin = () => {
   const navigate = useNavigate();
-  const [currentView, setCurrentView] = useState<'dashadmin' | 'peoples' | 'profiled' | 'supply' | 'clinical' | 'radiology' | 'dental' | 'dde' | 'notif'>('dashadmin');
-  const [activeView, setActiveView] = useState<'dashadmin' | 'peoples' | 'profiled' | 'supply' | 'clinical' | 'radiology' | 'dental' | 'dde' | 'notif'>('dashadmin');
+  const [currentView, setCurrentView] = useState<'dashadmin' | 'peoples' | 'profiled' | 'supply' | 'clinical' | 'radiology' | 'dental' | 'dde' | 'positionconfig'| 'notif'>('dashadmin');
+  const [activeView, setActiveView] = useState<'dashadmin' | 'peoples' | 'profiled' | 'supply' | 'clinical' | 'radiology' | 'dental' | 'dde'| 'positionconfig'| 'notif'>('dashadmin');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeTableView, setActiveTableView] = useState<TableView>('approved');
 
@@ -355,48 +352,16 @@ const DashboardSuperAdmin = () => {
             </Link>
             <Link
               to="#"
-              className={`dashadmin-menu-item ${activeView === 'clinical' ? 'dashadmin-active' : ''}`}
+              className={`dashadmin-menu-item ${activeView === 'positionconfig' ? 'dashadmin-active' : ''}`}
               onClick={() => {
-                setCurrentView('clinical');
-                setActiveView('clinical');
+                setCurrentView('positionconfig');
+                setActiveView('positionconfig');
               }}
             >
-              <FlaskConical className="dashadmin-menu-icon" />
-              <span>Clinical Lab</span>
+              <Users className="dashadmin-menu-icon" />
+              <span>Position Config</span>
             </Link>
-            <Link
-              to="#"
-              className={`dashadmin-menu-item ${activeView === 'radiology' ? 'dashadmin-active' : ''}`}
-              onClick={() => {
-                setCurrentView('radiology');
-                setActiveView('radiology');
-              }}
-            >
-              <ScanLine className="dashadmin-menu-icon" />
-              <span>Radiology</span>
-            </Link>
-            <Link
-              to="#"
-              className={`dashadmin-menu-item ${activeView === 'dental' ? 'dashadmin-active' : ''}`}
-              onClick={() => {
-                setCurrentView('dental');
-                setActiveView('dental');
-              }}
-            >
-              <Syringe className="dashadmin-menu-icon" />
-              <span>Dental</span>
-            </Link>
-            <Link
-              to="#"
-              className={`dashadmin-menu-item ${activeView === 'dde' ? 'dashadmin-active' : ''}`}
-              onClick={() => {
-                setCurrentView('dde');
-                setActiveView('dde');
-              }}
-            >
-              <Stethoscope className="dashadmin-menu-icon" />
-              <span>DDE</span>
-            </Link>
+
             <Link
               to="#"
               className={`dashadmin-menu-item ${activeView === 'notif' ? 'dashadmin-active' : ''}`}
@@ -751,12 +716,10 @@ const DashboardSuperAdmin = () => {
           )}
 
           {currentView === 'profiled' && <Profile />}
-          {currentView === 'supply' && <Supply />}
-          {currentView === 'clinical' && <ClinicalLab />}
-          {currentView === 'radiology' && <Radiology />}
-          {currentView === 'dental' && <Dental />}
-          {currentView === 'dde' && <DDE />}
           {currentView === 'notif' && <Notifications />}
+          {currentView === 'supply' && <Supply />}
+          {currentView === 'positionconfig' && <PositionConfig />}
+
         </div>
       </div>
     </div>

@@ -514,7 +514,7 @@ const AssetManagement: React.FC = () => {
 
   return (
     <div className="content-here">
-      <AssetDetailsModal
+      <AssetDetailsModal  
         isOpen={!!selectedCard}
         onClose={() => {
           setSelectedCard(null);

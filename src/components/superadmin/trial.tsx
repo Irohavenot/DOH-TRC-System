@@ -4,10 +4,6 @@ import { Link } from 'react-router-dom';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import Profile from "./Profile";
 import Supply from "./Supply";
-import ClinicalLab from "./ClinicalLab";
-import Radiology from "./Radiology";
-import Dental from "./Dental";
-import DDE from "./DDE";
 import Notifications from "./Notifications";
 
 import {
@@ -368,10 +364,6 @@ const Trial = () => {
 
             {currentView === 'profiled' && <Profile />}
             {currentView === 'supply' && <Supply />}
-            {currentView === 'clinical' && <ClinicalLab />}
-            {currentView === 'radiology' && <Radiology />}
-            {currentView === 'dental' && <Dental />}
-            {currentView === 'dde' && <DDE />}
             {currentView === 'notif' && <Notifications/>}
           </div>
         </div>

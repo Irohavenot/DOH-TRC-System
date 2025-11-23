@@ -1,0 +1,420 @@
+/* ============================================================================
+   POSITION CONFIGURATION - MATCHING DASHBOARDSUPER.CSS THEME
+   ============================================================================ */
+
+.positionconfig-container {
+  padding: clamp(20px, 3vw, 40px);
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header Section */
+.positionconfig-header {
+  margin-bottom: 2rem;
+}
+
+.positionconfig-header h2 {
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  font-weight: 700;
+  color: #004d40;
+  margin: 0 0 0.5rem 0;
+  position: relative;
+  padding-bottom: 0.75rem;
+}
+
+.positionconfig-header h2::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 80px;
+  height: 4px;
+  background: linear-gradient(90deg, #004d40, #00796b);
+  border-radius: 2px;
+}
+
+.positionconfig-subtitle {
+  color: #666;
+  font-size: clamp(0.9rem, 1.5vw, 1rem);
+  margin: 0;
+}
+
+/* Card Container */
+.positionconfig-card {
+  background: white;
+  padding: clamp(0.25rem, 1vw, 1rem);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 77, 64, 0.08);
+}
+
+/* Department Selector */
+.positionconfig-selector {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: .5rem;
+  flex-wrap: wrap;
+}
+
+.positionconfig-selector label {
+  font-weight: 600;
+  color: #004d40;
+  font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+  white-space: nowrap;
+}
+
+.positionconfig-selector select {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.75rem 1.25rem;
+  font-size: clamp(0.9rem, 1.5vw, 1rem);
+  border: 2px solid #B2DFDB;
+  border-radius: 10px;
+  outline: none;
+  background-color: white;
+  color: #333;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.positionconfig-selector select:focus {
+  border-color: #015c51;
+  box-shadow: 0 0 0 4px rgba(1, 92, 81, 0.1);
+  background-color: #f9fffe;
+}
+
+.positionconfig-selector select:hover {
+  border-color: #00796b;
+  background-color: #f9fffe;
+}
+
+/* Add Position Section */
+.positionconfig-add {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.positionconfig-add input {
+  flex: 1;
+  min-width: 250px;
+  padding: 0.875rem 1.25rem;
+  border-radius: 10px;
+  border: 2px solid #B2DFDB;
+  font-size: clamp(0.9rem, 1.5vw, 1rem);
+  outline: none;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.positionconfig-add input:focus {
+  border-color: #015c51;
+  box-shadow: 0 0 0 4px rgba(1, 92, 81, 0.1);
+  background-color: #f9fffe;
+}
+
+.positionconfig-add input::placeholder {
+  color: #999;
+}
+
+.add-btn {
+  padding: 0.875rem 2rem;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);
+  border: none;
+  color: white;
+  font-weight: 600;
+  font-size: clamp(0.9rem, 1.5vw, 1rem);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(46, 125, 50, 0.3);
+  white-space: nowrap;
+}
+
+.add-btn:hover {
+  background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.4);
+  transform: translateY(-2px);
+}
+
+.add-btn:active {
+  transform: translateY(0);
+}
+
+/* Position Count */
+.positionconfig-count {
+  background: linear-gradient(135deg, #f0faf9, #e8f5f3);
+  padding: 1rem 1.5rem;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  border-left: 5px solid #015c51;
+  box-shadow: 0 2px 8px rgba(0, 77, 64, 0.05);
+}
+
+.positionconfig-count span {
+  color: #004d40;
+  font-weight: 700;
+  font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+}
+
+/* Table Wrapper */
+.positionconfig-table-wrapper {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 77, 64, 0.1);
+  overflow: hidden;
+}
+
+/* Table Styles */
+.positionconfig-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+}
+
+.positionconfig-table th,
+.positionconfig-table td {
+  padding: clamp(12px, 1.5vw, 16px) clamp(14px, 2vw, 18px);
+  text-align: left;
+  border-bottom: 1px solid #e8f4f3;
+  color: #004d40;
+}
+
+.positionconfig-table th {
+  background: linear-gradient(135deg, #B2DFDB 0%, #d4efec 100%);
+  color: #004d40;
+  font-weight: 700;
+  font-size: clamp(0.85rem, 1.5vw, 0.95rem);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.positionconfig-table td {
+  font-size: clamp(0.85rem, 1.5vw, 0.95rem);
+  font-weight: 500;
+}
+
+.positionconfig-table tbody tr {
+  transition: all 0.2s ease;
+}
+
+.positionconfig-table tbody tr:hover {
+  background-color: #f1fdfb;
+  transform: scale(1.001);
+  box-shadow: 0 2px 8px rgba(0, 77, 64, 0.05);
+}
+
+.positionconfig-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Position Name Cell */
+.position-name-cell {
+  font-weight: 600;
+  min-width: 200px;
+}
+
+.position-name {
+  color: #015c51;
+}
+
+.edit-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #015c51;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  outline: none;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.edit-input:focus {
+  box-shadow: 0 0 0 3px rgba(1, 92, 81, 0.1);
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.action-buttons button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: clamp(0.8rem, 1.5vw, 0.875rem);
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+}
+
+.edit-btn {
+  background: linear-gradient(135deg, #0277bd 0%, #0288d1 100%);
+  color: white;
+}
+
+.edit-btn:hover {
+  background: linear-gradient(135deg, #01579b 0%, #0277bd 100%);
+  box-shadow: 0 4px 12px rgba(2, 119, 189, 0.4);
+  transform: translateY(-2px);
+}
+
+.save-btn {
+  background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);
+  color: white;
+}
+
+.save-btn:hover {
+  background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.4);
+  transform: translateY(-2px);
+}
+
+.cancel-btn {
+  background: linear-gradient(135deg, #757575 0%, #616161 100%);
+  color: white;
+}
+
+.cancel-btn:hover {
+  background: linear-gradient(135deg, #616161 0%, #424242 100%);
+  box-shadow: 0 4px 12px rgba(117, 117, 117, 0.4);
+  transform: translateY(-2px);
+}
+
+.delete-btn {
+  background: linear-gradient(135deg, #c62828 0%, #d32f2f 100%);
+  color: white;
+}
+
+.delete-btn:hover {
+  background: linear-gradient(135deg, #b71c1c 0%, #c62828 100%);
+  box-shadow: 0 4px 12px rgba(198, 40, 40, 0.4);
+  transform: translateY(-2px);
+}
+
+.action-buttons button:active {
+  transform: translateY(0);
+}
+
+/* Empty State */
+.positionconfig-empty {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #666;
+}
+
+.positionconfig-empty p {
+  font-size: clamp(1rem, 1.5vw, 1.1rem);
+  margin: 0;
+  font-style: italic;
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================ */
+@media (max-width: 768px) {
+  .positionconfig-selector {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .positionconfig-selector select {
+    width: 100%;
+  }
+
+  .positionconfig-add {
+    flex-direction: column;
+  }
+
+  .positionconfig-add input {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .add-btn {
+    width: 100%;
+  }
+
+  /* Make table scrollable on mobile */
+  .positionconfig-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .positionconfig-table {
+    min-width: 800px;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .action-buttons button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .positionconfig-container {
+    padding: 1rem;
+  }
+
+  .positionconfig-card {
+    padding: 1rem;
+  }
+
+  .positionconfig-table th,
+  .positionconfig-table td {
+    padding: 8px 10px;
+    font-size: 0.8rem;
+  }
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+.positionconfig-selector select:focus-visible,
+.positionconfig-add input:focus-visible,
+.add-btn:focus-visible,
+.action-buttons button:focus-visible {
+  outline: 3px solid #015c51;
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+   REDUCED MOTION
+   ============================================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .action-buttons button:hover,
+  .add-btn:hover {
+    transform: none;
+  }
+}

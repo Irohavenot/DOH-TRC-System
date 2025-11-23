@@ -1,3 +1,4 @@
+// Register.tsx (Updated)
 import { useState, useEffect } from "react";
 import { db } from "../firebase/firebase"; 
 import { toast } from "react-toastify";
@@ -28,7 +29,8 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
   const [lastName, setLastName] = useState("");
   const [middleInitial, setMiddleInitial] = useState("");
   const [position, setPosition] = useState("");
-  const [role, setRole] = useState<"Medical" | "IT" | null>(null);
+  const [role, setRole] = useState<"Medical" | "IT" | "Other" | null>(null);
+  const [positions, setPositions] = useState<string[]>([]);
   const [username, setUsername] = useState("");
   const [idPicture, setIdPicture] = useState<File | null>(null);
   const [password, setPassword] = useState("");
@@ -49,11 +51,25 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
   const passwordErrors = validatePassword(password);
 
   useEffect(() => {
-    const storedRole = localStorage.getItem("registerRole") as "Medical" | "IT" | null;
+    const storedRole = localStorage.getItem("registerRole") as "Medical" | "IT" | "Other" | null;
     if (storedRole) {
       setRole(storedRole);
     }
   }, []);
+
+  useEffect(() => {
+    if (role) {
+      const collectionName = role === "Medical" ? "Medical_Position" : role === "IT" ? "IT_Position" : "Other_Position";
+      getDocs(collection(db, collectionName))
+        .then((snap) => {
+          setPositions(snap.docs.map((d) => d.data().name));
+        })
+        .catch((error) => {
+          console.error("Error loading positions:", error);
+          toast.error("Failed to load positions.");
+        });
+    }
+  }, [role]);
 
   const fileToBase64 = (file: File) => {
     return new Promise<string>((resolve, reject) => {
@@ -138,7 +154,7 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
         LastName: lastName,
         MiddleInitial: middleInitial,
         Position: position,
-        Department: "",
+        Department: role || "", // Set Department based on chosen role
         Status: "pending", // 👈 Back to "pending" (not "email_pending")
         CreatedAt: new Date(),
         IDPictureBase64: idPicBase64,
@@ -218,19 +234,11 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
               <option value="" disabled>
                 Position
               </option>
-              {role === "Medical" ? (
-                <>
-                  <option value="Clinical">Clinical</option>
-                  <option value="Radiology">Radiology</option>
-                  <option value="Dental">Dental</option>
-                  <option value="DDE">DDE</option>
-                </>
-              ) : (
-                <>
-                  <option value="Supply Unit">Supply Unit</option>
-                  <option value="IT Personnel">IT Personnel</option>
-                </>
-              )}
+              {positions.map((pos) => (
+                <option key={pos} value={pos}>
+                  {pos}
+                </option>
+              ))}
             </select>
           </div>
         </div>

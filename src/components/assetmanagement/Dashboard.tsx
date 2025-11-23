@@ -631,7 +631,7 @@ const Dashboard = () => {
                           setActiveView('people');
                         }}
                       >
-                        View more →
+                        View more → 
                       </button>
                     </div>
                   </div>
