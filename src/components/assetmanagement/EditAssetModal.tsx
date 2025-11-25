@@ -168,44 +168,44 @@ const EditAssetModal: React.FC<Props> = ({
   }, []);
 
   // Render QR Preview
-  useEffect(() => {
-    if (previewMode !== "qr") return;
-    
-    const container = qrPreviewRef.current;
-    if (!container || !form) return;
-    container.innerHTML = "";
+useEffect(() => {
+  if (previewMode !== "qr") return;
+  
+  const container = qrPreviewRef.current;
+  if (!container || !form) return;
+  container.innerHTML = "";
 
-    const assetId = form.assetId || form.docId || "";
-    const assetUrl =
-      form.assetUrl ||
-      `${window.location.origin}/dashboard/${encodeURIComponent(assetId)}`;
+  const assetId = form.assetId || form.docId || "";
+  const assetUrl =
+    form.assetUrl ||
+    `${window.location.origin}/dashboard/${encodeURIComponent(assetId)}`;
 
-    if (form.qrcode && !form.generateQR) {
-      container.innerHTML = `<img src="${form.qrcode}" class="qr-image" alt="QR Code" />`;
-      return;
+  if (form.qrcode && !form.generateQR) {
+    container.innerHTML = `<img src="${form.qrcode}" class="qr-image" alt="QR Code" />`;
+    return;
+  }
+
+  if (form.generateQR) {
+    try {
+      QrCreator.render(
+        {
+          text: assetUrl, // ✅ CHANGED: Just the URL, not JSON
+          radius: 0.45,
+          ecLevel: "H",
+          fill: "#162a37",
+          background: null,
+          size: 250,
+        },
+        container as any
+      );
+    } catch (e) {
+      console.error("QR preview failed:", e);
+      container.innerHTML = `<div class="qr-error"><i class="fas fa-exclamation-triangle"></i> Preview unavailable</div>`;
     }
-
-    if (form.generateQR) {
-      try {
-        QrCreator.render(
-          {
-            text: JSON.stringify({ assetId, assetUrl }),
-            radius: 0.45,
-            ecLevel: "H",
-            fill: "#162a37",
-            background: null,
-            size: 250,
-          },
-          container as any
-        );
-      } catch (e) {
-        console.error("QR preview failed:", e);
-        container.innerHTML = `<div class="qr-error"><i class="fas fa-exclamation-triangle"></i> Preview unavailable</div>`;
-      }
-    } else {
-      container.innerHTML = `<div class="qr-placeholder"><i class="fas fa-qrcode"></i><p>QR generation disabled</p></div>`;
-    }
-  }, [form, previewMode]);
+  } else {
+    container.innerHTML = `<div class="qr-placeholder"><i class="fas fa-qrcode"></i><p>QR generation disabled</p></div>`;
+  }
+}, [form, previewMode]);
 
   const onChange = (key: keyof AssetDoc, value: any) => {
     // Reset subType when category changes
@@ -252,21 +252,21 @@ const EditAssetModal: React.FC<Props> = ({
     }
   };
 
-  const makeQRDataUrl = async (value: string): Promise<string> => {
-    const canvas = document.createElement("canvas");
-    QrCreator.render(
-      {
-        text: value,
-        radius: 0.45,
-        ecLevel: "H",
-        fill: "#162a37",
-        background: null,
-        size: 250,
-      },
-      canvas as any
-    );
-    return (canvas as HTMLCanvasElement).toDataURL("image/png");
-  };
+  const makeQRDataUrl = async (url: string): Promise<string> => {
+  const canvas = document.createElement("canvas");
+  QrCreator.render(
+    {
+      text: url, // ✅ CHANGED: Just the URL, not JSON
+      radius: 0.45,
+      ecLevel: "H",
+      fill: "#162a37",
+      background: null,
+      size: 250,
+    },
+    canvas as any
+  );
+  return (canvas as HTMLCanvasElement).toDataURL("image/png");
+};
 
   const handleSave = async () => {
     if (!form?.docId) return toast.error("Missing asset ID.");
@@ -304,8 +304,9 @@ const EditAssetModal: React.FC<Props> = ({
         const assetUrl =
           form.assetUrl ||
           `${window.location.origin}/dashboard/${encodeURIComponent(assetId)}`;
-        const qrString = JSON.stringify({ assetId, assetUrl });
-        const dataUrl = await makeQRDataUrl(qrString);
+        
+        // ✅ CHANGED: Pass URL directly, not JSON
+        const dataUrl = await makeQRDataUrl(assetUrl);
 
         const base64 = dataUrl.split(",")[1] || "";
         const bytes = Math.ceil((base64.length * 3) / 4);

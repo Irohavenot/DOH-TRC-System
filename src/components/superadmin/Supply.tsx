@@ -63,8 +63,11 @@ interface Asset {
 interface Category {
   id: string;
   name: string;
+  types?: string[];
   createdAt?: any;
   createdBy?: string;
+  updatedAt?: any;
+  updatedBy?: string;
 }
 
 interface Status {
@@ -105,9 +108,9 @@ const SupplyUnit: React.FC = () => {
   const [showQR, setShowQR] = useState(false);
   const [qrAsset, setQrAsset] = useState<any>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('assets');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [editingCategoryTypes, setEditingCategoryTypes] = useState<string | null>(null);
+  const [newCategoryType, setNewCategoryType] = useState('');
 
   const openQR = (asset: any) => {
     setQrAsset(asset);
@@ -241,8 +244,11 @@ const SupplyUnit: React.FC = () => {
         const list: Category[] = snap.docs.map((d) => ({
           id: d.id,
           name: d.data().Category_Name,
+          types: d.data().types || [],
           createdAt: d.data().createdAt,
           createdBy: d.data().createdBy,
+          updatedAt: d.data().updatedAt,
+          updatedBy: d.data().updatedBy,
         }));
         setCategories(list);
         setLoadingCategories(false);
@@ -319,6 +325,7 @@ const SupplyUnit: React.FC = () => {
     try {
       await addDoc(collection(db, "Asset_Categories"), {
         Category_Name: name.trim(),
+        types: [],
         createdAt: serverTimestamp(),
         createdBy: currentUserDocId,
       });
@@ -340,9 +347,17 @@ const SupplyUnit: React.FC = () => {
       alert("A category with that name already exists.");
       return false;
     }
+    if (!currentUserDocId) {
+      alert("User information not available.");
+      return false;
+    }
     try {
       const docRef = doc(db, "Asset_Categories", id);
-      await updateDoc(docRef, { Category_Name: newName.trim() });
+      await updateDoc(docRef, { 
+        Category_Name: newName.trim(),
+        updatedAt: serverTimestamp(),
+        updatedBy: currentUserDocId,
+      });
       return true;
     } catch (err) {
       console.error("Failed to edit category:", err);
@@ -430,6 +445,81 @@ const SupplyUnit: React.FC = () => {
       alert("Failed to delete status.");
       return false;
     }
+  };
+
+  // Add type to category
+  const addTypeToCategory = async (categoryId: string, typeName: string) => {
+    if (!typeName.trim()) {
+      alert("Type name cannot be empty.");
+      return false;
+    }
+    const category = categories.find(c => c.id === categoryId);
+    if (!category) return false;
+    
+    const currentTypes = category.types || [];
+    if (currentTypes.includes(typeName.trim())) {
+      alert("This type already exists in this category.");
+      return false;
+    }
+
+    if (!currentUserDocId) {
+      alert("User information not available.");
+      return false;
+    }
+
+    try {
+      const docRef = doc(db, "Asset_Categories", categoryId);
+      await updateDoc(docRef, {
+        types: [...currentTypes, typeName.trim()],
+        updatedAt: serverTimestamp(),
+        updatedBy: currentUserDocId,
+      });
+      return true;
+    } catch (err) {
+      console.error("Failed to add type:", err);
+      alert("Failed to add type.");
+      return false;
+    }
+  };
+
+  // Remove type from category
+  const removeTypeFromCategory = async (categoryId: string, typeName: string) => {
+    const category = categories.find(c => c.id === categoryId);
+    if (!category) return false;
+
+    const currentTypes = category.types || [];
+    const updatedTypes = currentTypes.filter(t => t !== typeName);
+
+    if (!currentUserDocId) {
+      alert("User information not available.");
+      return false;
+    }
+
+    try {
+      const docRef = doc(db, "Asset_Categories", categoryId);
+      await updateDoc(docRef, {
+        types: updatedTypes,
+        updatedAt: serverTimestamp(),
+        updatedBy: currentUserDocId,
+      });
+      return true;
+    } catch (err) {
+      console.error("Failed to remove type:", err);
+      alert("Failed to remove type.");
+      return false;
+    }
+  };
+
+  const toggleCategoryExpansion = (categoryId: string) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(categoryId)) {
+        newSet.delete(categoryId);
+      } else {
+        newSet.add(categoryId);
+      }
+      return newSet;
+    });
   };
 
   const computeBadge = (licenseType?: string, renewdate?: string) => {
@@ -676,36 +766,59 @@ const SupplyUnit: React.FC = () => {
               className="supply-admin-add-btn"
             >
               <i className="fas fa-plus"></i> Add Category
-            </button>
-          </div>
-          
-          {loadingCategories ? (
-            <div className="supply-admin-loading">
-              <div className="supply-admin-spinner"></div>
-              <p>Loading categories...</p>
-            </div>
-          ) : categories.length === 0 ? (
-            <div className="supply-admin-empty">
-              <i className="fas fa-inbox"></i>
-              <p>No categories found.</p>
-            </div>
-          ) : (
-            <div className="supply-admin-table-wrapper">
-              <table className="supply-admin-table">
-                <thead>
-                  <tr>
-                    <th>Category Name</th>
-                    <th>Created By</th>
-                    <th>Created At</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {categories.map((cat) => (
-                    <tr key={cat.id}>
+</button>
+</div>
+      {loadingCategories ? (
+        <div className="supply-admin-loading">
+          <div className="supply-admin-spinner"></div>
+          <p>Loading categories...</p>
+        </div>
+      ) : categories.length === 0 ? (
+        <div className="supply-admin-empty">
+          <i className="fas fa-inbox"></i>
+          <p>No categories found.</p>
+        </div>
+      ) : (
+        <div className="supply-admin-table-wrapper">
+          <table className="supply-admin-table">
+            <thead>
+              <tr>
+                <th>Category Name</th>
+                <th>Types</th>
+                <th>Created By</th>
+                <th>Last Updated</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {categories.map((cat) => {
+                const isExpanded = expandedCategories.has(cat.id);
+                const typesCount = cat.types?.length || 0;
+                return (
+                  <React.Fragment key={cat.id}>
+                    <tr>
                       <td><strong>{cat.name}</strong></td>
+                      <td>
+                        {typesCount > 0 ? (
+                          <button
+                            className={`supply-admin-expand-btn ${isExpanded ? 'expanded' : ''}`}
+                            onClick={() => toggleCategoryExpansion(cat.id)}
+                          >
+                            <i className="fas fa-chevron-down"></i>
+                            {typesCount} type{typesCount !== 1 ? 's' : ''}
+                          </button>
+                        ) : (
+                          <span style={{ color: '#6c757d', fontSize: '13px' }}>No types</span>
+                        )}
+                      </td>
                       <td>{uidToNameMap[cat.createdBy || ''] || 'Unknown'}</td>
-                      <td>{cat.createdAt ? new Date(cat.createdAt.toDate()).toLocaleString() : 'N/A'}</td>
+                      <td>
+                        {cat.updatedAt 
+                          ? new Date(cat.updatedAt.toDate()).toLocaleString() 
+                          : cat.createdAt 
+                            ? new Date(cat.createdAt.toDate()).toLocaleString() 
+                            : 'N/A'}
+                      </td>
                       <td>
                         <div className="supply-admin-action-group">
                           <button
@@ -719,6 +832,13 @@ const SupplyUnit: React.FC = () => {
                             <i className="fas fa-edit"></i> Edit
                           </button>
                           <button
+                            className="supply-admin-action-btn supply-admin-view-btn"
+                            onClick={() => setEditingCategoryTypes(cat.id)}
+                            title="Manage Types"
+                          >
+                            <i className="fas fa-list"></i> Types
+                          </button>
+                          <button
                             className="supply-admin-action-btn supply-admin-delete-btn"
                             onClick={() => deleteCategory(cat.id)}
                             title="Delete Category"
@@ -728,264 +848,397 @@ const SupplyUnit: React.FC = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                    {isExpanded && (
+                      <tr className="supply-admin-types-row">
+                        <td colSpan={5} className="supply-admin-types-cell">
+                          <div className="supply-admin-types-container">
+                            <div className="supply-admin-types-header">
+                              <i className="fas fa-tags"></i>
+                              Types for "{cat.name}"
+                            </div>
+                            {cat.types && cat.types.length > 0 ? (
+                              <div className="supply-admin-types-list">
+                                {cat.types.map((type, idx) => (
+                                  <div key={idx} className="supply-admin-type-item">
+                                    <span>{type}</span>
+                                    <button
+                                      className="supply-admin-type-delete-btn"
+                                      onClick={() => {
+                                        if (window.confirm(`Remove "${type}" from this category?`)) {
+                                          removeTypeFromCategory(cat.id, type);
+                                        }
+                                      }}
+                                      title="Remove Type"
+                                    >
+                                      <i className="fas fa-times"></i>
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="supply-admin-types-empty">
+                                No types added yet. Click "Types" button to add types.
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
+    </div>
+  )}
 
-      {viewMode === 'statuses' && (
-        <div className="supply-admin-section">
-          <div className="supply-admin-section-header">
-            <h3 className="supply-admin-section-title">
-              <i className="fas fa-list-check"></i> All Statuses
-              <span className="supply-admin-badge">{statuses.length}</span>
-            </h3>
-            <button
-              onClick={() => setShowStatusModal(true)}
-              className="supply-admin-add-btn"
-            >
-              <i className="fas fa-plus"></i> Add Status
-            </button>
-          </div>
-          
-          {loadingStatuses ? (
-            <div className="supply-admin-loading">
-              <div className="supply-admin-spinner"></div>
-              <p>Loading statuses...</p>
-            </div>
-          ) : statuses.length === 0 ? (
-            <div className="supply-admin-empty">
-              <i className="fas fa-inbox"></i>
-              <p>No statuses found.</p>
-            </div>
-          ) : (
-            <div className="supply-admin-table-wrapper">
-              <table className="supply-admin-table">
-                <thead>
-                  <tr>
-                    <th>Status Name</th>
-                    <th>Created By</th>
-                    <th>Created At</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {statuses.map((stat) => (
-                    <tr key={stat.id}>
-                      <td><strong>{stat.name}</strong></td>
-                      <td>{uidToNameMap[stat.createdBy || ''] || 'Unknown'}</td>
-                      <td>{stat.createdAt ? new Date(stat.createdAt.toDate()).toLocaleString() : 'N/A'}</td>
-                      <td>
-                        <div className="supply-admin-action-group">
-                          <button
-                            className="supply-admin-action-btn supply-admin-edit-btn"
-                            onClick={() => {
-                              const newName = prompt("Edit status name:", stat.name);
-                              if (newName) editStatus(stat.id, newName);
-                            }}
-                            title="Edit Status"
-                          >
-                            <i className="fas fa-edit"></i> Edit
-                          </button>
-                          <button
-                            className="supply-admin-action-btn supply-admin-delete-btn"
-                            onClick={() => deleteStatus(stat.id)}
-                            title="Delete Status"
-                          >
-                            <i className="fas fa-trash"></i> Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+  {viewMode === 'statuses' && (
+    <div className="supply-admin-section">
+      <div className="supply-admin-section-header">
+        <h3 className="supply-admin-section-title">
+          <i className="fas fa-list-check"></i> All Statuses
+          <span className="supply-admin-badge">{statuses.length}</span>
+        </h3>
+        <button
+          onClick={() => setShowStatusModal(true)}
+          className="supply-admin-add-btn"
+        >
+          <i className="fas fa-plus"></i> Add Status
+        </button>
+      </div>
+      
+      {loadingStatuses ? (
+        <div className="supply-admin-loading">
+          <div className="supply-admin-spinner"></div>
+          <p>Loading statuses...</p>
+        </div>
+      ) : statuses.length === 0 ? (
+        <div className="supply-admin-empty">
+          <i className="fas fa-inbox"></i>
+          <p>No statuses found.</p>
+        </div>
+      ) : (
+        <div className="supply-admin-table-wrapper">
+          <table className="supply-admin-table">
+            <thead>
+              <tr>
+                <th>Status Name</th>
+                <th>Created By</th>
+                <th>Created At</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {statuses.map((stat) => (
+                <tr key={stat.id}>
+                  <td><strong>{stat.name}</strong></td>
+                  <td>{uidToNameMap[stat.createdBy || ''] || 'Unknown'}</td>
+                  <td>{stat.createdAt ? new Date(stat.createdAt.toDate()).toLocaleString() : 'N/A'}</td>
+                  <td>
+                    <div className="supply-admin-action-group">
+                      <button
+                        className="supply-admin-action-btn supply-admin-edit-btn"
+                        onClick={() => {
+                          const newName = prompt("Edit status name:", stat.name);
+                          if (newName) editStatus(stat.id, newName);
+                        }}
+                        title="Edit Status"
+                      >
+                        <i className="fas fa-edit"></i> Edit
+                      </button>
+                      <button
+                        className="supply-admin-action-btn supply-admin-delete-btn"
+                        onClick={() => deleteStatus(stat.id)}
+                        title="Delete Status"
+                      >
+                        <i className="fas fa-trash"></i> Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
+    </div>
+  )}
 
-      {/* Add Category Modal */}
-      {showCategoryModal && (
-        <div className="supply-admin-modal-overlay" onClick={() => setShowCategoryModal(false)}>
-          <div className="supply-admin-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="supply-admin-modal-header">
-              <h3><i className="fas fa-tag"></i> Add New Category</h3>
-              <button 
-                className="supply-admin-modal-close" 
-                onClick={() => setShowCategoryModal(false)}
-              >
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className="supply-admin-modal-body">
-              <input
-                type="text"
-                className="supply-admin-input"
-                placeholder="Enter category name"
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    addNewCategory(newCategory).then(success => {
-                      if (success) {
-                        setNewCategory("");
-                        setShowCategoryModal(false);
-                      }
-                    });
-                  }
-                }}
-              />
-            </div>
-            <div className="supply-admin-modal-footer">
-              <button
-                className="supply-admin-modal-btn supply-admin-modal-btn-primary"
-                onClick={async () => {
-                  if (await addNewCategory(newCategory)) {
+  {/* Add Category Modal */}
+  {showCategoryModal && (
+    <div className="supply-admin-modal-overlay" onClick={() => setShowCategoryModal(false)}>
+      <div className="supply-admin-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="supply-admin-modal-header">
+          <h3><i className="fas fa-tag"></i> Add New Category</h3>
+          <button 
+            className="supply-admin-modal-close" 
+            onClick={() => setShowCategoryModal(false)}
+          >
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+        <div className="supply-admin-modal-body">
+          <input
+            type="text"
+            className="supply-admin-input"
+            placeholder="Enter category name"
+            value={newCategory}
+            onChange={(e) => setNewCategory(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                addNewCategory(newCategory).then(success => {
+                  if (success) {
                     setNewCategory("");
                     setShowCategoryModal(false);
                   }
-                }}
-              >
-                <i className="fas fa-plus"></i> Add Category
-              </button>
-              <button
-                className="supply-admin-modal-btn supply-admin-modal-btn-secondary"
-                onClick={() => setShowCategoryModal(false)}
-              >
-                <i className="fas fa-times"></i> Cancel
-              </button>
-            </div>
-          </div>
+                });
+              }
+            }}
+          />
         </div>
-      )}
+        <div className="supply-admin-modal-footer">
+          <button
+            className="supply-admin-modal-btn supply-admin-modal-btn-primary"
+            onClick={async () => {
+              if (await addNewCategory(newCategory)) {
+                setNewCategory("");
+                setShowCategoryModal(false);
+              }
+            }}
+          >
+            <i className="fas fa-plus"></i> Add Category
+          </button>
+          <button
+            className="supply-admin-modal-btn supply-admin-modal-btn-secondary"
+            onClick={() => setShowCategoryModal(false)}
+          >
+            <i className="fas fa-times"></i> Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
 
-      {/* Add Status Modal */}
-      {showStatusModal && (
-        <div className="supply-admin-modal-overlay" onClick={() => setShowStatusModal(false)}>
-          <div className="supply-admin-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="supply-admin-modal-header">
-              <h3><i className="fas fa-circle-check"></i> Add New Status</h3>
-              <button 
-                className="supply-admin-modal-close" 
-                onClick={() => setShowStatusModal(false)}
-              >
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className="supply-admin-modal-body">
-              <input
-                type="text"
-                className="supply-admin-input"
-                placeholder="Enter status name"
-                value={newStatus}
-                onChange={(e) => setNewStatus(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    addNewStatus(newStatus).then(success => {
-                      if (success) {
-                        setNewStatus("");
-                        setShowStatusModal(false);
-                      }
-                    });
-                  }
-                }}
-              />
-            </div>
-            <div className="supply-admin-modal-footer">
-              <button
-                className="supply-admin-modal-btn supply-admin-modal-btn-primary"
-                onClick={async () => {
-                  if (await addNewStatus(newStatus)) {
+  {/* Add Status Modal */}
+  {showStatusModal && (
+    <div className="supply-admin-modal-overlay" onClick={() => setShowStatusModal(false)}>
+      <div className="supply-admin-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="supply-admin-modal-header">
+          <h3><i className="fas fa-circle-check"></i> Add New Status</h3>
+          <button 
+            className="supply-admin-modal-close" 
+            onClick={() => setShowStatusModal(false)}
+          >
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+        <div className="supply-admin-modal-body">
+          <input
+            type="text"
+            className="supply-admin-input"
+            placeholder="Enter status name"
+            value={newStatus}
+            onChange={(e) => setNewStatus(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                addNewStatus(newStatus).then(success => {
+                  if (success) {
                     setNewStatus("");
                     setShowStatusModal(false);
                   }
-                }}
-              >
-                <i className="fas fa-plus"></i> Add Status
-              </button>
-              <button
-                className="supply-admin-modal-btn supply-admin-modal-btn-secondary"
-                onClick={() => setShowStatusModal(false)}
-              >
-                <i className="fas fa-times"></i> Cancel
-              </button>
-            </div>
+                });
+              }
+            }}
+          />
+        </div>
+        <div className="supply-admin-modal-footer">
+          <button
+            className="supply-admin-modal-btn supply-admin-modal-btn-primary"
+            onClick={async () => {
+              if (await addNewStatus(newStatus)) {
+                setNewStatus("");
+                setShowStatusModal(false);
+              }
+            }}
+          >
+            <i className="fas fa-plus"></i> Add Status
+          </button>
+          <button
+            className="supply-admin-modal-btn supply-admin-modal-btn-secondary"
+            onClick={() => setShowStatusModal(false)}
+          >
+            <i className="fas fa-times"></i> Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {/* Manage Category Types Modal */}
+  {editingCategoryTypes && (
+    <div className="supply-admin-modal-overlay" onClick={() => {
+      setEditingCategoryTypes(null);
+      setNewCategoryType('');
+    }}>
+      <div className="supply-admin-modal supply-admin-modal-large" onClick={(e) => e.stopPropagation()}>
+        <div className="supply-admin-modal-header">
+          <h3>
+            <i className="fas fa-tags"></i> Manage Types for "{categories.find(c => c.id === editingCategoryTypes)?.name}"
+          </h3>
+          <button 
+            className="supply-admin-modal-close" 
+            onClick={() => {
+              setEditingCategoryTypes(null);
+              setNewCategoryType('');
+            }}
+          >
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+        <div className="supply-admin-modal-body">
+          <div className="supply-admin-types-input-group">
+            <input
+              type="text"
+              className="supply-admin-input"
+              placeholder="Enter type name"
+              value={newCategoryType}
+              onChange={(e) => setNewCategoryType(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && newCategoryType.trim()) {
+                  addTypeToCategory(editingCategoryTypes, newCategoryType).then(success => {
+                    if (success) setNewCategoryType('');
+                  });
+                }
+              }}
+            />
+            <button
+              className="supply-admin-add-type-btn"
+              onClick={() => {
+                if (newCategoryType.trim()) {
+                  addTypeToCategory(editingCategoryTypes, newCategoryType).then(success => {
+                    if (success) setNewCategoryType('');
+                  });
+                }
+              }}
+            >
+              <i className="fas fa-plus"></i> Add Type
+            </button>
+          </div>
+
+          <div className="supply-admin-types-list-modal">
+            <h4 style={{ color: '#004d40', marginBottom: '16px', fontSize: '16px' }}>
+              <i className="fas fa-list"></i> Current Types ({categories.find(c => c.id === editingCategoryTypes)?.types?.length || 0})
+            </h4>
+            {categories.find(c => c.id === editingCategoryTypes)?.types?.length ? (
+              <div className="supply-admin-types-grid">
+                {categories.find(c => c.id === editingCategoryTypes)?.types?.map((type, idx) => (
+                  <div key={idx} className="supply-admin-type-card">
+                    <span className="supply-admin-type-name">{type}</span>
+                    <button
+                      className="supply-admin-type-card-delete-btn"
+                      onClick={() => {
+                        if (window.confirm(`Remove "${type}" from this category?`)) {
+                          removeTypeFromCategory(editingCategoryTypes, type);
+                        }
+                      }}
+                      title="Remove Type"
+                    >
+                      <i className="fas fa-trash"></i>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="supply-admin-empty" style={{ padding: '40px 20px' }}>
+                <i className="fas fa-inbox"></i>
+                <p>No types added yet. Add a type above to get started.</p>
+              </div>
+            )}
           </div>
         </div>
-      )}
-
-      <AssetDetailsModal
-        isOpen={!!selectedAsset}
-        onClose={() => {
-          setSelectedAsset(null);
-        }}
-        asset={selectedAsset}
-        onViewQR={openQR}
-        onEdit={() => {
-          const idx = filteredAssets.findIndex(c => c.id === selectedAsset?.id);
-          if (idx >= 0) handleEdit(idx);
-        }}
-        onReport={() => {
-          if (selectedAsset) {
-            setReportingAsset({
-              id: selectedAsset.id,
-              docId: selectedAsset.id,
-              name: selectedAsset.title,
-            });
-            setReportModalOpen(true);
-          }
-        }}
-        onViewHistory={(history, assetName, assetId) => {
-          setHistoryAsset({ id: assetId, name: assetName, history });
-          setShowHistoryModal(true);
-        }}
-        currentUserDocId={null}
-        isAdminView={true}
-      />
-
-      <EditAssetModal
-        isOpen={editModalOpen}
-        onClose={() => {
-          setEditModalOpen(false);
-          setEditingAsset(null);
-        }}
-        asset={editingAsset}
-        onSaved={() => {
-          setEditModalOpen(false);
-          setEditingAsset(null);
-        }}
-        onDeleted={() => {
-          setEditModalOpen(false);
-          setEditingAsset(null);
-          setSelectedAsset(null);
-        }}
-      />
-
-      <ReportAssetModal
-        isOpen={reportModalOpen}
-        onClose={() => {
-          setReportModalOpen(false);
-          setReportingAsset(null);
-        }}
-        assetId={reportingAsset?.id || ''}
-        assetDocId={reportingAsset?.docId || ''}
-        assetName={reportingAsset?.name || ''}
-      />
-
-      <HistoryModal
-        isOpen={showHistoryModal}
-        onClose={() => setShowHistoryModal(false)}
-        history={historyAsset?.history || []}
-        assetName={historyAsset?.name || 'Asset'}
-      />
-
-      <QRModal isOpen={showQR} onClose={() => setShowQR(false)} asset={qrAsset} />
+        <div className="supply-admin-modal-footer">
+          <button
+            className="supply-admin-modal-btn supply-admin-modal-btn-secondary"
+            onClick={() => {
+              setEditingCategoryTypes(null);
+              setNewCategoryType('');
+            }}
+          >
+            <i className="fas fa-check"></i> Done
+          </button>
+        </div>
+      </div>
     </div>
-  );
-};
+  )}
 
+  <AssetDetailsModal
+    isOpen={!!selectedAsset}
+    onClose={() => {
+      setSelectedAsset(null);
+    }}
+    asset={selectedAsset}
+    onViewQR={openQR}
+    onEdit={() => {
+      const idx = filteredAssets.findIndex(c => c.id === selectedAsset?.id);
+      if (idx >= 0) handleEdit(idx);
+    }}
+    onReport={() => {
+      if (selectedAsset) {
+        setReportingAsset({
+          id: selectedAsset.id,
+          docId: selectedAsset.id,
+          name: selectedAsset.title,
+        });
+        setReportModalOpen(true);
+      }
+    }}
+    onViewHistory={(history, assetName, assetId) => {
+      setHistoryAsset({ id: assetId, name: assetName, history });
+      setShowHistoryModal(true);
+    }}
+    currentUserDocId={currentUserDocId}
+  />
+
+  <EditAssetModal
+    isOpen={editModalOpen}
+    onClose={() => {
+      setEditModalOpen(false);
+      setEditingAsset(null);
+    }}
+    asset={editingAsset}
+    onSaved={() => {
+      setEditModalOpen(false);
+      setEditingAsset(null);
+    }}
+    onDeleted={() => {
+      setEditModalOpen(false);
+      setEditingAsset(null);
+      setSelectedAsset(null);
+    }}
+  />
+
+  <ReportAssetModal
+    isOpen={reportModalOpen}
+    onClose={() => {
+      setReportModalOpen(false);
+      setReportingAsset(null);
+    }}
+    assetId={reportingAsset?.id || ''}
+    assetDocId={reportingAsset?.docId || ''}
+    assetName={reportingAsset?.name || ''}
+  />
+
+  <HistoryModal
+    isOpen={showHistoryModal}
+    onClose={() => setShowHistoryModal(false)}
+    history={historyAsset?.history || []}
+    assetName={historyAsset?.name || 'Asset'}
+  />
+
+  <QRModal isOpen={showQR} onClose={() => setShowQR(false)} asset={qrAsset} />
+</div>
+);
+};
 export default SupplyUnit;

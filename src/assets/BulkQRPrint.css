@@ -1,0 +1,463 @@
+/* BulkQRPrint.css */
+
+/* Modal Styles - Screen Only */
+@media screen {
+  .bulk-qr-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .bulk-qr-modal {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  }
+
+  .bulk-qr-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .bulk-qr-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .bulk-qr-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+
+  .bulk-qr-close:hover {
+    background: #f3f4f6;
+    color: #1f2937;
+  }
+
+  .bulk-qr-filters {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .bulk-qr-search {
+    flex: 1;
+    min-width: 250px;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .bulk-qr-search i {
+    position: absolute;
+    left: 1rem;
+    color: #9ca3af;
+  }
+
+  .bulk-qr-search input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+  }
+
+  .bulk-qr-search input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  .bulk-qr-category-filter {
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background: white;
+    cursor: pointer;
+  }
+
+  .bulk-qr-select-all {
+    padding: 0.75rem 1.25rem;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+  }
+
+  .bulk-qr-select-all:hover {
+    background: #2563eb;
+  }
+
+  .bulk-qr-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+  }
+
+  .bulk-qr-loading,
+  .bulk-qr-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    text-align: center;
+    color: #6b7280;
+  }
+
+  .bulk-qr-empty i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: #d1d5db;
+  }
+
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f4f6;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .bulk-qr-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .bulk-qr-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .bulk-qr-item:hover {
+    border-color: #3b82f6;
+    background: #f9fafb;
+  }
+
+  .bulk-qr-item.selected {
+    border-color: #3b82f6;
+    background: #eff6ff;
+  }
+
+  .bulk-qr-checkbox input {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+  }
+
+  .bulk-qr-preview {
+    flex-shrink: 0;
+  }
+
+  .bulk-qr-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .bulk-qr-name {
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+  }
+
+  .bulk-qr-details {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+
+  .bulk-qr-details span {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .bulk-qr-category-badge {
+    padding: 0.25rem 0.75rem;
+    background: #f3f4f6;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    color: #4b5563;
+    font-weight: 500;
+  }
+
+  .bulk-qr-footer {
+    padding: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .bulk-qr-selected-count {
+    font-weight: 500;
+    color: #4b5563;
+  }
+
+  .bulk-qr-actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .bulk-qr-cancel,
+  .bulk-qr-print {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+  }
+
+  .bulk-qr-cancel {
+    background: #f3f4f6;
+    color: #4b5563;
+  }
+
+  .bulk-qr-cancel:hover {
+    background: #e5e7eb;
+  }
+
+  .bulk-qr-print {
+    background: #3b82f6;
+    color: white;
+  }
+
+  .bulk-qr-print:hover:not(:disabled) {
+    background: #2563eb;
+  }
+
+  .bulk-qr-print:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Hide print content on screen */
+  .bulk-qr-print-container {
+    display: none;
+  }
+}
+
+/* Print Styles */
+@media print {
+  /* Hide everything except print content */
+  body * {
+    visibility: hidden;
+  }
+
+  .bulk-qr-overlay,
+  .bulk-qr-modal,
+  .bulk-qr-header,
+  .bulk-qr-filters,
+  .bulk-qr-content,
+  .bulk-qr-footer {
+    display: none !important;
+  }
+
+  .bulk-qr-print-container,
+  .bulk-qr-print-container * {
+    visibility: visible;
+  }
+
+  .bulk-qr-print-container {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  /* A4 page setup */
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  /* Each quarter takes 1/4 of the page */
+  .bulk-qr-print-quarter {
+    width: 105mm;
+    height: 148.5mm;
+    padding: 8mm;
+    box-sizing: border-box;
+    page-break-inside: avoid;
+    float: left;
+    font-family: Arial, sans-serif;
+    font-size: 9pt;
+    line-height: 1.3;
+  }
+
+  /* Page break after every 4 items */
+  .bulk-qr-print-quarter:nth-child(4n) {
+    page-break-after: always;
+  }
+
+  /* Clear float on new pages */
+  .bulk-qr-print-quarter:nth-child(4n+1) {
+    clear: left;
+  }
+
+  .print-header {
+    display: flex;
+    align-items: center;
+    gap: 6mm;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .print-logo {
+    width: 20mm;
+    height: auto;
+    flex-shrink: 0;
+  }
+
+  .print-header-text {
+    flex: 1;
+    text-align: center;
+  }
+
+  .print-dept-name {
+    font-size: 8pt;
+    font-weight: bold;
+    margin: 1px 0;
+  }
+
+  .print-dept-small {
+    font-size: 6.5pt;
+    margin: 0.5px 0;
+  }
+
+  .print-title {
+    font-size: 10pt;
+    font-weight: bold;
+    margin: 6px 0;
+    text-align: center;
+    text-decoration: underline;
+  }
+
+  .print-info-row {
+    display: flex;
+    margin: 3px 0;
+    font-size: 8pt;
+  }
+
+  .print-info-label {
+    font-weight: bold;
+    width: 35%;
+    flex-shrink: 0;
+  }
+
+  .print-info-value {
+    flex: 1;
+    word-break: break-word;
+  }
+
+  .print-qr-container {
+    text-align: center;
+    margin: 8px 0;
+  }
+
+  .print-qr-container svg {
+    width: 45mm !important;
+    height: 45mm !important;
+  }
+
+  .print-qr-error {
+    width: 45mm;
+    height: 45mm;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #fee2e2;
+    border: 2px solid #991b1b;
+    border-radius: 8px;
+    text-align: center;
+    color: #991b1b;
+  }
+
+  .print-validation-section {
+    margin-top: 8px;
+    border-top: 1px solid #000;
+    padding-top: 6px;
+  }
+
+  .print-validation-title {
+    font-weight: bold;
+    margin-bottom: 4px;
+    font-size: 8pt;
+  }
+
+  .print-signature-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 3px;
+    font-size: 6.5pt;
+    margin-bottom: 6px;
+  }
+
+  .print-signature-item {
+    text-align: center;
+  }
+
+  .print-signature-line {
+    border-top: 1px solid #000;
+    margin-top: 12px;
+    margin-bottom: 2px;
+  }
+}

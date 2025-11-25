@@ -1,4 +1,4 @@
-// Login.tsx (Updated)
+// Login.tsx (Updated with Forgot Password)
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { auth, provider, db } from "../firebase/firebase";
@@ -10,6 +10,7 @@ import {
   getRedirectResult,
   User,
   deleteUser,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { collection, getDocs, query, where, doc, updateDoc } from "firebase/firestore";
 import { toast } from "react-toastify";
@@ -44,6 +45,12 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
   const location = useLocation();
   const from = (location.state as any)?.from as Location | undefined;
   const [showPasswordTemp, setShowPasswordTemp] = useState(false);
+
+  // Forgot Password States
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetSent, setResetSent] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   const togglePasswordVisibility = () => {
     setShowPasswordTemp(true);
@@ -209,43 +216,93 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
     }
   };
 
-const handleGoogleSignIn = async () => {
-  try {
-    const result = await signInWithPopup(auth, provider);
+  const handleGoogleSignIn = async () => {
     try {
-      await postSignInChecks(result.user, true);
-      toast.success(`Signed in using ${result.user.email}`);
-      navigate(targetAfterLogin, { replace: true });
-    } catch (err) {
-      // If postSignInChecks fails (e.g., unapproved), delete the auth account
+      const result = await signInWithPopup(auth, provider);
       try {
-        await deleteUser(result.user);
-        console.log("Unauthorized Google account deleted:", result.user.email);
-      } catch (delErr) {
-        console.warn("Failed to delete unauthorized account:", delErr);
+        await postSignInChecks(result.user, true);
+        toast.success(`Signed in using ${result.user.email}`);
+        navigate(targetAfterLogin, { replace: true });
+      } catch (err) {
+        // If postSignInChecks fails (e.g., unapproved), delete the auth account
+        try {
+          await deleteUser(result.user);
+          console.log("Unauthorized Google account deleted:", result.user.email);
+        } catch (delErr) {
+          console.warn("Failed to delete unauthorized account:", delErr);
+        }
+        // Error message already shown by postSignInChecks
       }
-      // Error message already shown by postSignInChecks
+    } catch (e: any) {
+      if (
+        e?.code === "auth/popup-blocked" ||
+        e?.code === "auth/operation-not-supported-in-this-environment" ||
+        e?.code === "auth/unauthorized-domain"
+      ) {
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+      if (![
+        "unregistered-user",
+        "email-not-verified",
+        "not-approved",
+        "awaiting-approval"
+      ].some(msg => e?.message?.includes(msg))) {
+        console.error(e);
+        toast.error("Google Sign-In Failed.");
+      }
     }
-  } catch (e: any) {
-    if (
-      e?.code === "auth/popup-blocked" ||
-      e?.code === "auth/operation-not-supported-in-this-environment" ||
-      e?.code === "auth/unauthorized-domain"
-    ) {
-      await signInWithRedirect(auth, provider);
+  };
+
+  // 🆕 Forgot Password Handler
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail || !resetEmail.includes("@")) {
+      toast.error("Please enter a valid email address.");
       return;
     }
-    if (![
-      "unregistered-user",
-      "email-not-verified",
-      "not-approved",
-      "awaiting-approval"
-    ].some(msg => e?.message?.includes(msg))) {
-      console.error(e);
-      toast.error("Google Sign-In Failed.");
+
+    setResetLoading(true);
+    try {
+      const q = query(collection(db, "IT_Supply_Users"), where("Email", "==", resetEmail));
+      const snap = await getDocs(q);
+
+      if (snap.empty) {
+        toast.error("No account found with this email.");
+        setResetLoading(false);
+        return;
+      }
+
+      const userDoc = snap.docs[0].data();
+      const status = userDoc.Status as UserStatus;
+
+      if (status === "rejected") {
+        toast.error("This account has been rejected. Contact admin.");
+        setResetLoading(false);
+        return;
+      }
+
+      if (status === "email_pending") {
+        toast.error("Please verify your email first using the link sent during registration.");
+        setResetLoading(false);
+        return;
+      }
+
+      await sendPasswordResetEmail(auth, resetEmail);
+      setResetSent(true);
+      toast.success("Password reset email sent! Check your inbox.");
+    } catch (error: any) {
+      console.error("Forgot password error:", error);
+      if (error.code === "auth/user-not-found") {
+        toast.error("No account found with this email.");
+      } else {
+        toast.error("Failed to send reset email. Try again.");
+      }
+    } finally {
+      setResetLoading(false);
     }
-  }
-};
+  };
+
   const handleRegisterChoice = (role: "Medical" | "IT" | "Other") => {
     localStorage.setItem("registerRole", role);
     setShowRegisterModal(false);
@@ -289,6 +346,29 @@ const handleGoogleSignIn = async () => {
         <button className="login-button" type="submit">
           Login
         </button>
+
+        {/* 🆕 Forgot Password Link */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'flex-end', 
+          margin: '0.5rem 0 1rem' 
+        }}>
+          <span
+            onClick={() => {
+              setShowForgotPassword(true);
+              setResetEmail(identifier || '');
+            }}
+            style={{ 
+              cursor: 'pointer', 
+              color: '#00897B', 
+              fontSize: '0.9rem',
+              fontWeight: '500',
+              textDecoration: 'underline'
+            }}
+          >
+            Forgot Password?
+          </span>
+        </div>
       </form>
 
       <div className="or-divider">or</div>
@@ -326,6 +406,67 @@ const handleGoogleSignIn = async () => {
             <button className="close-btn" onClick={() => setShowRegisterModal(false)}>
               Cancel
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* 🆕 Forgot Password Modal */}
+      {showForgotPassword && (
+        <div className="login-forgot-overlay">
+          <div className="login-forgot-modal">
+            <h3 className="login-forgot-title">Reset Password</h3>
+            <p className="login-forgot-desc">
+              Enter your email to receive a password reset link.
+            </p>
+
+            {resetSent ? (
+              <div className="login-forgot-success">
+                <p>Check your email for the reset link!</p>
+                <button
+                  className="login-forgot-btn login-forgot-btn-primary"
+                  onClick={() => {
+                    setShowForgotPassword(false);
+                    setResetSent(false);
+                    setResetEmail("");
+                  }}
+                >
+                  Back to Login
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPassword} className="login-forgot-form">
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  required
+                  className="login-forgot-input"
+                  autoFocus
+                />
+                <div className="login-forgot-actions">
+                  <button
+                    type="button"
+                    className="login-forgot-btn login-forgot-btn-cancel"
+                    onClick={() => {
+                      setShowForgotPassword(false);
+                      setResetEmail("");
+                      setResetSent(false);
+                    }}
+                    disabled={resetLoading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="login-forgot-btn login-forgot-btn-submit"
+                    disabled={resetLoading}
+                  >
+                    {resetLoading ? "Sending..." : "Send Reset Link"}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

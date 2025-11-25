@@ -27,6 +27,13 @@ import DeletedAssets from './components/assetmanagement/DeletedAssets';
 import RequestConsumables from "./components/assetmanagement/RequestConsumable";
 import ManageConsumableRequests from "./components/assetmanagement/ManageConsumableRequests";
 
+
+//Tools
+import QRDiagnosticTool from './components/assetmanagement/QRDiagnosticTool';
+
+// Add it to your component:
+<QRDiagnosticTool />
+
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 // App.tsx
@@ -70,6 +77,7 @@ const App: React.FC = () => {
               <Route path="/request-consumable" element={<RequestConsumable />} /> 
               <Route path="/requestsdata" element={<Requests />} /> 
               <Route path="/trial" element={<Trial />} /> 
+              <Route path="/qr-diagnostic-tool" element={<QRDiagnosticTool />} />
             </Route>
           </Routes>
 

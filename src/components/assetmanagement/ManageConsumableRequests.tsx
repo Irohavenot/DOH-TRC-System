@@ -34,11 +34,14 @@ const ManageConsumableRequests: React.FC = () => {
     try {
       const querySnap = await getDocs(collection(db, "requested_consumables"));
       const list = querySnap.docs
-        .map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }))
-        .filter((req) => req.status !== "Released"); // Exclude released items
+        .map((doc) => {
+          const data = doc.data() as any;
+          return {
+            id: doc.id,
+            ...data,
+          };
+        })
+        .filter((req: any) => req.status !== "Released"); // Exclude released items
       const sortedList = sortRequestsByPriority(list);
       setRequests(sortedList);
     } catch (error) {

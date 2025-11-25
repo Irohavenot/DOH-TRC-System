@@ -573,3 +573,83 @@
   .active-filters-summary { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
   .clear-filters-btn { margin-left: 0; width: 100%; }
 }
+/* Add these styles to your existing assetmanagement.css file */
+
+/* Header with Action Button */
+.asset-header-with-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.asset-header-with-action h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+/* Bulk QR Trigger Button */
+.bulk-qr-trigger-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.875rem 1.5rem;
+  background: linear-gradient(135deg, #004d40 0%, #007a66 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 77, 64, 0.3);
+  white-space: nowrap;
+}
+
+.bulk-qr-trigger-btn i {
+  font-size: 1.125rem;
+}
+
+.bulk-qr-trigger-btn:hover {
+  background: linear-gradient(135deg, #007a66 0%, #009688 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 77, 64, 0.4);
+}
+
+.bulk-qr-trigger-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 77, 64, 0.3);
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+  .asset-header-with-action {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .asset-header-with-action h1 {
+    font-size: 1.75rem;
+    text-align: center;
+  }
+
+  .bulk-qr-trigger-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .asset-header-with-action h1 {
+    font-size: 1.5rem;
+  }
+
+  .bulk-qr-trigger-btn {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+  }
+}

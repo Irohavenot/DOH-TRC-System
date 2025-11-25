@@ -180,7 +180,6 @@
 }
 
 .supply-admin-table thead {
-  
   color: #004d40;
 }
 
@@ -242,6 +241,201 @@
 .supply-admin-status-badge {
   background: #e8f5e9;
   color: #2e7d32;
+}
+
+/* ===== TYPES ROW & CONTAINER ===== */
+.supply-admin-types-row {
+  background: #f8f9fa !important;
+}
+
+.supply-admin-types-row:hover {
+  background: #f8f9fa !important;
+  cursor: default;
+}
+
+.supply-admin-types-cell {
+  padding: 0 !important;
+}
+
+.supply-admin-types-container {
+  padding: 20px;
+  border-left: 4px solid #004d40;
+  margin: 10px 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.supply-admin-types-header {
+  color: #004d40;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.supply-admin-types-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.supply-admin-type-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1565c0;
+  border: 1px solid #90caf9;
+}
+
+.supply-admin-type-delete-btn {
+  background: none;
+  border: none;
+  color: #d32f2f;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  width: 18px;
+  height: 18px;
+}
+
+.supply-admin-type-delete-btn:hover {
+  background: #d32f2f;
+  color: white;
+}
+
+.supply-admin-types-empty {
+  color: #6c757d;
+  font-style: italic;
+  font-size: 13px;
+}
+
+.supply-admin-expand-btn {
+  background: none;
+  border: none;
+  color: #004d40;
+  cursor: pointer;
+  padding: 4px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.supply-admin-expand-btn:hover {
+  background: #e8f5e9;
+}
+
+.supply-admin-expand-btn i {
+  transition: transform 0.2s ease;
+}
+
+.supply-admin-expand-btn.expanded i {
+  transform: rotate(180deg);
+}
+
+/* ===== TYPES MODAL ===== */
+.supply-admin-modal-large {
+  max-width: 700px;
+}
+
+.supply-admin-types-input-group {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.supply-admin-types-input-group .supply-admin-input {
+  flex: 1;
+}
+
+.supply-admin-add-type-btn {
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #00796b 0%, #004d40 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.supply-admin-add-type-btn:hover {
+  background: linear-gradient(135deg, #00564d 0%, #00362a 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 77, 64, 0.3);
+}
+
+.supply-admin-types-list-modal {
+  margin-top: 20px;
+}
+
+.supply-admin-types-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.supply-admin-type-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 2px solid #81c784;
+  transition: all 0.2s ease;
+}
+
+.supply-admin-type-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 77, 64, 0.2);
+}
+
+.supply-admin-type-name {
+  font-weight: 600;
+  color: #2e7d32;
+  font-size: 14px;
+}
+
+.supply-admin-type-card-delete-btn {
+  background: none;
+  border: none;
+  color: #d32f2f;
+  cursor: pointer;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.supply-admin-type-card-delete-btn:hover {
+  background: #d32f2f;
+  color: white;
 }
 
 /* ===== ACTION BUTTONS ===== */
@@ -543,5 +737,13 @@
   .supply-admin-modal-btn {
     width: 100%;
     justify-content: center;
+  }
+  
+  .supply-admin-types-input-group {
+    flex-direction: column;
+  }
+  
+  .supply-admin-types-grid {
+    grid-template-columns: 1fr;
   }
 }

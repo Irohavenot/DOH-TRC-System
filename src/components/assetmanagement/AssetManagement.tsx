@@ -21,6 +21,7 @@ import { toast } from 'react-toastify';
 import HistoryModal from './HistoryModal';
 import EditAssetModal from './EditAssetModal';
 import ReportAssetModal from './ReportAssetModal';
+import BulkQRPrint from './BulkQRPrint'; 
 
 const NON_EXPIRING = new Set(['Perpetual', 'OEM', 'Open Source']);
 const currentUserUID = auth.currentUser?.uid;
@@ -89,6 +90,10 @@ const AssetManagement: React.FC = () => {
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportingAsset, setReportingAsset] = useState<{ id: string; docId: string; name: string } | null>(null);
   const [currentUserDocId, setCurrentUserDocId] = useState<string | null>(null);
+  const [showBulkQR, setShowBulkQR] = useState(false);
+  const [statuses, setStatuses] = useState<string[]>([]);
+  const [assetStatusFilter, setAssetStatusFilter] = useState("all");
+
 
   // Fetch current user's document ID from IT_Supply_Users
   useEffect(() => {
@@ -228,6 +233,24 @@ const AssetManagement: React.FC = () => {
     })();
   }, []);
 
+  // Fetch statuses
+  useEffect(() => {
+  (async () => {
+    try {
+      const snapshot = await getDocs(collection(db, "Asset_Status"));
+      const list: string[] = [];
+      snapshot.forEach(d => {
+        const data = d.data();
+        if (data.Status_Name) list.push(data.Status_Name);
+      });
+      list.sort();
+      setStatuses(list);
+    } catch (e) {
+      console.error("Error fetching statuses:", e);
+    }
+  })();
+}, []);
+
   // Debug: Check assets personnel fields
   useEffect(() => {
     const checkAssets = async () => {
@@ -307,6 +330,9 @@ const AssetManagement: React.FC = () => {
 
     if (categoryFilter !== 'all') {
       result = result.filter(card => card.team === categoryFilter);
+    }
+    if (assetStatusFilter !== "all") {
+      result = result.filter(card => card.status === assetStatusFilter);
     }
 
     if (showMyAssets && currentUserDocId) {
@@ -571,10 +597,22 @@ const AssetManagement: React.FC = () => {
         assetDocId={reportingAsset?.docId || ''}
         assetName={reportingAsset?.name || ''}
       />
+       <BulkQRPrint 
+        isOpen={showBulkQR}
+        onClose={() => setShowBulkQR(false)}
+      />
 
-      <div className='assetmanagement-container'>
-        <h1>Asset Management</h1>
-
+    <div className='assetmanagement-container'>
+        <div className="asset-header-with-action">
+          <h1>Asset Management</h1>
+          <button 
+            className="bulk-qr-trigger-btn"
+            onClick={() => setShowBulkQR(true)}
+          >
+            <i className="fas fa-print" />
+            Print Multiple QRs
+          </button>
+        </div>
         <div className="filter-section">
           <div className="quick-filters">
             <div className="filter-section-label">
@@ -589,12 +627,26 @@ const AssetManagement: React.FC = () => {
                   onChange={(e) => setCategoryFilter(e.target.value as CategoryFilterKey)}
                 >
                   <option value="all">All Categories</option>
-                  <option value="Asset">Asset</option>
-                  <option value="License">License</option>
-                  <option value="Accessory">Accessory</option>
-                  <option value="Component">Component</option>
+                    {categories.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+
                 </select>
               </div>
+              <div className="category-filter-wrapper">
+              <select 
+                className="category-filter-select"
+                value={assetStatusFilter}
+                onChange={(e) => setAssetStatusFilter(e.target.value)}
+              >
+                <option value="all">All Statuses</option>
+                {statuses.map((stat) => (
+                  <option key={stat} value={stat}>{stat}</option>
+                ))}
+              </select>
+
+            </div>
+
 
               <button 
                 className={`multi-select ${showMyAssets ? 'active' : ''}`}

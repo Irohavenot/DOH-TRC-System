@@ -20,7 +20,7 @@ import { toast } from "react-toastify";
 import { useCurrentUserFullName } from "../../hooks/useCurrentUserFullName"; 
 import DashboardSuperAdmin from '../superadmin/DashboardSuperAdmin';
 import SearchInput from './SearchInput';
-
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import{
   LayoutDashboard,
   PlusCircle,
@@ -39,6 +39,7 @@ import {
 } from "firebase/firestore";
 import RequestConsumables from './RequestConsumable';
 import ManageConsumableRequests from './ManageConsumableRequests';
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 
 const Dashboard = () => {
   const { fullName, loading } = useCurrentUserFullName();
@@ -56,6 +57,7 @@ const Dashboard = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
 
   // 🔒 Password validation logic
   const getPasswordErrors = (pwd: string): string[] => {
@@ -242,8 +244,8 @@ const Dashboard = () => {
   };
 
   const [signingOut, setSigningOut] = useState(false);
-  const handleSignOut = async (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
+  const handleSignOut = async (e?: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
+    e?.preventDefault();
     if (signingOut) return;
     setSigningOut(true);
     try {
@@ -430,12 +432,9 @@ const Dashboard = () => {
               <span>Request</span>
             </Link> */}
 
-            <Link
-              to="/"
-              className="menu-items logout"
-              onClick={handleSignOut}
-              aria-disabled={signingOut}
-            >
+            <Link to="#" className="menu-items logout"
+              onClick={(e) => { e.preventDefault(); setShowSignOutModal(true); }}
+              aria-disabled={signingOut}>
               <LogOut className="menu-icon" />
               <span>Sign Out</span>
             </Link>
@@ -712,179 +711,107 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* 🔐 Change Password Modal */}
+      {/* CHANGE PASSWORD MODAL */}
       {showChangePasswordModal && (
-        <div
-          className="modal-overlay"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
-        >
-          <div
-            className="modal-content"
-            style={{
-              backgroundColor: 'white',
-              padding: '24px',
-              borderRadius: '8px',
-              width: '400px',
-              maxWidth: '90vw',
-            }}
-          >
-            <h3 style={{ marginBottom: '16px' }}>🔐 Set Your Permanent Password</h3>
-            <p style={{ marginBottom: '16px' }}>
-              For security, please change your temporary password.
-            </p>
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div className="modal-content" style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '420px', maxWidth: '90vw', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <i className="fas fa-lock" style={{ fontSize: '36px', color: '#0d6efd' }}></i>
+              <h3 style={{ margin: '12px 0 8px', fontSize: '18px' }}>Set Your Password (Required)</h3>
+              <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>Welcome! Please create a secure password to complete your account setup.</p>
+            </div>
 
-            {/* New Password */}
-            <div style={{ marginBottom: '12px' }}>
-              <label>New Password:</label>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>New Password</label>
               <div style={{ position: 'relative' }}>
                 <input
                   type={showNewPassword ? 'text' : 'password'}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    marginTop: '4px',
-                    border: '1px solid #ccc',
-                    borderRadius: '4px',
-                  }}
+                  placeholder="Enter password"
+                  style={{ width: '100%', padding: '10px 40px 10px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
                   required
                 />
-                <span
-                  onClick={toggleNewPasswordVisibility}
-                  style={{
-                    position: 'absolute',
-                    right: '10px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    cursor: 'pointer',
-                    color: '#666',
-                  }}
-                >
-                  👁️
+                <span onClick={toggleNewPasswordVisibility} style={{ position: 'absolute', right: '12px', top: '35%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#666', fontSize: '16px' }}>
+                  <FontAwesomeIcon icon={showNewPassword ? faEyeSlash : faEye} />
                 </span>
               </div>
+              {newPassword && passwordErrors.length > 0 && (
+                <div style={{ marginTop: '8px', fontSize: '12px', color: '#dc3545' }}>
+                  {passwordErrors.map((err, i) => <div key={i}>• {err}</div>)}
+                </div>
+              )}
             </div>
 
-            {/* Real-time requirements */}
-            <div style={{ marginTop: '-10px', fontSize: '12px', color: '#555' }}>
-              Password must contain:
-              <ul style={{ margin: '4px 0 0 16px', paddingLeft: 0, listStyle: 'none' }}>
-                {[
-                  "At least 8 characters",
-                  "Include uppercase letter",
-                  "Include lowercase letter",
-                  "Include numeric character"
-                ].map((rule) => (
-                  <li
-                    key={rule}
-                    style={{
-                      color: passwordErrors.includes(rule) ? '#d32f2f' : '#2e7d32',
-                      fontWeight: passwordErrors.includes(rule) ? 'normal' : 'bold',
-                      marginBottom: '2px',
-                    }}
-                  >
-                    • {rule}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Confirm Password */}
-            <div style={{ marginBottom: '16px', marginTop: '12px' }}>
-              <label>Confirm Password:</label>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>Confirm Password</label>
               <div style={{ position: 'relative' }}>
                 <input
                   type={showConfirmNewPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    marginTop: '4px',
-                    border: '1px solid #ccc',
-                    borderRadius: '4px',
-                  }}
+                  placeholder="Confirm password"
+                  style={{ width: '100%', padding: '10px 40px 10px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
                   required
                 />
-                <span
-                  onClick={toggleConfirmPasswordVisibility}
-                  style={{
-                    position: 'absolute',
-                    right: '10px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    cursor: 'pointer',
-                    color: '#666',
-                  }}
-                >
-                  👁️
+                <span onClick={toggleConfirmPasswordVisibility} style={{ position: 'absolute', right: '12px', top: '35%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#666', fontSize: '16px' }}>
+                  <FontAwesomeIcon icon={showConfirmNewPassword ? faEyeSlash : faEye} />
                 </span>
               </div>
+              {confirmPassword && newPassword !== confirmPassword && (
+                <p style={{ marginTop: '6px', fontSize: '12px', color: '#dc3545' }}>Passwords do not match.</p>
+              )}
             </div>
 
-            {/* Mismatch warning */}
-            {newPassword && confirmPassword && newPassword !== confirmPassword && (
-              <p style={{ color: '#d32f2f', fontSize: '13px', marginTop: '-10px', marginBottom: '8px' }}>
-                ❌ Passwords do not match
-              </p>
-            )}
-
-            {/* Buttons */}
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button
-                onClick={() => {
-                  setShowChangePasswordModal(false);
-                  setNewPassword("");
-                  setConfirmPassword("");
-                }}
-                disabled={isUpdating}
+                onClick={handleChangePassword}
+                disabled={isUpdating || passwordErrors.length > 0 || newPassword !== confirmPassword}
                 style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#ccc',
+                  padding: '10px 20px',
+                  backgroundColor: '#0d6efd',
+                  color: 'white',
                   border: 'none',
-                  borderRadius: '4px',
+                  borderRadius: '6px',
                   cursor: 'pointer',
+                  opacity: isUpdating || passwordErrors.length > 0 || newPassword !== confirmPassword ? 0.6 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
                 }}
               >
+                {isUpdating ? 'Updating...' : <>Set Password</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SIGN OUT MODAL */}
+      {showSignOutModal && (
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001 }}>
+          <div className="modal-content" style={{ backgroundColor: 'white', padding: '24px', borderRadius: '8px', width: '380px', maxWidth: '90vw', textAlign: 'center' }}>
+            <i className="fas fa-sign-out-alt" style={{ fontSize: '32px', color: '#dc3545', marginBottom: '16px' }}></i>
+            <h3 style={{ margin: '0 0 16px' }}>Are you sure you want to sign out?</h3>
+            <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>You will be logged out of the system.</p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button onClick={() => setShowSignOutModal(false)} style={{ padding: '8px 16px', backgroundColor: '#ccc', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
                 Cancel
               </button>
               <button
-                onClick={handleChangePassword}
-                disabled={
-                  isUpdating ||
-                  passwordErrors.length > 0 ||
-                  !newPassword ||
-                  newPassword !== confirmPassword
-                }
+                onClick={handleSignOut}
+                disabled={signingOut}
                 style={{
                   padding: '8px 16px',
-                  backgroundColor: '#0d6efd',
+                  backgroundColor: '#dc3545',
                   color: 'white',
                   border: 'none',
                   borderRadius: '4px',
                   cursor: 'pointer',
-                  opacity:
-                    isUpdating ||
-                    passwordErrors.length > 0 ||
-                    !newPassword ||
-                    newPassword !== confirmPassword
-                      ? 0.6
-                      : 1,
+                  opacity: signingOut ? 0.6 : 1,
                 }}
               >
-                {isUpdating ? 'Updating...' : 'Update Password'}
+                {signingOut ? 'Signing out...' : 'Sign Out'}
               </button>
             </div>
           </div>
