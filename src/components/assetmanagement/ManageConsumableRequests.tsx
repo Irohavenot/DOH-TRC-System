@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { db, auth } from "../../firebase/firebase";
 import {
   collection,
@@ -20,6 +20,9 @@ const ManageConsumableRequests: React.FC = () => {
   const [filter, setFilter] = useState("All");
   const [selected, setSelected] = useState<any | null>(null);
   const [viewMode, setViewMode] = useState<"active" | "deleted" | "released">("active");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
+  const printRef = useRef<HTMLDivElement>(null);
 
   const sortRequestsByPriority = (requestList: any[]) => {
     return [...requestList].sort((a, b) => {
@@ -41,7 +44,7 @@ const ManageConsumableRequests: React.FC = () => {
             ...data,
           };
         })
-        .filter((req: any) => req.status !== "Released"); // Exclude released items
+        .filter((req: any) => req.status !== "Released");
       const sortedList = sortRequestsByPriority(list);
       setRequests(sortedList);
     } catch (error) {
@@ -76,7 +79,7 @@ const ManageConsumableRequests: React.FC = () => {
       const list = querySnap.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
-        status: "Released", // Add status for display consistency
+        status: "Released",
       }));
       setReleasedRequests(list);
     } catch (error) {
@@ -95,6 +98,7 @@ const ManageConsumableRequests: React.FC = () => {
     } else {
       fetchReleasedRequests();
     }
+    setCurrentPage(1);
   }, [viewMode]);
 
   const generateDeleteId = () => {
@@ -105,11 +109,14 @@ const ManageConsumableRequests: React.FC = () => {
   const handleApprove = async (id: string) => {
     try {
       const ref = doc(db, "requested_consumables", id);
-      await updateDoc(ref, { status: "Approved" });
+      await updateDoc(ref, { 
+        status: "Approved",
+        approvedAt: serverTimestamp(),
+        approvedBy: auth.currentUser?.email || "Unknown"
+      });
       toast.success("Request approved successfully!");
       setSelected(null);
       
-      // Refresh current view
       if (viewMode === "active") {
         fetchRequests();
       }
@@ -121,11 +128,14 @@ const ManageConsumableRequests: React.FC = () => {
   const handleReject = async (id: string) => {
     try {
       const ref = doc(db, "requested_consumables", id);
-      await updateDoc(ref, { status: "Rejected" });
+      await updateDoc(ref, { 
+        status: "Rejected",
+        rejectedAt: serverTimestamp(),
+        rejectedBy: auth.currentUser?.email || "Unknown"
+      });
       toast.success("Request rejected.");
       setSelected(null);
       
-      // Refresh current view
       if (viewMode === "active") {
         fetchRequests();
       }
@@ -158,6 +168,11 @@ const ManageConsumableRequests: React.FC = () => {
         originalRequestId: req.requestId,
         createdBy: req.requestedBy,
         createdAt: serverTimestamp(),
+        releasedAt: serverTimestamp(),
+        releasedBy: auth.currentUser?.email || "Unknown",
+        requestedAt: req.requestedAt,
+        approvedAt: req.approvedAt,
+        approvedBy: req.approvedBy
       });
 
       await deleteDoc(doc(db, "requested_consumables", id));
@@ -165,7 +180,6 @@ const ManageConsumableRequests: React.FC = () => {
       toast.success(`Request released with ID: ${releaseId}`);
       setSelected(null);
       
-      // Refresh all views
       if (viewMode === "active") {
         fetchRequests();
       } else if (viewMode === "released") {
@@ -198,7 +212,6 @@ const ManageConsumableRequests: React.FC = () => {
       toast.success(`Request archived with ID: ${deleteId}`);
       setSelected(null);
       
-      // Refresh current view
       if (viewMode === "active") {
         fetchRequests();
       }
@@ -223,7 +236,6 @@ const ManageConsumableRequests: React.FC = () => {
       toast.success("Request restored successfully!");
       setSelected(null);
       
-      // Refresh current view
       if (viewMode === "deleted") {
         fetchDeletedRequests();
       }
@@ -240,7 +252,6 @@ const ManageConsumableRequests: React.FC = () => {
       toast.success("Request permanently deleted.");
       setSelected(null);
       
-      // Refresh current view
       if (viewMode === "deleted") {
         fetchDeletedRequests();
       }
@@ -263,37 +274,219 @@ const ManageConsumableRequests: React.FC = () => {
     }
   };
 
+  const formatDateTime = (timestamp: any) => {
+    if (!timestamp) return "N/A";
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    } catch (error) {
+      return "N/A";
+    }
+  };
+
   const filteredRequests = requests.filter((req) => {
-  if (filter === "All") return true;
+    if (filter === "All") return true;
 
-  if (filter === "RequestedToday") {
-    const today = new Date();
-    const reqDate = req.requestedAt?.toDate?.() || new Date(req.requestedAt);
-    return (
-      reqDate.getFullYear() === today.getFullYear() &&
-      reqDate.getMonth() === today.getMonth() &&
-      reqDate.getDate() === today.getDate()
-    );
-  }
+    if (filter === "RequestedToday") {
+      const today = new Date();
+      const reqDate = req.requestedAt?.toDate?.() || new Date(req.requestedAt);
+      return (
+        reqDate.getFullYear() === today.getFullYear() &&
+        reqDate.getMonth() === today.getMonth() &&
+        reqDate.getDate() === today.getDate()
+      );
+    }
 
-  if (filter === "Urgent") {
-    return req.priority === "Urgent";
-  }
+    if (filter === "Urgent") {
+      return req.priority === "Urgent";
+    }
 
-  if (filter === "Normal") {
-    return req.priority === "Normal";
-  }
+    if (filter === "Normal") {
+      return req.priority === "Normal";
+    }
 
-  // Keep original status filters
-  if (filter === "Pending" || filter === "Approved") {
-    return req.status === filter;
-  }
+    if (filter === "Pending" || filter === "Approved") {
+      return req.status === filter;
+    }
 
-  return true;
-});
+    return true;
+  });
 
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const currentList = viewMode === "active" ? filteredRequests : viewMode === "deleted" ? deletedRequests : releasedRequests;
+    
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Consumable Requests Report</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 20px;
+              color: #333;
+            }
+            .print-header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 3px solid #3b82f6;
+              padding-bottom: 15px;
+            }
+            .print-header h1 {
+              margin: 0;
+              color: #1f2937;
+            }
+            .print-info {
+              margin: 15px 0;
+              font-size: 14px;
+              color: #6b7280;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 20px;
+            }
+            th, td {
+              border: 1px solid #e5e7eb;
+              padding: 12px;
+              text-align: left;
+            }
+            th {
+              background-color: #3b82f6;
+              color: white;
+              font-weight: 600;
+            }
+            tr:nth-child(even) {
+              background-color: #f9fafb;
+            }
+            .urgent-row {
+              background-color: #fef2f2 !important;
+              border-left: 4px solid #ef4444;
+            }
+            .priority-badge, .status-badge {
+              display: inline-block;
+              padding: 4px 12px;
+              border-radius: 12px;
+              font-size: 11px;
+              font-weight: 600;
+            }
+            .priority-badge.normal {
+              background: #dbeafe;
+              color: #1e40af;
+            }
+            .priority-badge.urgent {
+              background: #fee2e2;
+              color: #991b1b;
+            }
+            .status-badge.pending {
+              background: #fef3c7;
+              color: #92400e;
+            }
+            .status-badge.approved {
+              background: #d1fae5;
+              color: #065f46;
+            }
+            .status-badge.rejected {
+              background: #fee2e2;
+              color: #991b1b;
+            }
+            .status-badge.released {
+              background: #e0e7ff;
+              color: #3730a3;
+            }
+            @media print {
+              body {
+                padding: 0;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="print-header">
+            <h1>${viewMode === "active" ? "Active" : viewMode === "deleted" ? "Deleted Archive" : "Released"} Consumable Requests</h1>
+            <div class="print-info">
+              <p><strong>Filter:</strong> ${filter}</p>
+              <p><strong>Total Records:</strong> ${currentList.length}</p>
+              <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>${viewMode === "deleted" ? "Delete ID" : viewMode === "released" ? "Release ID" : "Request ID"}</th>
+                <th>Item Name</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>Department</th>
+                ${viewMode === "active" ? "<th>Priority</th>" : ""}
+                <th>Status</th>
+                <th>Date Requested</th>
+                ${viewMode === "deleted" ? "<th>Deleted By</th><th>Deleted At</th>" : ""}
+                ${viewMode === "released" ? "<th>Released At</th>" : ""}
+              </tr>
+            </thead>
+            <tbody>
+              ${currentList.map(req => `
+                <tr class="${req.priority === 'Urgent' ? 'urgent-row' : ''}">
+                  <td>${viewMode === "deleted" ? req.deleteId : viewMode === "released" ? req.releaseId : req.requestId}</td>
+                  <td>${req.name}</td>
+                  <td>${req.type}</td>
+                  <td>${req.quantity} ${req.unit}</td>
+                  <td>${req.department}</td>
+                  ${viewMode === "active" ? `<td><span class="priority-badge ${req.priority.toLowerCase()}">${req.priority}</span></td>` : ""}
+                  <td><span class="status-badge ${req.status.toLowerCase()}">${req.status}</span></td>
+                  <td>${formatDate(req.requestedAt || req.createdAt)}</td>
+                  ${viewMode === "deleted" ? `<td>${req.deletedBy}</td><td>${formatDateTime(req.deletedAt)}</td>` : ""}
+                  ${viewMode === "released" ? `<td>${formatDateTime(req.releasedAt || req.createdAt)}</td>` : ""}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  };
 
   const currentList = viewMode === "active" ? filteredRequests : viewMode === "deleted" ? deletedRequests : releasedRequests;
+  
+  // Pagination logic
+  const totalPages = Math.ceil(currentList.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentItems = currentList.slice(startIndex, endIndex);
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter]);
 
   return (
     <div className="mcreq-function-container">
@@ -333,72 +526,97 @@ const ManageConsumableRequests: React.FC = () => {
               <option value="Pending">Pending</option>
               <option value="Approved">Approved</option>
             </select>
-
-
           )}
+          <button className="print-btn" onClick={handlePrint}>
+            <span>🖨️</span> Print Report
+          </button>
         </div>
       </div>
 
       {loading ? (
         <p>Loading requests...</p>
       ) : (
-        <table className="mcreq-function-table">
-          <thead>
-            <tr>
-              <th>{viewMode === "deleted" ? "Delete ID" : "Request ID"}</th>
-              <th>Item Name</th>
-              <th>Date Requested</th>
-              <th>Quantity</th>
-              {viewMode === "active" && <th>Priority</th>}
-              <th>Status</th>
-              {viewMode === "deleted" && <th>Deleted By</th>}
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentList.length === 0 ? (
+        <>
+          <table className="mcreq-function-table">
+            <thead>
               <tr>
-                <td colSpan={viewMode === "active" ? 7 : 7} style={{ textAlign: "center", padding: "2rem" }}>
-                  No {viewMode === "deleted" ? "deleted" : viewMode === "released" ? "released" : ""} requests found
-                </td>
+                <th>{viewMode === "deleted" ? "Delete ID" : "Request ID"}</th>
+                <th>Item Name</th>
+                <th>Date Requested</th>
+                <th>Quantity</th>
+                {viewMode === "active" && <th>Priority</th>}
+                <th>Status</th>
+                {viewMode === "deleted" && <th>Deleted By</th>}
+                <th>Actions</th>
               </tr>
-            ) : (
-              currentList.map((req) => (
-                <tr
-                  key={req.id}
-                  className={req.priority === "Urgent" ? "urgent-row" : ""}
-                >
-                  <td>{viewMode === "deleted" ? req.deleteId : viewMode === "released" ? req.releaseId : req.requestId}</td>
-                  <td>{req.name}</td>
-                  <td>{formatDate(req.requestedAt || req.createdAt)}</td>
-                  <td>
-                    {req.quantity} {req.unit}
-                  </td>
-                  {viewMode === "active" && (
-                    <td>
-                      <span className={`priority-badge ${req.priority.toLowerCase()}`}>
-                        {req.priority}
-                      </span>
-                    </td>
-                  )}
-                  <td>
-                    <span className={`status-badge ${req.status.toLowerCase()}`}>
-                      {req.status}
-                    </span>
-                  </td>
-                  {viewMode === "deleted" && (
-                    <td>{req.deletedBy}</td>
-                  )}
-                  <td>
-                    <button className="view-btn" onClick={() => setSelected(req)}>
-                      View Details
-                    </button>
+            </thead>
+            <tbody>
+              {currentItems.length === 0 ? (
+                <tr>
+                  <td colSpan={viewMode === "active" ? 7 : 7} style={{ textAlign: "center", padding: "2rem" }}>
+                    No {viewMode === "deleted" ? "deleted" : viewMode === "released" ? "released" : ""} requests found
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                currentItems.map((req) => (
+                  <tr
+                    key={req.id}
+                    className={req.priority === "Urgent" ? "urgent-row" : ""}
+                  >
+                    <td>{viewMode === "deleted" ? req.deleteId : viewMode === "released" ? req.releaseId : req.requestId}</td>
+                    <td>{req.name}</td>
+                    <td>{formatDate(req.requestedAt || req.createdAt)}</td>
+                    <td>
+                      {req.quantity} {req.unit}
+                    </td>
+                    {viewMode === "active" && (
+                      <td>
+                        <span className={`priority-badge ${req.priority.toLowerCase()}`}>
+                          {req.priority}
+                        </span>
+                      </td>
+                    )}
+                    <td>
+                      <span className={`status-badge ${req.status.toLowerCase()}`}>
+                        {req.status}
+                      </span>
+                    </td>
+                    {viewMode === "deleted" && (
+                      <td>{req.deletedBy}</td>
+                    )}
+                    <td>
+                      <button className="view-btn" onClick={() => setSelected(req)}>
+                        View Details
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+
+          {totalPages > 1 && (
+            <div className="pagination-controls">
+              <button 
+                className="pagination-btn" 
+                onClick={handlePrevPage} 
+                disabled={currentPage === 1}
+              >
+                Previous
+              </button>
+              <span className="pagination-info">
+                Page {currentPage} of {totalPages} ({currentList.length} total items)
+              </span>
+              <button 
+                className="pagination-btn" 
+                onClick={handleNextPage} 
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {selected && (
@@ -411,7 +629,7 @@ const ManageConsumableRequests: React.FC = () => {
                   <p><strong>Delete ID:</strong> {selected.deleteId}</p>
                   <p><strong>Original Request ID:</strong> {selected.requestId}</p>
                   <p><strong>Deleted By:</strong> {selected.deletedBy}</p>
-                  <p><strong>Deleted At:</strong> {selected.deletedAt?.toDate?.()?.toLocaleString() || "N/A"}</p>
+                  <p><strong>Deleted At:</strong> {formatDateTime(selected.deletedAt)}</p>
                   <div className="modal-divider"></div>
                 </>
               )}
@@ -443,6 +661,31 @@ const ManageConsumableRequests: React.FC = () => {
                   {selected.status}
                 </span>
               </p>
+              
+              {selected.approvedAt && (
+                <>
+                  <div className="modal-divider"></div>
+                  <p><strong>Approved At:</strong> {formatDateTime(selected.approvedAt)}</p>
+                  {selected.approvedBy && <p><strong>Approved By:</strong> {selected.approvedBy}</p>}
+                </>
+              )}
+              
+              {selected.rejectedAt && (
+                <>
+                  <div className="modal-divider"></div>
+                  <p><strong>Rejected At:</strong> {formatDateTime(selected.rejectedAt)}</p>
+                  {selected.rejectedBy && <p><strong>Rejected By:</strong> {selected.rejectedBy}</p>}
+                </>
+              )}
+              
+              {selected.releasedAt && (
+                <>
+                  <div className="modal-divider"></div>
+                  <p><strong>Released At:</strong> {formatDateTime(selected.releasedAt)}</p>
+                  {selected.releasedBy && <p><strong>Released By:</strong> {selected.releasedBy}</p>}
+                </>
+              )}
+              
               {selected.remarks && (
                 <p><strong>Remarks:</strong> {selected.remarks}</p>
               )}

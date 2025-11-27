@@ -51,6 +51,7 @@ interface Card {
   qrcode?: string | null;
   generateQR?: boolean;
   personnel?: string;
+   propertyNo?: string;
   personnelId?: string;
   purchaseDate?: string;
   status?: string;
@@ -277,41 +278,44 @@ const AssetManagement: React.FC = () => {
     return { iconClass: 'icon-green' as const, timeLeft: `${Math.ceil(daysLeft / 30)} month(s) left` };
   };
 
-  const cards = useMemo(() => rawAssets.map((d: any) => {
-    console.log("Asset personnel:", d.id, d.personnel);
-    const personnelName = d.personnel ? uidToNameMap[d.personnel] || d.personnel : undefined;
-    const resolveByEmail = (email?: string) => { if (!email) return undefined; return emailToNameMap[email.trim().toLowerCase()] || email; };
-    const createdByName = resolveByEmail(d.createdBy);
-    const updatedByName = resolveByEmail(d.updatedBy);
-    const { iconClass, timeLeft } = computeBadge(d.licenseType, d.expirationDate);
-    return {
-      id: d.id,
-      title: d.assetName || '(No name)',
-      team: d.category || 'Uncategorized',
-      timeLeft,
-      serial: d.serialNo || 'N/A',
-      iconClass,
-      image: d.image || undefined,
-      assetId: d.assetId,
-      assetUrl: d.assetUrl,
-      qrcode: d.qrcode ?? null,
-      generateQR: !!d.generateQR,
-      personnel: personnelName,
-      personnelId: d.personnel,
-      purchaseDate: d.purchaseDate || undefined,
-      status: d.status || undefined,
-      licenseType: d.licenseType || undefined,
-      subType: d.subType || undefined,
-      createdAt: d.createdAt?.toDate ? new Date(d.createdAt.toDate()).toLocaleString() : (d.createdAt || undefined),
-      createdBy: createdByName,
-      updatedAt: d.updatedAt?.toDate ? new Date(d.updatedAt.toDate()).toLocaleString() : (d.updatedAt || undefined),
-      updatedBy: updatedByName,
-      renewdate: d.renewdate?.toDate ? new Date(d.renewdate.toDate()).toLocaleDateString() : (d.renewdate || undefined),
-      assetHistory: d.assetHistory || [],
-      hasReports: d.hasReports || false,
-      reportCount: d.reportCount || 0,
-    } as Card;
-  }), [rawAssets, uidToNameMap, emailToNameMap]);
+// In your AssetManagement.tsx, find the cards useMemo and update it:
+
+const cards = useMemo(() => rawAssets.map((d: any) => {
+  console.log("Asset personnel:", d.id, d.personnel);
+  const personnelName = d.personnel ? uidToNameMap[d.personnel] || d.personnel : undefined;
+  const resolveByEmail = (email?: string) => { if (!email) return undefined; return emailToNameMap[email.trim().toLowerCase()] || email; };
+  const createdByName = resolveByEmail(d.createdBy);
+  const updatedByName = resolveByEmail(d.updatedBy);
+  const { iconClass, timeLeft } = computeBadge(d.licenseType, d.expirationDate);
+  return {
+    id: d.id,
+    title: d.assetName || '(No name)',
+    team: d.category || 'Uncategorized',
+    timeLeft,
+    serial: d.serialNo || 'N/A',
+    iconClass,
+    image: d.image || undefined,
+    assetId: d.assetId,
+    assetUrl: d.assetUrl,
+    qrcode: d.qrcode ?? null,
+    generateQR: !!d.generateQR,
+    personnel: personnelName,
+    personnelId: d.personnel,
+    propertyNo: d.propertyNo || undefined,  // ✅ ADD THIS LINE
+    purchaseDate: d.purchaseDate || undefined,
+    status: d.status || undefined,
+    licenseType: d.licenseType || undefined,
+    subType: d.subType || undefined,
+    createdAt: d.createdAt?.toDate ? new Date(d.createdAt.toDate()).toLocaleString() : (d.createdAt || undefined),
+    createdBy: createdByName,
+    updatedAt: d.updatedAt?.toDate ? new Date(d.updatedAt.toDate()).toLocaleString() : (d.updatedAt || undefined),
+    updatedBy: updatedByName,
+    renewdate: d.renewdate?.toDate ? new Date(d.renewdate.toDate()).toLocaleDateString() : (d.renewdate || undefined),
+    assetHistory: d.assetHistory || [],
+    hasReports: d.hasReports || false,
+    reportCount: d.reportCount || 0,
+  } as Card;
+}), [rawAssets, uidToNameMap, emailToNameMap]);
 
   const filteredCards = useMemo(() => {
     let result = [...cards];
@@ -547,7 +551,6 @@ const AssetManagement: React.FC = () => {
           setShowMoreDetails(false);
         }}
         asset={selectedCard}
-        onViewQR={openQR}
         onEdit={() => {
           const idx = filteredCards.findIndex(c => c.id === selectedCard?.id);
           if (idx >= 0) handleEditCard(idx);
@@ -806,8 +809,6 @@ const AssetManagement: React.FC = () => {
         history={historyAsset?.history || []}
         assetName={historyAsset?.name || 'Asset'}
       />
-
-      <QRModal isOpen={showQR} onClose={() => setShowQR(false)} asset={qrAsset} />
     </div>
   );
 };

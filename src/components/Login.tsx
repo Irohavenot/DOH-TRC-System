@@ -184,18 +184,38 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
       let emailToLogin = identifier;
       localStorage.setItem("lastIdentifier", identifier);
 
-      if (!identifier.includes("@")) {
-        const qUsers = query(
-          collection(db, "IT_Supply_Users"),
-          where("Username", "==", identifier)
-        );
-        const snap = await getDocs(qUsers);
-        if (snap.empty) {
-          toast.error("User not Found.");
-          return;
+
+        // 1. CHECK USERNAME
+        if (!identifier.includes("@")) {
+          const q = query(
+            collection(db, "IT_Supply_Users"),
+            where("Username", "==", identifier)
+          );
+          const snap = await getDocs(q);
+
+          if (snap.empty) {
+            toast.error("Invalid credentials");
+            return;
+          }
+
+          emailToLogin = snap.docs[0].data().Email;
         }
-        emailToLogin = snap.docs[0].data().Email;
-      }
+
+        // 2. CHECK EMAIL
+        if (identifier.includes("@")) {
+          const q = query(
+            collection(db, "IT_Supply_Users"),
+            where("Email", "==", identifier)
+          );
+          const snap = await getDocs(q);
+
+          // EMAIL NOT REGISTERED → Stop and show error (NO failedAttempts increase!)
+          if (snap.empty) {
+            toast.error("Invalid credentials");
+            return;
+          }
+        }
+
 
       const userCredential = await signInWithEmailAndPassword(auth, emailToLogin, password);
       await postSignInChecks(userCredential.user, false);

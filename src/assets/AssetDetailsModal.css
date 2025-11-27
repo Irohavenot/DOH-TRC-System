@@ -56,7 +56,7 @@
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   position: relative;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
@@ -68,13 +68,35 @@
   font-weight: 700;
   color: #1f2937;
   margin: 0;
+  flex: 1;
+}
+
+/* Asset ID Badge - Next to header */
+.viewmore-asset-id-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-left: 12px;
+  white-space: nowrap;
+}
+
+.viewmore-asset-id-badge i {
+  font-size: 0.7rem;
+}
+
+.viewmore-asset-id-badge .asset-id-value {
+  font-weight: 600;
+  color: #374151;
 }
 
 /* View QR Button */
 .viewmore-qr-fab {
-  position: absolute;
-  top: 10px;
-  right: 10px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -87,6 +109,7 @@
   cursor: pointer;
   transition: background 0.2s ease, transform 0.1s ease;
   z-index: 2;
+  white-space: nowrap;
 }
 
 .viewmore-qr-fab:hover {
@@ -101,6 +124,37 @@
 
 .viewmore-qr-fab .fa-qrcode {
   font-size: 16px;
+}
+
+/* Property Number Badge - Minimal version above image */
+.viewmore-property-badge {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+.viewmore-property-badge i {
+  font-size: 0.7rem;
+  color: #9ca3af;
+}
+
+.viewmore-property-badge .property-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #9ca3af;
+}
+
+.viewmore-property-badge .property-value {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
 }
 
 /* Modal Image Container */
@@ -386,6 +440,12 @@
     font-size: 1.5rem;
   }
 
+  .viewmore-asset-id-badge {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    margin-left: 8px;
+  }
+
   .viewmore-qr-fab {
     padding: 7px 11px;
     font-size: 0.85rem;
@@ -427,16 +487,25 @@
   .viewmore-header {
     margin-bottom: 1rem;
     padding-bottom: 0.75rem;
+    flex-wrap: wrap;
   }
 
   .viewmore-header h2 {
     font-size: 1.3rem;
+    width: 100%;
+    margin-bottom: 8px;
+  }
+
+  .viewmore-asset-id-badge {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    margin-left: 0;
+    margin-right: auto;
   }
 
   .viewmore-qr-fab {
-    top: 8px;
-    right: 8px;
     padding: 6px 10px;
+    margin-left: auto;
   }
 
   .viewmore-qr-fab span {
@@ -445,6 +514,11 @@
 
   .viewmore-qr-fab .fa-qrcode {
     font-size: 18px;
+  }
+
+  .viewmore-property-badge {
+    font-size: 0.7rem;
+    padding: 4px 8px;
   }
 
   .viewmore-image {
@@ -508,7 +582,7 @@
 }
 
 .qr-modal-content {
-  background: white; /* White background for the QR modal pop-up content */
+  background: white;
   padding: 2rem;
   border-radius: 20px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
@@ -519,7 +593,7 @@
 }
 
 .qr-modal-image-container {
-  background: white; /* White background for the QR image container */
+  background: white;
   padding: 1.5rem;
   border-radius: 12px;
   display: flex;
@@ -533,9 +607,5 @@
   max-width: 100%;
   height: auto;
   display: block;
-  background: white; /* White background for the QR img or canvas (ensures visibility if QR has transparency) */
+  background: white;
 }
-
-
-
-

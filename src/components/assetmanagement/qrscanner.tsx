@@ -7,7 +7,7 @@ import EditAssetModal from "../assetmanagement/EditAssetModal";
 import ReportAssetModal from "../assetmanagement/ReportAssetModal";
 import QRModal from "../assetmanagement/QRModal";
 import HistoryModal from "../assetmanagement/HistoryModal";
-import { db } from "../../firebase/firebase";
+import { db, auth } from "../../firebase/firebase";
 import {
   collection,
   doc,
@@ -57,6 +57,7 @@ interface AssetDoc {
   assetHistory?: HistoryEntry[];
   iconClass?: string;
   timeLeft?: string;
+  propertyNo?: string;
 }
 
 function fmtDate(val?: TSOrString): string {
@@ -161,6 +162,39 @@ const WebQRScanner: React.FC = () => {
   const [showQRModal, setShowQRModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [uidToNameMap, setUidToNameMap] = useState<Record<string, string>>({});
+  const [currentUserDocId, setCurrentUserDocId] = useState<string | null>(null);
+
+  // Fetch current user's document ID from IT_Supply_Users
+  useEffect(() => {
+    const fetchCurrentUserDocIdByEmail = async () => {
+      const currentEmail = auth.currentUser?.email;
+      if (!currentEmail) {
+        console.log("No authenticated user email found");
+        setCurrentUserDocId(null);
+        return;
+      }
+
+      try {
+        const usersRef = collection(db, USERS_COLLECTION);
+        const q = query(usersRef, where("Email", "==", currentEmail));
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+          const userDoc = snapshot.docs[0];
+          setCurrentUserDocId(userDoc.id);
+          console.log("Matched userDocId via email:", userDoc.id, "for email:", currentEmail);
+        } else {
+          console.warn("No IT_Supply_Users document matches email:", currentEmail);
+          setCurrentUserDocId(null);
+        }
+      } catch (error) {
+        console.error("Error fetching user doc by email:", error);
+        setCurrentUserDocId(null);
+      }
+    };
+
+    fetchCurrentUserDocIdByEmail();
+  }, []);
 
   // Fetch user name map
   useEffect(() => {
@@ -365,6 +399,8 @@ const WebQRScanner: React.FC = () => {
     assetUrl: a.assetUrl,
     qrcode: a.qrcode,
     personnel: a.personnel ? uidToNameMap[a.personnel] || a.personnel : "Unassigned",
+    personnelId: a.personnel,
+    propertyNo: a.propertyNo,
     purchaseDate: fmtDate(a.purchaseDate),
     status: a.status,
     licenseType: a.licenseType,
@@ -384,6 +420,7 @@ const WebQRScanner: React.FC = () => {
     serialNo: a.serialNo || "",
     qrcode: a.qrcode || "",
     assetUrl: a.assetUrl,
+    propertyNo: a.propertyNo,
   });
 
   return (
@@ -470,6 +507,7 @@ const WebQRScanner: React.FC = () => {
           onViewHistory={(history, assetName, assetId) => {
             setShowHistoryModal(true);
           }}
+          currentUserDocId={currentUserDocId}
           extraButton={
             <button
               className="scanqr-btn scanqr-btn-outline"

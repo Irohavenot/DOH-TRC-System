@@ -1,6 +1,6 @@
 // BulkQRPrint.tsx
 import React, { useState, useEffect } from 'react';
-import { db } from '../../firebase/firebase';
+import { db, auth } from '../../firebase/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import QRCode from 'react-qr-code';
 import { toast } from 'react-toastify';
@@ -31,6 +31,8 @@ const BulkQRPrint: React.FC<BulkQRPrintProps> = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [showMyAssetsOnly, setShowMyAssetsOnly] = useState(false);
+  const [currentUserDocId, setCurrentUserDocId] = useState<string | null>(null);
   const [personnelMap, setPersonnelMap] = useState<Map<string, string>>(new Map());
 
   const getValidQRValue = (qrcode?: string, assetUrl?: string): string => {
@@ -51,8 +53,32 @@ const BulkQRPrint: React.FC<BulkQRPrintProps> = ({ isOpen, onClose }) => {
     if (isOpen) {
       fetchAssets();
       fetchPersonnel();
+      fetchCurrentUser();
     }
   }, [isOpen]);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        setCurrentUserDocId(null);
+        return;
+      }
+
+      const usersRef = collection(db, 'IT_Supply_Users');
+      const q = query(usersRef, where('Email', '==', user.email));
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        setCurrentUserDocId(snapshot.docs[0].id);
+      } else {
+        setCurrentUserDocId(null);
+      }
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+      setCurrentUserDocId(null);
+    }
+  };
 
   const fetchPersonnel = async () => {
     try {
@@ -60,8 +86,22 @@ const BulkQRPrint: React.FC<BulkQRPrintProps> = ({ isOpen, onClose }) => {
       const map = new Map<string, string>();
       snapshot.forEach((doc) => {
         const data = doc.data();
-        const fullName = `${data.FirstName} ${data.MiddleInitial ? data.MiddleInitial + '.' : ''} ${data.LastName}`.trim();
-        map.set(doc.id, fullName);
+        const firstName = data.FirstName || '';
+        const middleInitial = data.MiddleInitial || '';
+        const lastName = data.LastName || '';
+        
+        let middlePart = '';
+        if (middleInitial) {
+          if (middleInitial.length > 1 && !middleInitial.endsWith('.')) {
+            middlePart = middleInitial.charAt(0).toUpperCase() + '.';
+          } else {
+            middlePart = middleInitial.trim();
+            if (middlePart.length === 1) middlePart += '.';
+          }
+        }
+        
+        const fullName = [firstName, middlePart, lastName].filter(Boolean).join(' ').trim();
+        map.set(doc.id, fullName || 'Unknown User');
       });
       setPersonnelMap(map);
     } catch (error) {
@@ -124,7 +164,10 @@ const BulkQRPrint: React.FC<BulkQRPrintProps> = ({ isOpen, onClose }) => {
     const matchesCategory = 
       categoryFilter === 'all' || asset.category === categoryFilter;
     
-    return matchesSearch && matchesCategory;
+    const matchesUser = 
+      !showMyAssetsOnly || (currentUserDocId && asset.personnel === currentUserDocId);
+    
+    return matchesSearch && matchesCategory && matchesUser;
   });
 
   const handleSelectAll = () => {
@@ -201,6 +244,15 @@ const BulkQRPrint: React.FC<BulkQRPrintProps> = ({ isOpen, onClose }) => {
                 </option>
               ))}
             </select>
+
+            <button
+              className={`bulk-qr-my-assets ${showMyAssetsOnly ? 'active' : ''}`}
+              onClick={() => setShowMyAssetsOnly(!showMyAssetsOnly)}
+              title="Show only assets assigned to me"
+            >
+              <i className="fas fa-user" />
+              {showMyAssetsOnly ? 'My Assets Only' : 'All Assets'}
+            </button>
 
             <button
               className="bulk-qr-select-all"
