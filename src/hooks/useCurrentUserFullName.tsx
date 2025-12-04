@@ -1,6 +1,6 @@
 // src/hooks/useCurrentUserFullName.tsx
 import { useEffect, useState } from "react";
-import { auth, db } from "../firebase/firebase"; // ✅ adjust path as needed
+import { auth, db } from "../firebase/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 
 export const useCurrentUserFullName = () => {
@@ -26,11 +26,21 @@ export const useCurrentUserFullName = () => {
         if (!snapshot.empty) {
           const userData = snapshot.docs[0].data();
           const firstName = userData.FirstName || "";
-          const middleInitial = userData.MiddleInitial ? `${userData.MiddleInitial}` : "";
+          const middleName = userData.MiddleInitial || userData.middleName || "";
           const lastName = userData.LastName || "";
 
-          const name = [firstName, middleInitial, lastName].filter(Boolean).join(" ");
-          setFullName(name);
+          // ✅ Format middle name as single letter with period
+          let middleInitial = "";
+          if (middleName) {
+            // Take first character and add period
+            middleInitial = middleName.charAt(0).toUpperCase() + ".";
+          }
+
+          const name = [firstName, middleInitial, lastName]
+            .filter(Boolean)
+            .join(" ");
+          
+          setFullName(name || "User");
         } else {
           setFullName(null);
         }

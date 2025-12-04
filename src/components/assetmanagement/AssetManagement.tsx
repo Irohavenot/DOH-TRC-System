@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import "../../assets/assetmanagement.css";
-
+import Fuse from "fuse.js";
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { db, auth } from '../../firebase/firebase';
 import AssetDetailsModal from './AssetDetailsModal';
 import {
   collection,
-  query,
+  query as fsQuery,
   orderBy,
   onSnapshot,
   doc,
@@ -22,6 +22,7 @@ import HistoryModal from './HistoryModal';
 import EditAssetModal from './EditAssetModal';
 import ReportAssetModal from './ReportAssetModal';
 import BulkQRPrint from './BulkQRPrint'; 
+import { useSearch } from "../../context/SearchContext";
 
 const NON_EXPIRING = new Set(['Perpetual', 'OEM', 'Open Source']);
 const currentUserUID = auth.currentUser?.uid;
@@ -65,6 +66,7 @@ interface Card {
   assetHistory?: HistoryEntry[];
   hasReports?: boolean;
   reportCount?: number;
+    _matches?: any[];
 }
 
 const AssetManagement: React.FC = () => {
@@ -94,6 +96,9 @@ const AssetManagement: React.FC = () => {
   const [showBulkQR, setShowBulkQR] = useState(false);
   const [statuses, setStatuses] = useState<string[]>([]);
   const [assetStatusFilter, setAssetStatusFilter] = useState("all");
+  const { query, debouncedQuery } = useSearch();
+
+
 
 
   // Fetch current user's document ID from IT_Supply_Users
@@ -108,7 +113,7 @@ const AssetManagement: React.FC = () => {
 
       try {
         const usersRef = collection(db, "IT_Supply_Users");
-        const q = query(usersRef, where("Email", "==", currentEmail));
+        const q = fsQuery(usersRef, where("Email", "==", currentEmail));
         const snapshot = await getDocs(q);
 
         if (!snapshot.empty) {
@@ -128,40 +133,43 @@ const AssetManagement: React.FC = () => {
     fetchCurrentUserDocIdByEmail();
   }, []);
 
-  // Fetch reported assets
-  useEffect(() => {
-    const reportsRef = collection(db, "Asset_Reports");
-    const unsub = onSnapshot(
-      reportsRef,
-      (snap) => {
-        const reported = new Set<string>();
-        const reportCounts: Record<string, number> = {};
-        
-        snap.docs.forEach((doc) => {
-          const data = doc.data();
-          const assetDocId = data.assetDocId || data.assetId;
-          if (assetDocId) {
-            reported.add(assetDocId);
-            reportCounts[assetDocId] = (reportCounts[assetDocId] || 0) + 1;
-          }
-        });
-        
-        setReportedAssets(reported);
-        setRawAssets(prev => prev.map(asset => ({
-          ...asset,
-          hasReports: reported.has(asset.id),
-          reportCount: reportCounts[asset.id] || 0
-        })));
-      },
-      (err) => console.error("Error fetching reports:", err)
-    );
-    return () => unsub();
-  }, []);
+
+//Fetch reported assets
+useEffect(() => {
+  const reportsRef = collection(db, "Reported_Issues");
+  const unsub = onSnapshot(
+    reportsRef,
+    (snap) => {
+      const reported = new Set<string>();
+      const reportCounts: Record<string, number> = {};
+      
+      snap.docs.forEach((doc) => {
+        const data = doc.data();
+        const assetDocId = data.assetDocId || data.assetId;
+        if (assetDocId) {
+          reported.add(assetDocId);
+          reportCounts[assetDocId] = (reportCounts[assetDocId] || 0) + 1;
+        }
+      });
+      
+      setReportedAssets(reported);
+      
+      // Update rawAssets to include report information
+      setRawAssets(prev => prev.map(asset => ({
+        ...asset,
+        hasReports: reported.has(asset.id),
+        reportCount: reportCounts[asset.id] || 0
+      })));
+    },
+    (err) => console.error("Error fetching reports:", err)
+  );
+  return () => unsub();
+}, []); 
 
   // Fetch assets
   useEffect(() => {
     setLoading(true);
-    const qRef = query(collection(db, "IT_Assets"), orderBy("createdAt", "desc"));
+    const qRef = fsQuery(collection(db, "IT_Assets"), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(
       qRef,
       (snap) => {
@@ -282,7 +290,20 @@ const AssetManagement: React.FC = () => {
 
 const cards = useMemo(() => rawAssets.map((d: any) => {
   console.log("Asset personnel:", d.id, d.personnel);
-  const personnelName = d.personnel ? uidToNameMap[d.personnel] || d.personnel : undefined;
+
+        let personnelName: string | undefined = undefined;
+
+      // If asset has assigned personnel
+      if (d.personnel) {
+        if (uidToNameMap[d.personnel]) {
+          // user exists in users list → normal
+          personnelName = uidToNameMap[d.personnel];
+        } else {
+          // user was deleted or disabled → fallback
+          personnelName = "(Unassigned / User Removed)";
+        }
+      }
+
   const resolveByEmail = (email?: string) => { if (!email) return undefined; return emailToNameMap[email.trim().toLowerCase()] || email; };
   const createdByName = resolveByEmail(d.createdBy);
   const updatedByName = resolveByEmail(d.updatedBy);
@@ -316,62 +337,151 @@ const cards = useMemo(() => rawAssets.map((d: any) => {
     reportCount: d.reportCount || 0,
   } as Card;
 }), [rawAssets, uidToNameMap, emailToNameMap]);
+const fuse = useMemo(() => {
+  return new Fuse(cards, {
+    keys: [
+      { name: "title", weight: 0.45 },
+      { name: "serial", weight: 0.25 },
+      { name: "personnel", weight: 0.15 },
+      { name: "team", weight: 0.10 },
+      { name: "status", weight: 0.05 },
+    ],
+    threshold: 0.4,          // typo tolerance (lower = stricter)
+    includeMatches: true,    // needed for highlighting
+    minMatchCharLength: 2,
+  });
+}, [cards]);
+function highlightText(text: string, matches?: any[]) {
+  if (!matches || matches.length === 0) return text;
 
-  const filteredCards = useMemo(() => {
-    let result = [...cards];
-
-    if (statusFilter !== 'all') {
-      result = result.filter((card) => {
-        switch (statusFilter) {
-          case 'permanent': return card.iconClass === 'icon-blue';
-          case 'normal': return card.iconClass === 'icon-green';
-          case 'aboutToExpire': return card.iconClass === 'icon-orange';
-          case 'expired': return card.iconClass === 'icon-red';
-          default: return true;
-        }
+  // Collect and merge overlapping indices for cleaner highlights
+  const allIndices: [number, number][] = [];
+  
+  matches.forEach(m => {
+    if (m.indices) {
+      m.indices.forEach(([start, end]: [number, number]) => {
+        allIndices.push([start, end]);
       });
     }
+  });
 
-    if (categoryFilter !== 'all') {
-      result = result.filter(card => card.team === categoryFilter);
+  if (allIndices.length === 0) return text;
+
+  // Sort by start position
+  allIndices.sort((a, b) => a[0] - b[0]);
+
+  // Merge overlapping or adjacent ranges
+  const merged: [number, number][] = [];
+  let current = allIndices[0];
+
+  for (let i = 1; i < allIndices.length; i++) {
+    const [curStart, curEnd] = current;
+    const [nextStart, nextEnd] = allIndices[i];
+
+    // Merge if overlapping or adjacent (within 1 char)
+    if (nextStart <= curEnd + 1) {
+      current = [curStart, Math.max(curEnd, nextEnd)];
+    } else {
+      merged.push(current);
+      current = allIndices[i];
     }
-    if (assetStatusFilter !== "all") {
-      result = result.filter(card => card.status === assetStatusFilter);
-    }
+  }
+  merged.push(current);
 
-    if (showMyAssets && currentUserDocId) {
-      console.log("Filtering for current user doc ID:", currentUserDocId);
-      result = result.filter(card => {
-        const match = card.personnelId === currentUserDocId;
-        if (match) {
-          console.log("Match found:", card.title, "personnelId:", card.personnelId);
-        }
-        return match;
-      });
-      console.log("Filtered cards:", result);
-    }
+  // Build highlighted string
+  let result = "";
+  let lastIndex = 0;
 
-    if (showReported) {
-      result = result.filter(card => card.hasReports);
-    }
+  merged.forEach(([start, end]) => {
+    result += text.substring(lastIndex, start);
+    result += `<span class="highlight-match">${text.substring(start, end + 1)}</span>`;
+    lastIndex = end + 1;
+  });
 
-    return result;
-  }, [cards, statusFilter, categoryFilter, showMyAssets, showReported, currentUserDocId]);
+  result += text.substring(lastIndex);
+  return result;
+}
 
-  const counts = useMemo(() => {
-    let permanent = 0, normal = 0, aboutToExpire = 0, expired = 0, myAssets = 0, reported = 0;
+const filteredCards = useMemo(() => {
+  let result = [...cards];
+
+  // 1. 🔍 SEARCH FIRST
+  if (debouncedQuery.trim() !== "") {
+    const results = fuse.search(debouncedQuery).map(r => ({
+      ...r.item,
+      _matches: r.matches ? [...r.matches] : undefined
+    }));
+    result = results;
+  }
+
+  // 2. 📂 CATEGORY FILTER
+  if (categoryFilter !== "all") {
+    result = result.filter((card) => card.team === categoryFilter);
+  }
+
+  // 3. 🔖 STATUS BADGE FILTER (permanent / normal / expired / etc)
+  if (statusFilter !== "all") {
+    result = result.filter((card) => {
+      switch (statusFilter) {
+        case "permanent":
+          return card.iconClass === "icon-blue";
+        case "normal":
+          return card.iconClass === "icon-green";
+        case "aboutToExpire":
+          return card.iconClass === "icon-orange";
+        case "expired":
+          return card.iconClass === "icon-red";
+        default:
+          return true;
+      }
+    });
+  }
+
+  // 4. 🏷 Asset Status Filter (Functional / Defective / etc)
+  if (assetStatusFilter !== "all") {
+    result = result.filter((card) => card.status === assetStatusFilter);
+  }
+
+  // 5. 👤 My Assets
+  if (showMyAssets && currentUserDocId) {
+    result = result.filter((card) => card.personnelId === currentUserDocId);
+  }
+
+  // 6. ⚠ Show Reported Only - FIX: Check hasReports property
+  if (showReported) {
+    result = result.filter((card) => card.hasReports === true);
+  }
+
+  return result;
+}, [
+  cards,
+  debouncedQuery,
+  fuse, // Add fuse as dependency
+  categoryFilter,
+  statusFilter,
+  assetStatusFilter,
+  showMyAssets,
+  showReported,
+  currentUserDocId,
+]);
+
+
+
+const counts = useMemo(() => {
+  let permanent = 0, normal = 0, aboutToExpire = 0, expired = 0, myAssets = 0, reported = 0;
+  
+  for (const c of cards) {
+    if (c.iconClass === 'icon-blue') permanent++;
+    else if (c.iconClass === 'icon-green') normal++;
+    else if (c.iconClass === 'icon-orange') aboutToExpire++;
+    else if (c.iconClass === 'icon-red') expired++;
     
-    for (const c of cards) {
-      if (c.iconClass === 'icon-blue') permanent++;
-      else if (c.iconClass === 'icon-green') normal++;
-      else if (c.iconClass === 'icon-orange') aboutToExpire++;
-      else if (c.iconClass === 'icon-red') expired++;
-      
-      if (currentUserDocId && c.personnelId === currentUserDocId) myAssets++;
-      if (c.hasReports) reported++;
-    }
-    return { permanent, normal, aboutToExpire, expired, myAssets, reported };
-  }, [cards, currentUserDocId]);
+    if (currentUserDocId && c.personnelId === currentUserDocId) myAssets++;
+    if (c.hasReports) reported++;
+  }
+  return { permanent, normal, aboutToExpire, expired, myAssets, reported };
+}, [cards, currentUserDocId]); // Remove 'query' dependency
+
 
   const handleCardOptionsToggle = (index: number) => setOpenCardOptionsId(prev => (prev === index ? null : index));
 
@@ -475,6 +585,7 @@ const cards = useMemo(() => rawAssets.map((d: any) => {
         deletedByEmail,
         deletionReason: 'User-initiated deletion from Asset Management',
         originalId: card.id,
+        
       };
 
       const deletedDocRef = await addDoc(collection(db, "Deleted_Assets"), auditRecord);
@@ -774,7 +885,15 @@ const cards = useMemo(() => rawAssets.map((d: any) => {
                     </div>
                   </div>
                   
-                  <h2>{card.title}</h2>
+                                <h2
+                className="card-title"
+                dangerouslySetInnerHTML={{
+                  __html: highlightText(card.title, card._matches),
+                }}
+              ></h2>
+
+
+
                   
                   <div className="card-meta">
                     <div className="card-meta-item">

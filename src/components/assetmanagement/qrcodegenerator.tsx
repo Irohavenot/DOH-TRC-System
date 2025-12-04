@@ -331,6 +331,8 @@ const QRCodeGenerator = () => {
         assetDetails.expirationDate ? new Date(assetDetails.expirationDate) : null;
 
       // Prepare Firestore payload
+      const assignedPersonnel = itUsers.find(u => u.id === assetDetails.personnel);
+
       const payload = {
         assetId,
         propertyNo: assetDetails.propertyNo || "",
@@ -340,20 +342,25 @@ const QRCodeGenerator = () => {
         subType: assetDetails.subType || "",
         createdAt: serverTimestamp(),
         createdBy: auth.currentUser?.email || "",
+
+        // 👇 NEW LINE — save name snapshot
+        personnelNameSnapshot: assignedPersonnel?.fullName || "",
+
         expirationDate: assetDetails.expirationDate || "",
         generateQR: !!assetDetails.generateQR,
         image: imagePreview || "",
         licenseType: assetDetails.licenseType || "",
         personnel: assetDetails.personnel || "",
         purchaseDate: assetDetails.purchaseDate || "",
-        qrcode,                 // Base64 string or ""
-        renewdate,              // Date or null (Firestore stores as Timestamp)
+        qrcode,
+        renewdate,
         serialNo: assetDetails.serialNo || "",
         status: assetDetails.status || "",
         remarks: assetDetails.remarks || "",
         updatedAt: serverTimestamp(),
         updatedBy: auth.currentUser?.email || "",
       };
+
 
       await addDoc(collection(db, "IT_Assets"), payload);
       showToast('Asset added successfully.', 'success');

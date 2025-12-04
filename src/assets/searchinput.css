@@ -1,0 +1,32 @@
+.searchbox-container {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+}
+
+.searchbox-icon {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  width: 17px;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.searchbox-input {
+  width: 100%;
+  padding: 10px 12px 10px 42px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  font-size: 15px;
+  color: #1e293b;
+  transition: 0.2s ease;
+}
+
+.searchbox-input:focus {
+  outline: none;
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.25);
+}

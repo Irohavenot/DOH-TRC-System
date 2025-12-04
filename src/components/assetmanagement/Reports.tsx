@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import React from 'react';
-import { collection, getDocs, doc, updateDoc, query, orderBy, arrayUnion, deleteDoc, addDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, query as fsQuery, orderBy, arrayUnion, deleteDoc, addDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase/firebase';
 import "../../assets/Reports.css";
+import { useSearch } from '../../context/SearchContext';
 
 interface Report {
   id: string;
@@ -35,14 +36,16 @@ const Reports: React.FC = () => {
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [currentPage, setCurrentPage] = useState<{ [key: string]: number }>({});
-
+  const { query } = useSearch();
+  
+  
   // Fetch reports from Firestore
   useEffect(() => {
     const fetchReports = async () => {
       try {
         setLoading(true);
         const reportsRef = collection(db, 'Reported_Issues');
-        const q = query(reportsRef, orderBy('createdAt', 'desc'));
+        const q = fsQuery(reportsRef, orderBy('createdAt', 'desc'));
         const querySnapshot = await getDocs(q);
         
         const fetchedReports: Report[] = querySnapshot.docs.map((doc) => {
@@ -363,16 +366,29 @@ const Reports: React.FC = () => {
   };
 
   // Filter by selected month and year
-  const filteredReports = reports.filter((report) => {
-    const reportDate = report.createdAt;
-    const reportMonth = (reportDate.getMonth() + 1).toString().padStart(2, '0');
-    const reportYear = reportDate.getFullYear().toString();
+const filteredReports = reports.filter((r) => {
+  const reportDate = r.createdAt;
+  const reportMonth = (reportDate.getMonth() + 1).toString().padStart(2, "0");
+  const reportYear = reportDate.getFullYear().toString();
 
-    const matchesMonth = month ? reportMonth === month : true;
-    const matchesYear = year ? reportYear === year : true;
+  const matchesMonth = month ? reportMonth === month : true;
+  const matchesYear = year ? reportYear === year : true;
 
-    return matchesMonth && matchesYear;
-  });
+  // first apply month/year filters
+  if (!(matchesMonth && matchesYear)) return false;
+
+  // then apply search
+  if (!query) return true;
+  const q = query.toLowerCase();
+
+  return (
+    r.assetName.toLowerCase().includes(q) ||
+    r.assetId.toLowerCase().includes(q) ||
+    r.reason.toLowerCase().includes(q) ||
+    r.reportedBy.toLowerCase().includes(q)
+  );
+});
+
 
   // Pagination constants
   const ITEMS_PER_PAGE = 7;

@@ -7,6 +7,100 @@
   min-height: 100vh;
   box-sizing: border-box;
 }
+/* Enhanced Search Highlighting - Clean & Professional */
+
+.highlight-match {
+  background: linear-gradient(135deg, #fef08a 0%, #fde047 100%);
+  color: #1f2937;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(250, 204, 21, 0.2);
+  transition: all 0.2s ease;
+  position: relative;
+  display: inline-block;
+}
+
+/* Smooth animation on highlight appearance */
+@keyframes highlightFadeIn {
+  from {
+    background: transparent;
+    box-shadow: none;
+  }
+  to {
+    background: linear-gradient(135deg, #fef08a 0%, #fde047 100%);
+    box-shadow: 0 1px 3px rgba(250, 204, 21, 0.2);
+  }
+}
+
+.highlight-match {
+  animation: highlightFadeIn 0.3s ease;
+}
+
+/* Hover effect for highlighted text */
+.card:hover .highlight-match {
+  background: linear-gradient(135deg, #fde047 0%, #facc15 100%);
+  box-shadow: 0 2px 4px rgba(250, 204, 21, 0.3);
+}
+
+/* Alternative: Softer, more subtle highlight */
+.highlight-match.subtle {
+  background: rgba(251, 191, 36, 0.2);
+  color: #1f2937;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-weight: 600;
+  border-bottom: 2px solid #fbbf24;
+  box-shadow: none;
+}
+
+/* Alternative: Modern outline style */
+.highlight-match.outline {
+  background: transparent;
+  color: #1f2937;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 2px #fbbf24;
+  transition: all 0.2s ease;
+}
+
+.card:hover .highlight-match.outline {
+  background: rgba(251, 191, 36, 0.1);
+  box-shadow: inset 0 0 0 2px #f59e0b;
+}
+
+/* Ensure highlighted text doesn't break layout */
+.card-title {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.5;
+}
+
+/* Clean up spacing around highlights */
+.card-title .highlight-match + .highlight-match {
+  margin-left: 1px;
+}
+
+/* Accessibility: Ensure sufficient contrast */
+@media (prefers-contrast: high) {
+  .highlight-match {
+    background: #fde047;
+    color: #000;
+    font-weight: 700;
+  }
+}
+
+/* Print styles - remove background for printing */
+@media print {
+  .highlight-match {
+    background: transparent;
+    color: inherit;
+    text-decoration: underline;
+    box-shadow: none;
+  }
+}
+
 
 /* Filter Section */
 .filter-section {

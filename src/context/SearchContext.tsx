@@ -1,25 +1,29 @@
-import React, { createContext, useContext, useState, useMemo } from "react";
+import React, { createContext, useContext, useState } from "react";
 import useDebounce from "../hooks/useDebounce";
 
-type SearchContextType = {
-  query: string;
-  setQuery: (q: string) => void;
-  debouncedQuery: string;
-};
+interface SearchContextType {
+  query: string;                   // raw user text
+  setQuery: (value: string) => void;
+  debouncedQuery: string;          // delayed cleaned text (used for searching)
+}
 
-const SearchContext = createContext<SearchContextType | undefined>(undefined);
+const SearchContext = createContext<SearchContextType>({
+  query: "",
+  setQuery: () => {},
+  debouncedQuery: "",
+});
 
 export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [query, setQuery] = useState("");
-  const debouncedQuery = useDebounce(query, 250); // 250ms debounce for UX
 
-  const value = useMemo(() => ({ query, setQuery, debouncedQuery }), [query, debouncedQuery]);
+  // 🔥 Debounced version (waits 250ms after typing)
+  const debouncedQuery = useDebounce(query, 250);
 
-  return <SearchContext.Provider value={value}>{children}</SearchContext.Provider>;
+  return (
+    <SearchContext.Provider value={{ query, setQuery, debouncedQuery }}>
+      {children}
+    </SearchContext.Provider>
+  );
 };
 
-export function useSearch() {
-  const ctx = useContext(SearchContext);
-  if (!ctx) throw new Error("useSearch must be used within SearchProvider");
-  return ctx;
-}
+export const useSearch = () => useContext(SearchContext);
