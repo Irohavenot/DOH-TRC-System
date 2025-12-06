@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { db } from "../../firebase/firebase";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { toast } from "react-toastify";
 import "../../assets/viewassetreportsmodal.css";
 
@@ -42,23 +42,35 @@ const ViewAssetReportsModal: React.FC<ViewAssetReportsModalProps> = ({
       setLoading(true);
       try {
         const reportsRef = collection(db, "Reported_Issues");
-        const q = query(
-          reportsRef,
-          where("assetDocId", "==", assetDocId),
-          orderBy("createdAt", "desc")
-        );
 
-        const snapshot = await getDocs(q);
-        const fetchedReports: Report[] = [];
+        // Query reports saved with assetDocId (new format)
+        const q1 = query(reportsRef, where("assetDocId", "==", assetDocId));
 
-        snapshot.forEach((doc) => {
-          fetchedReports.push({
-            id: doc.id,
-            ...doc.data(),
-          } as Report);
+        // Query reports saved with assetId (old format)
+        const q2 = query(reportsRef, where("assetId", "==", assetDocId));
+
+        const snap1 = await getDocs(q1);
+        const snap2 = await getDocs(q2);
+
+        // Merge without duplicates
+        const mergedDocs = [...snap1.docs, ...snap2.docs].reduce((acc, doc) => {
+          if (!acc.some((d) => d.id === doc.id)) acc.push(doc);
+          return acc;
+        }, [] as typeof snap1.docs);
+
+        // Sort by createdAt DESC
+        mergedDocs.sort((a, b) => {
+          const t1 = a.data().createdAt?.toMillis?.() ?? 0;
+          const t2 = b.data().createdAt?.toMillis?.() ?? 0;
+          return t2 - t1;
         });
 
-        setReports(fetchedReports);
+        const mappedReports: Report[] = mergedDocs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Report[];
+
+        setReports(mappedReports);
       } catch (error) {
         console.error("Error fetching reports:", error);
         toast.error("Failed to load reports");
@@ -74,16 +86,11 @@ const ViewAssetReportsModal: React.FC<ViewAssetReportsModalProps> = ({
 
   const getConditionColor = (condition: string) => {
     switch (condition?.toLowerCase()) {
-      case "damaged":
-        return "#f59e0b";
-      case "under maintenance":
-        return "#3b82f6";
-      case "defective":
-        return "#ef4444";
-      case "unserviceable":
-        return "#dc2626";
-      default:
-        return "#6b7280";
+      case "damaged": return "#f59e0b";
+      case "under maintenance": return "#3b82f6";
+      case "defective": return "#ef4444";
+      case "unserviceable": return "#dc2626";
+      default: return "#6b7280";
     }
   };
 
@@ -106,6 +113,7 @@ const ViewAssetReportsModal: React.FC<ViewAssetReportsModalProps> = ({
   return (
     <div className="varm-backdrop" onClick={onClose}>
       <div className="varm-modal" onClick={(e) => e.stopPropagation()}>
+        
         <div className="varm-header">
           <div>
             <h2>
@@ -146,9 +154,7 @@ const ViewAssetReportsModal: React.FC<ViewAssetReportsModalProps> = ({
                   <div className="varm-report-header">
                     <span
                       className="varm-condition-badge"
-                      style={{
-                        backgroundColor: getConditionColor(report.condition),
-                      }}
+                      style={{ backgroundColor: getConditionColor(report.condition) }}
                     >
                       {report.condition}
                     </span>

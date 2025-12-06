@@ -3,6 +3,7 @@ import '../../assets/AssetDetailsModal.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import '../../assets/assetmanagement.css';
 import QRModal from './QRModal';
+import ViewAssetReportsModal from './ViewAssetReportsModal';
 
 interface HistoryEntry {
   changedAt?: any;
@@ -62,12 +63,16 @@ const AssetDetailsModal: React.FC<AssetDetailsModalProps> = ({
   const [showMoreDetails, setShowMoreDetails] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const [showReportsModal, setShowReportsModal] = useState(false);
 
   const isAssignedPersonnel = !!(
     asset?.personnelId &&
     currentUserDocId &&
     asset.personnelId === currentUserDocId
   );
+
+  // Check if this is a License category
+  const isLicenseCategory = asset?.team?.toLowerCase() === 'license';
 
   useEffect(() => {
     setImageError(false);
@@ -89,6 +94,10 @@ const AssetDetailsModal: React.FC<AssetDetailsModalProps> = ({
     return 'Type';
   };
 
+  const getExpirationLabel = () => {
+    return isLicenseCategory ? 'Expiration Date' : 'End of Service';
+  };
+
   const handleViewQR = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (asset.qrcode) {
@@ -101,6 +110,11 @@ const AssetDetailsModal: React.FC<AssetDetailsModalProps> = ({
     if (onViewHistory && asset.assetHistory) {
       onViewHistory(asset.assetHistory, asset.title, asset.id);
     }
+  };
+
+  const handleViewReports = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowReportsModal(true);
   };
 
   const handleClose = () => {
@@ -126,11 +140,23 @@ const AssetDetailsModal: React.FC<AssetDetailsModalProps> = ({
                 </div>
               )}
             </div>
-            {asset.qrcode && (
-              <button className="viewmore-qr-fab" onClick={handleViewQR} title="View QR">
-                <i className="fas fa-qrcode" /> <span>View QR</span>
-              </button>
-            )}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {asset.hasReports && (
+                <button 
+                  className="viewmore-reports-fab" 
+                  onClick={handleViewReports}
+                  title={`View ${asset.reportCount} Report${asset.reportCount !== 1 ? 's' : ''}`}
+                >
+                  <i className="fas fa-exclamation-triangle" />
+                  <span>Reports ({asset.reportCount})</span>
+                </button>
+              )}
+              {asset.qrcode && (
+                <button className="viewmore-qr-fab" onClick={handleViewQR} title="View QR">
+                  <i className="fas fa-qrcode" /> <span>View QR</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Property Number Badge - Above Image */}
@@ -222,7 +248,7 @@ const AssetDetailsModal: React.FC<AssetDetailsModalProps> = ({
                   )}
                   {asset.renewdate && (
                     <tr>
-                      <td><strong>Renewal Date:</strong></td>
+                      <td><strong>{getExpirationLabel()}:</strong></td>
                       <td>{asset.renewdate}</td>
                     </tr>
                   )}
@@ -302,7 +328,7 @@ const AssetDetailsModal: React.FC<AssetDetailsModalProps> = ({
         </div>
       </div>
 
-      {/* QR Modal - Direct integration */}
+      {/* QR Modal */}
       <QRModal 
         isOpen={showQR} 
         onClose={() => setShowQR(false)} 
@@ -317,6 +343,14 @@ const AssetDetailsModal: React.FC<AssetDetailsModalProps> = ({
           purchaseDate: asset.purchaseDate,
           personnel: asset.personnelId,
         }}
+      />
+
+      {/* Reports Modal */}
+      <ViewAssetReportsModal
+        isOpen={showReportsModal}
+        onClose={() => setShowReportsModal(false)}
+        assetDocId={asset.id}
+        assetName={asset.title}
       />
     </>
   );

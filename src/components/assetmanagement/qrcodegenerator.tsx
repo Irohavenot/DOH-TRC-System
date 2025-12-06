@@ -5,29 +5,21 @@ import "../../assets/qrcodegenerator.css";
 import { useLocation } from "react-router-dom";
 import { db, auth } from '../../firebase/firebase';
 import { addDoc, collection, getDocs, serverTimestamp, query, where, orderBy } from 'firebase/firestore';
-import QRModal from './QRModal'; // ✅ Import QRModal component
+import QRModal from './QRModal';
 
-const NON_EXPIRING = new Set(['Perpetual', 'OEM', 'Open Source']); // disables expiration
+const NON_EXPIRING = new Set(['Perpetual', 'OEM', 'Open Source']);
 
-// ───────────────────────────────────────────────────────────────────────────────
-// NEW: URL helpers so QR works on localhost, LAN IP/host, and production
-// .env examples:
-//   VITE_PUBLIC_BASE_URL=https://your-app.example.com
-//   VITE_QR_HASH_MODE=true   // set this if you use HashRouter (adds "/#")
-// ───────────────────────────────────────────────────────────────────────────────
 function getPublicBase(): string {
   const envBase = import.meta.env.VITE_PUBLIC_BASE_URL?.toString().trim();
   if (envBase) {
     try {
       const u = new URL(envBase);
-      // keep origin + optional subpath (no trailing slash)
       return (u.origin + u.pathname).replace(/\/+$/, '');
     } catch {
-      // if it's not a full URL, just trim trailing slash
       return envBase.replace(/\/+$/, '');
     }
   }
-  return window.location.origin; // e.g., http://localhost:5173 or http://192.168.x.x:5173
+  return window.location.origin;
 }
 
 function buildAssetUrl(assetId: string): string {
@@ -36,16 +28,15 @@ function buildAssetUrl(assetId: string): string {
   const path = `/dashboard/${encodeURIComponent(assetId)}`;
   return useHash ? `${base}/#${path}` : `${base}${path}`;
 }
-// ───────────────────────────────────────────────────────────────────────────────
 
 const QRCodeGenerator = () => {
   const location = useLocation();
   const categoryFromState = location.state?.category || "";
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [showModal, setShowModal] = useState(false);      // QR modal
-  const [showConfirm, setShowConfirm] = useState(false);  // Confirm modal
-  const [qrAsset, setQrAsset] = useState<any>(null);      // ✅ Asset data for QRModal
+  const [showModal, setShowModal] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [qrAsset, setQrAsset] = useState<any>(null);
   const [itUsers, setItUsers] = useState<User[]>([]);
 
   const [pendingReset, setPendingReset] = useState(false);
@@ -72,7 +63,6 @@ const QRCodeGenerator = () => {
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [loadingStatuses, setLoadingStatuses] = useState(true);
 
-  // simple toast state
   const [toast, setToast] = useState<{ message: string; type?: 'error'|'success'|'info'} | null>(null);
   const showToast = (message: string, type: 'error'|'success'|'info' = 'info') => {
     setToast({ message, type });
@@ -89,17 +79,17 @@ const QRCodeGenerator = () => {
   }
   
   const [assetDetails, setAssetDetails] = useState({
-    assetId: '',        // generated after add (preview only)
-    propertyNo: '',     // user-input field (replaces previous Asset ID field)
+    assetId: '',
+    propertyNo: '',
     assetName: '',
     category: categoryFromState,
-    subType: '',               // Specific type based on category
+    subType: '',
     status: '',
-    personnel: '',             // store user id (string) or ""
-    purchaseDate: '',          // "YYYY-MM-DD" or ""
+    personnel: '',
+    purchaseDate: '',
     serialNo: '',
     licenseType: '',
-    expirationDate: '',        // "YYYY-MM-DD" or ""
+    expirationDate: '',
     generateQR: true,
     remarks: '',
   });
@@ -109,7 +99,7 @@ const QRCodeGenerator = () => {
       assetId: '',
       propertyNo: '',
       assetName: '',
-      category: prev.category, // keep last category (change to "" if you prefer)
+      category: prev.category,
       subType: '',
       status: '',
       personnel: '',
@@ -124,7 +114,6 @@ const QRCodeGenerator = () => {
     setQrAsset(null);
   };
 
-  // ---- helpers ----
   const generateAssetId = () => {
     const timestamp = Date.now().toString(36);
     const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase();
@@ -149,7 +138,6 @@ const QRCodeGenerator = () => {
     });
   };
 
-  //Category fetch
   useEffect(() => {
     setLoadingCategories(true);
     const q = query(collection(db, "Asset_Categories"), orderBy("Category_Name", "asc"));
@@ -168,7 +156,6 @@ const QRCodeGenerator = () => {
     });
   }, []);
 
-  //Status fetch
   useEffect(() => {
     setLoadingStatuses(true);
     const q = query(collection(db, "Asset_Status"), orderBy("Status_Name", "asc"));
@@ -191,13 +178,9 @@ const QRCodeGenerator = () => {
   );
 
   const hasTypes = selectedCategoryObj?.types && selectedCategoryObj.types.length > 0;
-
-  // Check if selected category is "License"
   const isLicenseCategory = assetDetails.category === 'License';
 
-  // ---- effects ----
   useEffect(() => {
-    // IT Supply Users
     (async () => {
       try {
         const q = query(
@@ -221,14 +204,12 @@ const QRCodeGenerator = () => {
     })();
   }, []);
 
-  // Disable/clear expiration if license becomes non-expiring
   useEffect(() => {
     if (NON_EXPIRING.has(assetDetails.licenseType) && assetDetails.expirationDate) {
       setAssetDetails((prev) => ({ ...prev, expirationDate: '' }));
     }
   }, [assetDetails.licenseType]);
 
-  // ---- validation ----
   const validate = (): boolean => {
     if (!assetDetails.assetName.trim()) {
       showToast('Asset Name is required.', 'error'); return false;
@@ -236,7 +217,6 @@ const QRCodeGenerator = () => {
     if (!assetDetails.category) {
       showToast('Please select a Category.', 'error'); return false;
     }
-    // Only require subType if the selected category has types
     if (hasTypes && !assetDetails.subType) {
       showToast('Please select a Type for this category.', 'error'); return false;
     }
@@ -250,19 +230,19 @@ const QRCodeGenerator = () => {
       showToast('Please assign a Personnel.', 'error'); return false;
     }
     if (!NON_EXPIRING.has(assetDetails.licenseType) && !assetDetails.expirationDate) {
-      showToast('Expiration Date is required for Limited Period.', 'error'); return false;
+      const fieldName = isLicenseCategory ? 'Expiration Date' : 'End of Service';
+      showToast(`${fieldName} is required for Limited Period.`, 'error'); 
+      return false;
     }
     return true;
   };
 
-  // ---- confirm modal control ----
   const openConfirm = () => {
     if (!validate()) return;
     setShowConfirm(true);
   };
   const closeConfirm = () => setShowConfirm(false);
 
-  // ---- handlers ----
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
@@ -272,8 +252,8 @@ const QRCodeGenerator = () => {
       setAssetDetails((prev) => ({
         ...prev,
         category: value,
-        subType: '', // reset subType when category changes
-        licenseType: '', // reset licenseType when category changes
+        subType: '',
+        licenseType: '',
       }));
       return;
     }
@@ -294,7 +274,6 @@ const QRCodeGenerator = () => {
     }
   };
 
-  // skipValidation: used when called from Confirm Add
   const handleAddAsset = async (skipValidation = false) => {
     if (isSubmitting) return;
     try {
@@ -302,16 +281,13 @@ const QRCodeGenerator = () => {
 
       setIsSubmitting(true);
 
-      // Generate ID and URL
       const assetId = generateAssetId();
       const assetUrl = buildAssetUrl(assetId);
 
-      // QR: only if opted in
       let qrcode = "";
       if (assetDetails.generateQR) {
         qrcode = await makeQRDataUrl(assetUrl);
         
-        // ✅ Prepare asset data for QRModal
         setQrAsset({
           id: assetId,
           assetId: assetId,
@@ -326,11 +302,9 @@ const QRCodeGenerator = () => {
         setShowModal(true);
       }
 
-      // renewdate: timestamp or null
       const renewdate =
         assetDetails.expirationDate ? new Date(assetDetails.expirationDate) : null;
 
-      // Prepare Firestore payload
       const assignedPersonnel = itUsers.find(u => u.id === assetDetails.personnel);
 
       const payload = {
@@ -342,10 +316,7 @@ const QRCodeGenerator = () => {
         subType: assetDetails.subType || "",
         createdAt: serverTimestamp(),
         createdBy: auth.currentUser?.email || "",
-
-        // 👇 NEW LINE — save name snapshot
         personnelNameSnapshot: assignedPersonnel?.fullName || "",
-
         expirationDate: assetDetails.expirationDate || "",
         generateQR: !!assetDetails.generateQR,
         image: imagePreview || "",
@@ -361,21 +332,18 @@ const QRCodeGenerator = () => {
         updatedBy: auth.currentUser?.email || "",
       };
 
-
       await addDoc(collection(db, "IT_Assets"), payload);
       showToast('Asset added successfully.', 'success');
 
-      // reflect generated assetId in the read-only preview (optional)
       setAssetDetails((prev) => ({ ...prev, assetId }));
 
-      // decide when to reset
       if (assetDetails.generateQR) {
-        setPendingReset(true);  // wait until QR modal closes
+        setPendingReset(true);
       } else {
         resetForm();
       }
     } catch (err: any) {
-      console.error("❌ Error adding asset:", err.message);
+      console.error("Error adding asset:", err.message);
       showToast(`Error adding asset: ${err.message}`, 'error');
     } finally {
       setIsSubmitting(false);
@@ -384,7 +352,6 @@ const QRCodeGenerator = () => {
 
   const isExpirationDisabled = NON_EXPIRING.has(assetDetails.licenseType);
 
-  // Get operational period options based on selected category
   const getOperationalPeriodOptions = () => {
     if (isLicenseCategory) {
       return [
@@ -402,83 +369,78 @@ const QRCodeGenerator = () => {
   };
 
   return (
-    <div className='qrgenerator-container'>
-      <div className="add-asset-function">
-        {/* Toast */}
+    <div className='qrgen-container'>
+      <div className="qrgen-wrapper">
         {toast && (
-          <div className={`toast ${toast.type || 'info'}`}>
+          <div className={`qrgen-toast ${toast.type || 'info'}`}>
             {toast.message}
           </div>
         )}
 
-        <div className="asset-form">
-          <div className="asset-form-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
-            <h3 style={{ margin: 0 }}>
-              Add New {assetDetails.category || "Asset"} <br />
-            </h3>
+        <div className="qrgen-form">
+          <div className="qrgen-header">
+            <div className="qrgen-title-section">
+              <h2 className="qrgen-title">Add New {assetDetails.category || "Asset"}</h2>
+              <p className="qrgen-subtitle">Fill in the details to register a new asset</p>
+            </div>
 
-            {/* Asset ID preview after submit */}
             {assetDetails.assetId && (
-              <div className="asset-id-preview" style={{ marginLeft: 'auto', padding: '8px 12px', background: '#eef3f7', borderRadius: 6, fontSize: 14, borderLeft: '3px solid #2a516e' }}>
-                <strong>Asset ID:</strong>&nbsp;{assetDetails.assetId}
+              <div className="qrgen-asset-id-badge">
+                <span className="qrgen-badge-label">Asset ID</span>
+                <span className="qrgen-badge-value">{assetDetails.assetId}</span>
               </div>
             )}
           </div>
 
           {imagePreview && (
-            <div className="image-preview">
+            <div className="qrgen-image-preview">
               <img src={imagePreview} alt="Uploaded" />
             </div>
           )}
 
-          <div className="form-grid">
-            {/* Property Number (User-inputted) */}
-            <div className="form-field">
-              <label htmlFor="propertyNo">Property No.</label>
+          <div className="qrgen-form-grid">
+            <div className="qrgen-form-field">
+              <label htmlFor="propertyNo" className="qrgen-label">Property No.</label>
               <input
-                  type="text"
-                  id="propertyNo"
-                  name="propertyNo"
-                  value={assetDetails.propertyNo}
-                  placeholder={prefix + "your entry here"}
-                  onChange={(e) => {
-                    let value = e.target.value;
-
-                    // Always force prefix at the beginning
-                    if (!value.startsWith(prefix)) {
-                      value = prefix + value.replace(prefix, "");
-                    }
-
-                    // Update the state
-                    setAssetDetails(prev => ({ ...prev, propertyNo: value }));
-                  }}
-                />
-
+                type="text"
+                id="propertyNo"
+                name="propertyNo"
+                className="qrgen-input"
+                value={assetDetails.propertyNo}
+                placeholder={prefix + "your entry here"}
+                onChange={(e) => {
+                  let value = e.target.value;
+                  if (!value.startsWith(prefix)) {
+                    value = prefix + value.replace(prefix, "");
+                  }
+                  setAssetDetails(prev => ({ ...prev, propertyNo: value }));
+                }}
+              />
             </div>
 
-            {/* Asset Name */}
-            <div className="form-field">
-              <label htmlFor="assetName">
-                Asset Name <span className="required">*</span>
+            <div className="qrgen-form-field">
+              <label htmlFor="assetName" className="qrgen-label">
+                Asset Name <span className="qrgen-required">*</span>
               </label>
               <input
                 type="text"
                 id="assetName"
                 name="assetName"
+                className="qrgen-input"
                 placeholder="Enter asset name"
                 onChange={handleInputChange}
                 value={assetDetails.assetName}
               />
             </div>
 
-            {/* Category */}
-            <div className="form-field">
-              <label htmlFor="category">
-                Category <span className="required">*</span>
+            <div className="qrgen-form-field">
+              <label htmlFor="category" className="qrgen-label">
+                Category <span className="qrgen-required">*</span>
               </label>
               <select
                 id="category"
                 name="category"
+                className="qrgen-select"
                 value={assetDetails.category}
                 onChange={handleInputChange}
                 disabled={loadingCategories}
@@ -488,18 +450,17 @@ const QRCodeGenerator = () => {
                   <option key={cat.id} value={cat.name}>{cat.name}</option>
                 ))}
               </select>
-
             </div>
 
-            {/* Conditional Type Field - Shows if category has types */}
             {hasTypes && (
-              <div className="form-field">
-                <label htmlFor="subType">
-                  Type <span className="required">*</span>
+              <div className="qrgen-form-field">
+                <label htmlFor="subType" className="qrgen-label">
+                  Type <span className="qrgen-required">*</span>
                 </label>
                 <select
                   id="subType"
                   name="subType"
+                  className="qrgen-select"
                   value={assetDetails.subType}
                   onChange={handleInputChange}
                 >
@@ -513,14 +474,14 @@ const QRCodeGenerator = () => {
               </div>
             )}
 
-            {/* Status */}
-            <div className="form-field">
-              <label htmlFor="status">
-                Status <span className="required">*</span>
+            <div className="qrgen-form-field">
+              <label htmlFor="status" className="qrgen-label">
+                Status <span className="qrgen-required">*</span>
               </label>
               <select
                 id="status"
                 name="status"
+                className="qrgen-select"
                 onChange={handleInputChange}
                 value={assetDetails.status}
                 disabled={loadingStatuses}
@@ -536,14 +497,14 @@ const QRCodeGenerator = () => {
               </select>
             </div>
 
-            {/* Assigned Personnel */}
-            <div className="form-field">
-              <label htmlFor="personnel">
-                Assigned Personnel <span className="required">*</span>
+            <div className="qrgen-form-field">
+              <label htmlFor="personnel" className="qrgen-label">
+                Assigned Personnel <span className="qrgen-required">*</span>
               </label>
               <select
                 id="personnel"
                 name="personnel"
+                className="qrgen-select"
                 value={assetDetails.personnel}
                 onChange={handleInputChange}
               >
@@ -556,39 +517,39 @@ const QRCodeGenerator = () => {
               </select>
             </div>
 
-            {/* Purchase Date */}
-            <div className="form-field">
-              <label htmlFor="purchaseDate">Purchase Date</label>
+            <div className="qrgen-form-field">
+              <label htmlFor="purchaseDate" className="qrgen-label">Purchase Date</label>
               <input
                 type="date"
                 id="purchaseDate"
                 name="purchaseDate"
+                className="qrgen-input"
                 onChange={handleInputChange}
                 value={assetDetails.purchaseDate}
               />
             </div>
 
-            {/* Serial Number */}
-            <div className="form-field">
-              <label htmlFor="serialNo">Serial No.</label>
+            <div className="qrgen-form-field">
+              <label htmlFor="serialNo" className="qrgen-label">Serial No.</label>
               <input
                 type="text"
                 id="serialNo"
                 name="serialNo"
+                className="qrgen-input"
                 placeholder="Enter serial number"
                 onChange={handleInputChange}
                 value={assetDetails.serialNo}
               />
             </div>
 
-            {/* Operational Period / License Duration */}
-            <div className="form-field">
-              <label htmlFor="licenseType">
-                Operational Period <span className="required">*</span>
+            <div className="qrgen-form-field">
+              <label htmlFor="licenseType" className="qrgen-label">
+                Operational Period <span className="qrgen-required">*</span>
               </label>
               <select
                 id="licenseType"
                 name="licenseType"
+                className="qrgen-select"
                 value={assetDetails.licenseType || ""}
                 onChange={handleInputChange}
                 disabled={!assetDetails.category}
@@ -604,30 +565,29 @@ const QRCodeGenerator = () => {
               </select>
             </div>
 
-            {/* Expiration Date (disabled for non-expiring types) */}
-            <div className="form-field">
-              <label htmlFor="expirationDate">
-                Expiration Date
-                {!isExpirationDisabled && <span className="required">*</span>}
+            <div className="qrgen-form-field">
+              <label htmlFor="expirationDate" className="qrgen-label">
+                {isLicenseCategory ? 'Expiration Date' : 'End of Service'}
+                {!isExpirationDisabled && <span className="qrgen-required">*</span>}
               </label>
               <input
                 type="date"
                 id="expirationDate"
                 name="expirationDate"
+                className={`qrgen-input ${isExpirationDisabled ? 'qrgen-disabled' : ''}`}
                 onChange={handleInputChange}
                 value={assetDetails.expirationDate}
                 disabled={isExpirationDisabled}
                 placeholder={isExpirationDisabled ? 'Not applicable' : ''}
-                className={isExpirationDisabled ? 'disabled' : ''}
               />
             </div>
 
-            {/* Upload Image */}
-            <div className="form-field">
-              <label htmlFor="assetImage">Upload Image</label>
+            <div className="qrgen-form-field">
+              <label htmlFor="assetImage" className="qrgen-label">Upload Image</label>
               <input
                 type="file"
                 id="assetImage"
+                className="qrgen-file-input"
                 accept="image/*"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
@@ -640,12 +600,12 @@ const QRCodeGenerator = () => {
               />
             </div>
 
-            {/* Remarks (Optional) - full width */}
-            <div className="form-field form-field-full">
-              <label htmlFor="remarks">Remarks (Optional)</label>
+            <div className="qrgen-form-field qrgen-form-field-full">
+              <label htmlFor="remarks" className="qrgen-label">Remarks (Optional)</label>
               <textarea
                 id="remarks"
                 name="remarks"
+                className="qrgen-textarea"
                 placeholder="Additional details or notes"
                 rows={3}
                 onChange={handleInputChange}
@@ -654,109 +614,159 @@ const QRCodeGenerator = () => {
             </div>
           </div>
 
-          {/* Action Bar: centered Add + QR, Clear on right */}
-          <div className="action-bar">
-            <label htmlFor="generateQR" className="checkbox-inline">
+          <div className="qrgen-action-bar">
+            <label htmlFor="generateQR" className="qrgen-checkbox-label">
               <input
                 type="checkbox"
                 id="generateQR"
                 name="generateQR"
+                className="qrgen-checkbox"
                 checked={assetDetails.generateQR || false}
                 onChange={handleInputChange}
               />
-              <span>Generate QR Code</span>
+              <span className="qrgen-checkbox-text">Generate QR Code</span>
             </label>
-            <div className="action-center">
+            
+            <div className="qrgen-button-group">
               <button
-                className="add-btn"
+                className="qrgen-btn qrgen-btn-primary"
                 onClick={openConfirm}
                 disabled={isSubmitting}
                 aria-label="Add Asset"
               >
-                {isSubmitting ? 'Adding…' : 'Add Asset'}
+                {isSubmitting ? (
+                  <>
+                    <span className="qrgen-spinner"></span>
+                    Adding…
+                  </>
+                ) : (
+                  'Add Asset'
+                )}
+              </button>
+
+              <button
+                type="button"
+                className="qrgen-btn qrgen-btn-secondary"
+                onClick={resetForm}
+                disabled={isSubmitting}
+                aria-label="Clear fields"
+                title="Clear all fields"
+              >
+                Clear Fields
               </button>
             </div>
-
-            <button
-              type="button"
-              className="clear-btn"
-              onClick={resetForm}
-              disabled={isSubmitting}
-              aria-label="Clear fields"
-              title="Clear all fields"
-            >
-              Clear Fields
-            </button>
           </div>
         </div>
 
-        {/* Confirm Add Modal */}
         {showConfirm && (
-          <div className="modal-overlay">
-            <div className="confirm-modal">
-              <h3>Confirm Add Asset?</h3>
+          <div className="qrgen-modal-overlay">
+            <div className="qrgen-confirm-modal">
+              <div className="qrgen-confirm-header">
+                <h3 className="qrgen-confirm-title">Confirm Add Asset</h3>
+                <p className="qrgen-confirm-subtitle">Please review the details before adding</p>
+              </div>
 
-              <div className="confirm-preview">
+              <div className="qrgen-confirm-content">
                 {imagePreview && (
-                  <div className="confirm-image">
+                  <div className="qrgen-confirm-image">
                     <img src={imagePreview} alt="Asset preview" />
                   </div>
                 )}
 
-                <table className="confirm-table">
-                  <tbody>
-                    <tr><th>Property No.</th><td>{assetDetails.propertyNo || '—'}</td></tr>
-                    <tr><th>Asset Name</th><td>{assetDetails.assetName || '—'}</td></tr>
-                    <tr><th>Category</th><td>{assetDetails.category || '—'}</td></tr>
-                    {hasTypes && assetDetails.subType && (
-                      <tr><th>Type</th><td>{assetDetails.subType}</td></tr>
-                    )}
-                    <tr><th>Status</th><td>{assetDetails.status || '—'}</td></tr>
-                    <tr>
-                      <th>Personnel</th>
-                      <td>{itUsers.find(u => u.id === assetDetails.personnel)?.fullName || '—'}</td>
-                    </tr>
-                    <tr><th>Purchase Date</th><td>{assetDetails.purchaseDate || '—'}</td></tr>
-                    <tr><th>Serial No.</th><td>{assetDetails.serialNo || '—'}</td></tr>
-                    <tr><th>Operational Period</th><td>{assetDetails.licenseType === 'Perpetual' ? 'Permanent' : assetDetails.licenseType || '—'}</td></tr>
-                    <tr>
-                      <th>Expiration Date</th>
-                      <td>
-                        {NON_EXPIRING.has(assetDetails.licenseType)
-                          ? 'Not applicable'
-                          : (assetDetails.expirationDate || '—')}
-                      </td>
-                    </tr>
-                    <tr><th>Remarks</th><td>{assetDetails.remarks || '—'}</td></tr>
-                    <tr><th>Generate QR</th><td>{assetDetails.generateQR ? 'Yes' : 'No'}</td></tr>
-                  </tbody>
-                </table>
+                <div className="qrgen-confirm-details">
+                  <div className="qrgen-detail-row">
+                    <span className="qrgen-detail-label">Property No.</span>
+                    <span className="qrgen-detail-value">{assetDetails.propertyNo || '—'}</span>
+                  </div>
+                  <div className="qrgen-detail-row">
+                    <span className="qrgen-detail-label">Asset Name</span>
+                    <span className="qrgen-detail-value">{assetDetails.assetName || '—'}</span>
+                  </div>
+                  <div className="qrgen-detail-row">
+                    <span className="qrgen-detail-label">Category</span>
+                    <span className="qrgen-detail-value">{assetDetails.category || '—'}</span>
+                  </div>
+                  {hasTypes && assetDetails.subType && (
+                    <div className="qrgen-detail-row">
+                      <span className="qrgen-detail-label">Type</span>
+                      <span className="qrgen-detail-value">{assetDetails.subType}</span>
+                    </div>
+                  )}
+                  <div className="qrgen-detail-row">
+                    <span className="qrgen-detail-label">Status</span>
+                    <span className="qrgen-detail-value">{assetDetails.status || '—'}</span>
+                  </div>
+                  <div className="qrgen-detail-row">
+                    <span className="qrgen-detail-label">Personnel</span>
+                    <span className="qrgen-detail-value">{itUsers.find(u => u.id === assetDetails.personnel)?.fullName || '—'}</span>
+                  </div>
+                  <div className="qrgen-detail-row">
+                    <span className="qrgen-detail-label">Purchase Date</span>
+                    <span className="qrgen-detail-value">{assetDetails.purchaseDate || '—'}</span>
+                  </div>
+                  <div className="qrgen-detail-row">
+                    <span className="qrgen-detail-label">Serial No.</span>
+                    <span className="qrgen-detail-value">{assetDetails.serialNo || '—'}</span>
+                  </div>
+                  <div className="qrgen-detail-row">
+                    <span className="qrgen-detail-label">Operational Period</span>
+                    <span className="qrgen-detail-value">{assetDetails.licenseType === 'Perpetual' ? 'Permanent' : assetDetails.licenseType || '—'}</span>
+                  </div>
+                  <div className="qrgen-detail-row">
+                    <span className="qrgen-detail-label">{isLicenseCategory ? 'Expiration Date' : 'End of Service'}</span>
+                    <span className="qrgen-detail-value">
+                      {NON_EXPIRING.has(assetDetails.licenseType)
+                        ? 'Not applicable'
+                        : (assetDetails.expirationDate || '—')}
+                    </span>
+                  </div>
+                  {assetDetails.remarks && (
+                    <div className="qrgen-detail-row qrgen-detail-row-full">
+                      <span className="qrgen-detail-label">Remarks</span>
+                      <span className="qrgen-detail-value">{assetDetails.remarks}</span>
+                    </div>
+                  )}
+                  <div className="qrgen-detail-row">
+                    <span className="qrgen-detail-label">Generate QR</span>
+                    <span className="qrgen-detail-value">
+                      <span className={`qrgen-badge ${assetDetails.generateQR ? 'qrgen-badge-success' : 'qrgen-badge-neutral'}`}>
+                        {assetDetails.generateQR ? 'Yes' : 'No'}
+                      </span>
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              <div className="confirm-actions">
+              <div className="qrgen-confirm-actions">
                 <button
-                  className="confirm-cancel"
+                  className="qrgen-btn qrgen-btn-secondary"
                   onClick={closeConfirm}
                   disabled={isSubmitting}
                 >
                   Cancel
                 </button>
                 <button
-                  className="confirm-add"
+                  className="qrgen-btn qrgen-btn-primary"
                   onClick={async () => {
                     closeConfirm();
-                    await handleAddAsset(true); // skipValidation because we already validated
+                    await handleAddAsset(true);
                   }}
                   disabled={isSubmitting}
                 >
-                  Confirm Add
+                  {isSubmitting ? (
+                    <>
+                      <span className="qrgen-spinner"></span>
+                      Adding…
+                    </>
+                  ) : (
+                    'Confirm Add'
+                  )}
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* ✅ Use QRModal component just like in AssetManagement */}
         <QRModal 
           isOpen={showModal} 
           onClose={() => {
@@ -769,7 +779,7 @@ const QRCodeGenerator = () => {
           asset={qrAsset} 
         />
       </div>
-     </div>
+    </div>
   );
 };
 

@@ -43,10 +43,13 @@ const ReportAssetModal: React.FC<ReportAssetModalProps> = ({
       setCheckingReports(true);
       try {
         const reportsRef = collection(db, "Reported_Issues");
-        const q = query(reportsRef, where("assetDocId", "==", assetDocId));
-        const snapshot = await getDocs(q);
+        const q1 = query(reportsRef, where("assetDocId", "==", assetDocId));
+        const q2 = query(reportsRef, where("assetId", "==", assetDocId));
+        const snap1 = await getDocs(q1);
+        const snap2 = await getDocs(q2);
+
+        const count = snap1.size + snap2.size;
         
-        const count = snapshot.size;
         setReportCount(count);
         setHasExistingReports(count > 0);
       } catch (error) {

@@ -1,6 +1,19 @@
 import { useState, useEffect } from 'react';
 import React from 'react';
-import { collection, getDocs, doc, updateDoc, query as fsQuery, orderBy, arrayUnion, deleteDoc, addDoc, getDoc } from 'firebase/firestore';
+import {
+  collection,
+  getDocs,
+  doc,
+  updateDoc,
+  query as fsQuery,
+  orderBy,
+  arrayUnion,
+  deleteDoc,
+  addDoc,
+  getDoc,
+  setDoc,
+} from 'firebase/firestore';
+import emailjs from '@emailjs/browser';
 import { db, auth } from '../../firebase/firebase';
 import "../../assets/Reports.css";
 import { useSearch } from '../../context/SearchContext';
@@ -23,12 +36,24 @@ interface Report {
   disposalReason?: string;
 }
 
+// EmailJS config – replace TEMPLATE ID with your real one in EmailJS
+const EMAILJS_PUBLIC_KEY = 'oiiPTVJU2reQ831XC';
+const EMAILJS_SERVICE_ID = 'service_nb6i81u';
+const EMAILJS_TEMPLATE_ID_ASSET_ACTION = 'template_asset_action'; // <-- create this in EmailJS
+
+interface ConfirmationResult {
+  confirmed: boolean;
+  maintainedBy?: string;
+  reason?: string;
+  notifyByEmail?: boolean;
+}
+
 const Reports: React.FC = () => {
   // Set default to current month and year
   const currentDate = new Date();
   const currentMonth = (currentDate.getMonth() + 1).toString().padStart(2, '0');
   const currentYear = currentDate.getFullYear().toString();
-  
+
   const [month, setMonth] = useState<string>(currentMonth);
   const [year, setYear] = useState<string>(currentYear);
   const [reports, setReports] = useState<Report[]>([]);
@@ -37,8 +62,7 @@ const Reports: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [currentPage, setCurrentPage] = useState<{ [key: string]: number }>({});
   const { query } = useSearch();
-  
-  
+
   // Fetch reports from Firestore
   useEffect(() => {
     const fetchReports = async () => {
@@ -47,11 +71,11 @@ const Reports: React.FC = () => {
         const reportsRef = collection(db, 'Reported_Issues');
         const q = fsQuery(reportsRef, orderBy('createdAt', 'desc'));
         const querySnapshot = await getDocs(q);
-        
-        const fetchedReports: Report[] = querySnapshot.docs.map((doc) => {
-          const data = doc.data();
+
+        const fetchedReports: Report[] = querySnapshot.docs.map((docSnap) => {
+          const data = docSnap.data();
           return {
-            id: doc.id,
+            id: docSnap.id,
             assetDocId: data.assetDocId || '',
             assetId: data.assetId || '',
             assetName: data.assetName || '',
@@ -63,9 +87,12 @@ const Reports: React.FC = () => {
             resolvedBy: data.resolvedBy || '',
             resolvedAt: data.resolvedAt?.toDate() || undefined,
             resolutionNotes: data.resolutionNotes || '',
+            disposedBy: data.disposedBy || '',
+            disposedAt: data.disposedAt?.toDate() || undefined,
+            disposalReason: data.disposalReason || '',
           };
         });
-        
+
         setReports(fetchedReports);
       } catch (error) {
         console.error('Error fetching reports:', error);
@@ -79,20 +106,17 @@ const Reports: React.FC = () => {
 
   // Show confirmation modal before status change
   const showConfirmationModal = (
-    reportId: string, 
-    newStatus: string, 
+    reportId: string,
+    newStatus: string,
     assetName: string,
     currentStatus: string
-  ): Promise<{ confirmed: boolean; maintainedBy?: string; reason?: string }> => {
+  ): Promise<ConfirmationResult> => {
     return new Promise((resolve) => {
       const modal = document.createElement('div');
       modal.className = 'confirmation-modal-backdrop';
-      
-      const actionText = newStatus === 'In Repair' ? 'repair' : 
-                        newStatus === 'In Progress' ? 'maintenance' : 'resolution';
-      
+
       const needsMaintainer = newStatus === 'Resolved';
-      
+
       modal.innerHTML = `
         <div class="confirmation-modal">
           <div class="confirmation-modal-header">
@@ -105,7 +129,12 @@ const Reports: React.FC = () => {
             <p><strong>New Status:</strong> ${newStatus}</p>
             <br>
             <p>Are you sure you want to mark this issue as <strong>${newStatus}</strong>?</p>
-            ${needsMaintainer ? `
+            <p class="multi-report-note">
+              Note: All reports filed for this asset will be updated to this status.
+            </p>
+            ${
+              needsMaintainer
+                ? `
               <div class="form-group">
                 <label class="form-label">
                   <i class="fas fa-wrench"></i> Resolved/Maintained By <span class="required">*</span>
@@ -130,7 +159,15 @@ const Reports: React.FC = () => {
                   required
                 ></textarea>
               </div>
-            ` : ''}
+            `
+                : ''
+            }
+            <div class="form-group checkbox-group">
+              <label class="form-label checkbox-label">
+                <input type="checkbox" id="notifyByEmail" class="checkbox-input" />
+                <span>Send email notification to all users who reported this asset</span>
+              </label>
+            </div>
           </div>
           <div class="confirmation-modal-footer">
             <button class="btn btn-cancel" id="cancelBtn">
@@ -142,41 +179,44 @@ const Reports: React.FC = () => {
           </div>
         </div>
       `;
-      
+
       document.body.appendChild(modal);
-      
+
       const confirmBtn = modal.querySelector('#confirmBtn') as HTMLButtonElement;
       const cancelBtn = modal.querySelector('#cancelBtn') as HTMLButtonElement;
       const maintainedByInput = modal.querySelector('#maintainedBy') as HTMLInputElement;
       const reasonInput = modal.querySelector('#statusReason') as HTMLTextAreaElement;
-      
+      const notifyCheckbox = modal.querySelector('#notifyByEmail') as HTMLInputElement;
+
       const cleanup = () => {
         document.body.removeChild(modal);
       };
-      
+
       confirmBtn.onclick = () => {
+        const notifyByEmail = !!notifyCheckbox?.checked;
+
         if (needsMaintainer) {
           const maintainedBy = maintainedByInput?.value.trim();
           const reason = reasonInput?.value.trim();
-          
+
           if (!maintainedBy || !reason) {
             alert('Please fill in all required fields.');
             return;
           }
-          
+
           cleanup();
-          resolve({ confirmed: true, maintainedBy, reason });
+          resolve({ confirmed: true, maintainedBy, reason, notifyByEmail });
         } else {
           cleanup();
-          resolve({ confirmed: true });
+          resolve({ confirmed: true, notifyByEmail });
         }
       };
-      
+
       cancelBtn.onclick = () => {
         cleanup();
         resolve({ confirmed: false });
       };
-      
+
       modal.onclick = (e) => {
         if (e.target === modal) {
           cleanup();
@@ -186,9 +226,9 @@ const Reports: React.FC = () => {
     });
   };
 
-  // Handle disposal of asset
+  // Handle disposal of asset (still single-report based, asset-wide dispose)
   const handleDisposeAsset = async (report: Report) => {
-    const warningMessage = 
+    const warningMessage =
       `⚠️ WARNING: You will be held accountable for the disposal of this asset.\n\n` +
       `Asset: "${report.assetName}" (ID: ${report.assetId})\n\n` +
       `Are you absolutely sure you want to dispose this asset? This action cannot be undone.`;
@@ -253,23 +293,25 @@ const Reports: React.FC = () => {
 
       // Save to Deleted_Assets first
       await addDoc(collection(db, 'Deleted_Assets'), auditRecord);
-      
+
       // Update report status to disposed
       const reportRef = doc(db, 'Reported_Issues', report.id);
       await updateDoc(reportRef, {
         condition: 'Disposed',
         disposedBy: deletedBy,
         disposedAt: new Date(),
-        disposalReason: disposalReason.trim()
+        disposalReason: disposalReason.trim(),
       });
 
       // Then delete from IT_Assets
       await deleteDoc(assetRef);
-      
+
       // Update local state
-      setReports(reports.map(r => 
-        r.id === report.id ? { ...r, condition: 'Disposed' } : r
-      ));
+      setReports((prev) =>
+        prev.map((r) =>
+          r.id === report.id ? { ...r, condition: 'Disposed', disposalReason: disposalReason.trim() } : r
+        )
+      );
 
       alert('Asset disposed and archived successfully');
       closeModal();
@@ -280,25 +322,39 @@ const Reports: React.FC = () => {
   };
 
   // Update status in Firestore and corresponding asset
+  // IMPORTANT: This now updates ALL reports for the same asset in one go.
   const handleStatusChange = async (reportId: string, newStatus: string) => {
     try {
       // Find the report to get asset details
-      const report = reports.find(r => r.id === reportId);
+      const report = reports.find((r) => r.id === reportId);
       if (!report) {
         throw new Error('Report not found');
       }
 
       // Show confirmation modal
       const confirmation = await showConfirmationModal(
-        reportId, 
-        newStatus, 
+        reportId,
+        newStatus,
         report.assetName,
         report.condition
       );
-      
+
       if (!confirmation.confirmed) {
         return; // User cancelled
       }
+
+      // Find all reports for this same asset
+      const targetKey = report.assetDocId || report.assetId;
+      const reportsForAsset = reports.filter((r) => {
+        const key = r.assetDocId || r.assetId;
+        return key && targetKey && key === targetKey;
+      });
+
+      // Only update those that are not already resolved/disposed
+      const reportsToUpdate = reportsForAsset.filter((r) => {
+        const statusLower = r.condition.toLowerCase();
+        return !statusLower.includes('resolved') && !statusLower.includes('disposed');
+      });
 
       // Map report status to asset status
       let assetStatus = '';
@@ -310,55 +366,140 @@ const Reports: React.FC = () => {
         assetStatus = 'Functional';
       }
 
-      // Update the report status
-      const reportRef = doc(db, 'Reported_Issues', reportId);
-      const updateData: any = {
-        condition: newStatus
-      };
+      // --- Update all reports for this asset ---
+      const updatePromises: Promise<void>[] = [];
 
-      // If resolved, add resolution details
-      if (newStatus === 'Resolved' && confirmation.maintainedBy && confirmation.reason) {
-        updateData.resolvedBy = confirmation.maintainedBy;
-        updateData.resolvedAt = new Date();
-        updateData.resolutionNotes = confirmation.reason;
+      for (const r of reportsToUpdate) {
+        const reportRef = doc(db, 'Reported_Issues', r.id);
+        const updateData: any = {
+          condition: newStatus,
+        };
+
+        if (newStatus === 'Resolved' && confirmation.maintainedBy && confirmation.reason) {
+          updateData.resolvedBy = confirmation.maintainedBy;
+          updateData.resolvedAt = new Date();
+          updateData.resolutionNotes = confirmation.reason;
+        }
+
+        updatePromises.push(updateDoc(reportRef, updateData));
       }
 
-      await updateDoc(reportRef, updateData);
-
-      // Update the corresponding asset status if we have a valid mapping
+      // --- Update the corresponding asset status if we have a valid mapping ---
       if (assetStatus && report.assetDocId) {
         const assetRef = doc(db, 'IT_Assets', report.assetDocId);
-        
-        // Create history entry for asset
+
         const historyEntry = {
           changedAt: new Date().toISOString(),
           changedBy: auth.currentUser?.email || 'Unknown',
           from: report.condition,
           to: assetStatus,
           reason: confirmation.reason || `Issue reported: ${report.reason}`,
-          maintainedBy: confirmation.maintainedBy || ''
+          maintainedBy: confirmation.maintainedBy || '',
         };
 
-        await updateDoc(assetRef, {
-          status: assetStatus,
-          updatedAt: new Date(),
-          updatedBy: auth.currentUser?.email || 'Unknown',
-          assetHistory: arrayUnion(historyEntry)
-        });
+        updatePromises.push(
+          updateDoc(assetRef, {
+            status: assetStatus,
+            updatedAt: new Date(),
+            updatedBy: auth.currentUser?.email || 'Unknown',
+            assetHistory: arrayUnion(historyEntry),
+          }) as Promise<void>
+        );
       }
 
-      // Update local state
-      setReports(reports.map(r => 
-        r.id === reportId ? { 
-          ...r, 
-          condition: newStatus,
-          resolvedBy: confirmation.maintainedBy,
-          resolvedAt: newStatus === 'Resolved' ? new Date() : r.resolvedAt,
-          resolutionNotes: confirmation.reason
-        } : r
-      ));
+      await Promise.all(updatePromises);
 
-      alert('Status updated successfully!');
+      // --- Create Notifications for all unique reporting users ---
+      const uniqueEmails = Array.from(
+        new Set(
+          reportsForAsset
+            .map((r) => r.reportedBy)
+            .filter((email) => !!email)
+        )
+      );
+
+      const actionTaken =
+        newStatus === 'Resolved' && confirmation.maintainedBy
+          ? `Resolved (Maintained by ${confirmation.maintainedBy})`
+          : newStatus;
+
+      const notificationMessage =
+        confirmation.reason ||
+        `The issue reported for asset "${report.assetName}" (ID: ${report.assetId}) has been marked as ${newStatus}.`;
+
+      if (uniqueEmails.length > 0) {
+        // Init emailjs only if needed
+        if (
+          confirmation.notifyByEmail &&
+          EMAILJS_PUBLIC_KEY &&
+          EMAILJS_SERVICE_ID &&
+          EMAILJS_TEMPLATE_ID_ASSET_ACTION
+        ) {
+          emailjs.init(EMAILJS_PUBLIC_KEY);
+        }
+
+        for (const userEmail of uniqueEmails) {
+          try {
+            // Create Notification document with notif_ID field
+            const notifRef = doc(collection(db, 'Notifications'));
+            await setDoc(notifRef, {
+              notif_ID: notifRef.id,
+              userEmail,
+              assetId: report.assetId || '',
+              assetName: report.assetName || '',
+              actionTaken,
+              message: notificationMessage,
+              timestamp: new Date(),
+              read: false,
+            });
+
+            // Optional email
+            if (
+              confirmation.notifyByEmail &&
+              EMAILJS_PUBLIC_KEY &&
+              EMAILJS_SERVICE_ID &&
+              EMAILJS_TEMPLATE_ID_ASSET_ACTION
+            ) {
+              await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID_ASSET_ACTION, {
+                to_email: userEmail,
+                asset_name: report.assetName,
+                asset_id: report.assetId,
+                action_taken: actionTaken,
+                resolution_notes: confirmation.reason || '',
+              });
+            }
+          } catch (err) {
+            console.error('Error creating notification or sending email:', err);
+            // We don't throw here so that one failure doesn't break everything else
+          }
+        }
+      }
+
+      // --- Update local state for all affected reports ---
+      const idsToUpdate = new Set(reportsToUpdate.map((r) => r.id));
+      const now = new Date();
+
+      setReports((prev) =>
+        prev.map((r) => {
+          if (!idsToUpdate.has(r.id)) return r;
+
+          return {
+            ...r,
+            condition: newStatus,
+            resolvedBy:
+              newStatus === 'Resolved' && confirmation.maintainedBy
+                ? confirmation.maintainedBy
+                : r.resolvedBy,
+            resolvedAt: newStatus === 'Resolved' ? now : r.resolvedAt,
+            resolutionNotes:
+              newStatus === 'Resolved' && confirmation.reason
+                ? confirmation.reason
+                : r.resolutionNotes,
+          };
+        })
+      );
+
+      alert('Status updated successfully! All reports for this asset were updated.');
     } catch (error) {
       console.error('Error updating status:', error);
       alert('Failed to update status. Please try again.');
@@ -366,29 +507,28 @@ const Reports: React.FC = () => {
   };
 
   // Filter by selected month and year
-const filteredReports = reports.filter((r) => {
-  const reportDate = r.createdAt;
-  const reportMonth = (reportDate.getMonth() + 1).toString().padStart(2, "0");
-  const reportYear = reportDate.getFullYear().toString();
+  const filteredReports = reports.filter((r) => {
+    const reportDate = r.createdAt;
+    const reportMonth = (reportDate.getMonth() + 1).toString().padStart(2, "0");
+    const reportYear = reportDate.getFullYear().toString();
 
-  const matchesMonth = month ? reportMonth === month : true;
-  const matchesYear = year ? reportYear === year : true;
+    const matchesMonth = month ? reportMonth === month : true;
+    const matchesYear = year ? reportYear === year : true;
 
-  // first apply month/year filters
-  if (!(matchesMonth && matchesYear)) return false;
+    // first apply month/year filters
+    if (!(matchesMonth && matchesYear)) return false;
 
-  // then apply search
-  if (!query) return true;
-  const q = query.toLowerCase();
+    // then apply search
+    if (!query) return true;
+    const q = query.toLowerCase();
 
-  return (
-    r.assetName.toLowerCase().includes(q) ||
-    r.assetId.toLowerCase().includes(q) ||
-    r.reason.toLowerCase().includes(q) ||
-    r.reportedBy.toLowerCase().includes(q)
-  );
-});
-
+    return (
+      r.assetName.toLowerCase().includes(q) ||
+      r.assetId.toLowerCase().includes(q) ||
+      r.reason.toLowerCase().includes(q) ||
+      r.reportedBy.toLowerCase().includes(q)
+    );
+  });
 
   // Pagination constants
   const ITEMS_PER_PAGE = 7;
@@ -407,7 +547,7 @@ const filteredReports = reports.filter((r) => {
 
   // Set page for a month group
   const setPageForGroup = (monthYear: string, page: number) => {
-    setCurrentPage(prev => ({ ...prev, [monthYear]: page }));
+    setCurrentPage((prev) => ({ ...prev, [monthYear]: page }));
   };
 
   // Get paginated reports for a month group
@@ -518,7 +658,7 @@ const filteredReports = reports.filter((r) => {
                 const paginatedReports = getPaginatedReports(reportsInMonth, monthYear);
                 const totalPages = getTotalPages(reportsInMonth);
                 const currentPageNum = getPageForGroup(monthYear);
-                
+
                 return (
                   <React.Fragment key={groupIndex}>
                     <tr className="month-header">
@@ -537,7 +677,7 @@ const filteredReports = reports.filter((r) => {
                         <td>
                           <div className="issue-cell">
                             <span className="issue-text">{truncateText(report.reason)}</span>
-                            <button 
+                            <button
                               className="view-details-btn"
                               onClick={() => openModal(report)}
                             >
@@ -547,7 +687,7 @@ const filteredReports = reports.filter((r) => {
                         </td>
                         <td>{report.reportedBy}</td>
                         <td>
-                          <span 
+                          <span
                             className="status-badge"
                             style={{ backgroundColor: getStatusColor(report.condition) }}
                           >
@@ -573,7 +713,7 @@ const filteredReports = reports.filter((r) => {
                               </>
                             )}
 
-                            {(report.condition.toLowerCase().includes('defective') || 
+                            {(report.condition.toLowerCase().includes('defective') ||
                               report.condition.toLowerCase().includes('unserviceable') ||
                               report.condition.toLowerCase().includes('damaged')) && (
                               <>
@@ -592,7 +732,7 @@ const filteredReports = reports.filter((r) => {
                               </>
                             )}
 
-                            {(report.condition.toLowerCase().includes('progress') || 
+                            {(report.condition.toLowerCase().includes('progress') ||
                               report.condition.toLowerCase().includes('repair')) && (
                               <button
                                 className="action-btn resolved"
@@ -698,7 +838,7 @@ const filteredReports = reports.filter((r) => {
                       month: 'long',
                       day: 'numeric',
                       hour: '2-digit',
-                      minute: '2-digit'
+                      minute: '2-digit',
                     })}
                   </div>
                 </div>
@@ -716,7 +856,9 @@ const filteredReports = reports.filter((r) => {
                 <i className="fas fa-info-circle"></i>
                 <div>
                   <div className="report-info-label">Issue Description</div>
-                  <div className="report-info-value report-issue-description">{selectedReport.reason}</div>
+                  <div className="report-info-value report-issue-description">
+                    {selectedReport.reason}
+                  </div>
                 </div>
               </div>
 
@@ -725,7 +867,7 @@ const filteredReports = reports.filter((r) => {
                 <div>
                   <div className="report-info-label">Current Status</div>
                   <div className="report-info-value">
-                    <span 
+                    <span
                       className="status-badge large"
                       style={{ backgroundColor: getStatusColor(selectedReport.condition) }}
                     >
@@ -735,64 +877,67 @@ const filteredReports = reports.filter((r) => {
                 </div>
               </div>
 
-              {selectedReport.condition.toLowerCase().includes('resolved') && selectedReport.resolvedBy && (
-                <>
-                  <div className="report-modal-info-item">
-                    <i className="fas fa-user-check"></i>
-                    <div>
-                      <div className="report-info-label">Resolved By</div>
-                      <div className="report-info-value">{selectedReport.resolvedBy}</div>
-                    </div>
-                  </div>
-
-                  {selectedReport.resolvedAt && (
+              {selectedReport.condition.toLowerCase().includes('resolved') &&
+                selectedReport.resolvedBy && (
+                  <>
                     <div className="report-modal-info-item">
-                      <i className="fas fa-clock"></i>
+                      <i className="fas fa-user-check"></i>
                       <div>
-                        <div className="report-info-label">Resolved At</div>
-                        <div className="report-info-value">
-                          {selectedReport.resolvedAt.toLocaleString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
+                        <div className="report-info-label">Resolved By</div>
+                        <div className="report-info-value">{selectedReport.resolvedBy}</div>
+                      </div>
+                    </div>
+
+                    {selectedReport.resolvedAt && (
+                      <div className="report-modal-info-item">
+                        <i className="fas fa-clock"></i>
+                        <div>
+                          <div className="report-info-label">Resolved At</div>
+                          <div className="report-info-value">
+                            {selectedReport.resolvedAt.toLocaleString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
-                  {selectedReport.disposalReason && (
-                    <div className="report-modal-info-item full-width">
-                      <i className="fas fa-trash-alt"></i>
-                      <div>
-                        <div className="report-info-label">Disposal Reason</div>
-                        <div className="report-info-value report-issue-description">
-                          {selectedReport.disposalReason}
+                    )}
+                    {selectedReport.disposalReason && (
+                      <div className="report-modal-info-item full-width">
+                        <i className="fas fa-trash-alt"></i>
+                        <div>
+                          <div className="report-info-label">Disposal Reason</div>
+                          <div className="report-info-value report-issue-description">
+                            {selectedReport.disposalReason}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
-                  {selectedReport.resolutionNotes && (
-                    <div className="report-modal-info-item full-width">
-                      <i className="fas fa-check-circle"></i>
-                      <div>
-                        <div className="report-info-label">Resolution Notes</div>
-                        <div className="report-info-value report-issue-description">{selectedReport.resolutionNotes}</div>
+                    )}
+                    {selectedReport.resolutionNotes && (
+                      <div className="report-modal-info-item full-width">
+                        <i className="fas fa-check-circle"></i>
+                        <div>
+                          <div className="report-info-label">Resolution Notes</div>
+                          <div className="report-info-value report-issue-description">
+                            {selectedReport.resolutionNotes}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </>
-              )}
+                    )}
+                  </>
+                )}
 
               {selectedReport.image && (
                 <div className="report-modal-info-item full-width">
                   <i className="fas fa-image"></i>
                   <div>
                     <div className="report-info-label">Attached Image</div>
-                    <img 
-                      src={selectedReport.image} 
-                      alt="Issue" 
+                    <img
+                      src={selectedReport.image}
+                      alt="Issue"
                       className="report-issue-image"
                     />
                   </div>
@@ -804,58 +949,58 @@ const filteredReports = reports.filter((r) => {
               <button className="report-btn-secondary" onClick={closeModal}>
                 <i className="fas fa-times"></i> Close
               </button>
-              
-              {!selectedReport.condition.toLowerCase().includes('resolved') && 
-               !selectedReport.condition.toLowerCase().includes('disposed') && (
-                <>
-                  {/* Show In Progress for Under Maintenance */}
-                  {selectedReport.condition.toLowerCase().includes('maintenance') && (
-                    <button 
-                      className="report-btn-status in-progress"
+
+              {!selectedReport.condition.toLowerCase().includes('resolved') &&
+                !selectedReport.condition.toLowerCase().includes('disposed') && (
+                  <>
+                    {/* Show In Progress for Under Maintenance */}
+                    {selectedReport.condition.toLowerCase().includes('maintenance') && (
+                      <button
+                        className="report-btn-status in-progress"
+                        onClick={() => {
+                          handleStatusChange(selectedReport.id, 'In Progress');
+                          closeModal();
+                        }}
+                      >
+                        <i className="fas fa-spinner"></i> In Progress
+                      </button>
+                    )}
+
+                    {/* Show In Repair for Defective/Damaged/Unserviceable */}
+                    {(selectedReport.condition.toLowerCase().includes('defective') ||
+                      selectedReport.condition.toLowerCase().includes('damaged') ||
+                      selectedReport.condition.toLowerCase().includes('unserviceable')) && (
+                      <button
+                        className="report-btn-status in-repair"
+                        onClick={() => {
+                          handleStatusChange(selectedReport.id, 'In Repair');
+                          closeModal();
+                        }}
+                      >
+                        <i className="fas fa-tools"></i> In Repair
+                      </button>
+                    )}
+
+                    {/* Dispose button for all non-resolved items */}
+                    <button
+                      className="report-btn-danger"
+                      onClick={() => handleDisposeAsset(selectedReport)}
+                    >
+                      <i className="fas fa-trash-alt"></i> Dispose Item
+                    </button>
+
+                    {/* Mark as Resolved button */}
+                    <button
+                      className="report-btn-primary"
                       onClick={() => {
-                        handleStatusChange(selectedReport.id, 'In Progress');
+                        handleStatusChange(selectedReport.id, 'Resolved');
                         closeModal();
                       }}
                     >
-                      <i className="fas fa-spinner"></i> In Progress
+                      <i className="fas fa-check"></i> Mark as Resolved
                     </button>
-                  )}
-
-                  {/* Show In Repair for Defective/Damaged/Unserviceable */}
-                  {(selectedReport.condition.toLowerCase().includes('defective') || 
-                    selectedReport.condition.toLowerCase().includes('damaged') ||
-                    selectedReport.condition.toLowerCase().includes('unserviceable')) && (
-                    <button 
-                      className="report-btn-status in-repair"
-                      onClick={() => {
-                        handleStatusChange(selectedReport.id, 'In Repair');
-                        closeModal();
-                      }}
-                    >
-                      <i className="fas fa-tools"></i> In Repair
-                    </button>
-                  )}
-
-                  {/* Dispose button for all non-resolved items */}
-                  <button 
-                    className="report-btn-danger"
-                    onClick={() => handleDisposeAsset(selectedReport)}
-                  >
-                    <i className="fas fa-trash-alt"></i> Dispose Item
-                  </button>
-
-                  {/* Mark as Resolved button */}
-                  <button 
-                    className="report-btn-primary"
-                    onClick={() => {
-                      handleStatusChange(selectedReport.id, 'Resolved');
-                      closeModal();
-                    }}
-                  >
-                    <i className="fas fa-check"></i> Mark as Resolved
-                  </button>
-                </>
-              )}
+                  </>
+                )}
             </div>
           </div>
         </div>
