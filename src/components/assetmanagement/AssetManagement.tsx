@@ -52,7 +52,7 @@ interface Card {
   qrcode?: string | null;
   generateQR?: boolean;
   personnel?: string;
-   propertyNo?: string;
+  propertyNo?: string;
   personnelId?: string;
   purchaseDate?: string;
   status?: string;
@@ -66,7 +66,7 @@ interface Card {
   assetHistory?: HistoryEntry[];
   hasReports?: boolean;
   reportCount?: number;
-    _matches?: any[];
+  _matches?: any[];
 }
 
 const AssetManagement: React.FC = () => {
@@ -97,9 +97,8 @@ const AssetManagement: React.FC = () => {
   const [statuses, setStatuses] = useState<string[]>([]);
   const [assetStatusFilter, setAssetStatusFilter] = useState("all");
   const { query, debouncedQuery } = useSearch();
-
-
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   // Fetch current user's document ID from IT_Supply_Users
   useEffect(() => {
@@ -133,38 +132,37 @@ const AssetManagement: React.FC = () => {
     fetchCurrentUserDocIdByEmail();
   }, []);
 
-
-//Fetch reported assets
-useEffect(() => {
-  const reportsRef = collection(db, "Reported_Issues");
-  const unsub = onSnapshot(
-    reportsRef,
-    (snap) => {
-      const reported = new Set<string>();
-      const reportCounts: Record<string, number> = {};
-      
-      snap.docs.forEach((doc) => {
-        const data = doc.data();
-        const assetDocId = data.assetDocId || data.assetId;
-        if (assetDocId) {
-          reported.add(assetDocId);
-          reportCounts[assetDocId] = (reportCounts[assetDocId] || 0) + 1;
-        }
-      });
-      
-      setReportedAssets(reported);
-      
-      // Update rawAssets to include report information
-      setRawAssets(prev => prev.map(asset => ({
-        ...asset,
-        hasReports: reported.has(asset.id),
-        reportCount: reportCounts[asset.id] || 0
-      })));
-    },
-    (err) => console.error("Error fetching reports:", err)
-  );
-  return () => unsub();
-}, []); 
+  //Fetch reported assets
+  useEffect(() => {
+    const reportsRef = collection(db, "Reported_Issues");
+    const unsub = onSnapshot(
+      reportsRef,
+      (snap) => {
+        const reported = new Set<string>();
+        const reportCounts: Record<string, number> = {};
+        
+        snap.docs.forEach((doc) => {
+          const data = doc.data();
+          const assetDocId = data.assetDocId || data.assetId;
+          if (assetDocId) {
+            reported.add(assetDocId);
+            reportCounts[assetDocId] = (reportCounts[assetDocId] || 0) + 1;
+          }
+        });
+        
+        setReportedAssets(reported);
+        
+        // Update rawAssets to include report information
+        setRawAssets(prev => prev.map(asset => ({
+          ...asset,
+          hasReports: reported.has(asset.id),
+          reportCount: reportCounts[asset.id] || 0
+        })));
+      },
+      (err) => console.error("Error fetching reports:", err)
+    );
+    return () => unsub();
+  }, []); 
 
   // Fetch assets
   useEffect(() => {
@@ -244,21 +242,21 @@ useEffect(() => {
 
   // Fetch statuses
   useEffect(() => {
-  (async () => {
-    try {
-      const snapshot = await getDocs(collection(db, "Asset_Status"));
-      const list: string[] = [];
-      snapshot.forEach(d => {
-        const data = d.data();
-        if (data.Status_Name) list.push(data.Status_Name);
-      });
-      list.sort();
-      setStatuses(list);
-    } catch (e) {
-      console.error("Error fetching statuses:", e);
-    }
-  })();
-}, []);
+    (async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "Asset_Status"));
+        const list: string[] = [];
+        snapshot.forEach(d => {
+          const data = d.data();
+          if (data.Status_Name) list.push(data.Status_Name);
+        });
+        list.sort();
+        setStatuses(list);
+      } catch (e) {
+        console.error("Error fetching statuses:", e);
+      }
+    })();
+  }, []);
 
   // Debug: Check assets personnel fields
   useEffect(() => {
@@ -271,281 +269,286 @@ useEffect(() => {
     checkAssets();
   }, []);
 
-const computeBadge = (
-  licenseType?: string,
-  expirationDate?: string,
-  category?: string
-) => {
-  const isLicense = category?.toLowerCase() === "license";
+  const computeBadge = (
+    licenseType?: string,
+    expirationDate?: string,
+    category?: string
+  ) => {
+    const isLicense = category?.toLowerCase() === "license";
 
-  // Non-expiring (Perpetual/OEM/Open Source)
-  if (licenseType && NON_EXPIRING.has(licenseType)) {
-    return { iconClass: "icon-blue", timeLeft: isLicense ? "No Expiration" : "No Service Limit" };
-  }
+    // Non-expiring (Perpetual/OEM/Open Source)
+    if (licenseType && NON_EXPIRING.has(licenseType)) {
+      return { iconClass: "icon-blue", timeLeft: isLicense ? "No Expiration" : "No Service Limit" };
+    }
 
-  if (!expirationDate) {
-    return { iconClass: "icon-orange", timeLeft: isLicense ? "No Expiration Date" : "No Service End Date" };
-  }
+    if (!expirationDate) {
+      return { iconClass: "icon-orange", timeLeft: isLicense ? "No Expiration Date" : "No Service End Date" };
+    }
 
-  const today = new Date();
-  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-  const exp = new Date(expirationDate).getTime();
-  const MS_PER_DAY = 24 * 60 * 60 * 1000;
-  const daysLeft = Math.ceil((exp - startOfToday) / MS_PER_DAY);
+    const today = new Date();
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+    const exp = new Date(expirationDate).getTime();
+    const MS_PER_DAY = 24 * 60 * 60 * 1000;
+    const daysLeft = Math.ceil((exp - startOfToday) / MS_PER_DAY);
 
-  // EXPIRED
-  if (daysLeft < 0) {
-    return {
-      iconClass: "icon-red",
-      timeLeft: isLicense
-        ? `Expired ${Math.abs(daysLeft)} day(s) ago`
-        : `Service ended ${Math.abs(daysLeft)} day(s) ago`
-    };
-  }
+    // EXPIRED
+    if (daysLeft < 0) {
+      return {
+        iconClass: "icon-red",
+        timeLeft: isLicense
+          ? `Expired ${Math.abs(daysLeft)} day(s) ago`
+          : `Service ended ${Math.abs(daysLeft)} day(s) ago`
+      };
+    }
 
-  // TODAY
-  if (daysLeft === 0) {
-    return {
-      iconClass: "icon-orange",
-      timeLeft: isLicense ? "Expires today" : "Service ends today"
-    };
-  }
+    // TODAY
+    if (daysLeft === 0) {
+      return {
+        iconClass: "icon-orange",
+        timeLeft: isLicense ? "Expires today" : "Service ends today"
+      };
+    }
 
-  // Small time left
-  if (daysLeft <= 30) {
-    return {
-      iconClass: "icon-orange",
-      timeLeft: isLicense
-        ? `${daysLeft} day(s) left`
-        : `${daysLeft} day(s) of service left`
-    };
-  }
+    // Small time left
+    if (daysLeft <= 30) {
+      return {
+        iconClass: "icon-orange",
+        timeLeft: isLicense
+          ? `${daysLeft} day(s) left`
+          : `${daysLeft} day(s) of service left`
+      };
+    }
 
-  if (daysLeft <= 90) {
+    if (daysLeft <= 90) {
+      return {
+        iconClass: "icon-green",
+        timeLeft: isLicense
+          ? `${Math.ceil(daysLeft / 7)} week(s) left`
+          : `${Math.ceil(daysLeft / 7)} week(s) of service`
+      };
+    }
+
+    // Months remaining
     return {
       iconClass: "icon-green",
       timeLeft: isLicense
-        ? `${Math.ceil(daysLeft / 7)} week(s) left`
-        : `${Math.ceil(daysLeft / 7)} week(s) of service`
+        ? `${Math.ceil(daysLeft / 30)} month(s) left`
+        : `${Math.ceil(daysLeft / 30)} month(s) of service`
     };
-  }
-
-  // Months remaining
-  return {
-    iconClass: "icon-green",
-    timeLeft: isLicense
-      ? `${Math.ceil(daysLeft / 30)} month(s) left`
-      : `${Math.ceil(daysLeft / 30)} month(s) of service`
   };
-};
 
+  const cards = useMemo(() => rawAssets.map((d: any) => {
+    console.log("Asset personnel:", d.id, d.personnel);
 
-// In your AssetManagement.tsx, find the cards useMemo and update it:
+    let personnelName: string | undefined = undefined;
 
-const cards = useMemo(() => rawAssets.map((d: any) => {
-  console.log("Asset personnel:", d.id, d.personnel);
-
-        let personnelName: string | undefined = undefined;
-
-      // If asset has assigned personnel
-      if (d.personnel) {
-        if (uidToNameMap[d.personnel]) {
-          // user exists in users list → normal
-          personnelName = uidToNameMap[d.personnel];
-        } else {
-          // user was deleted or disabled → fallback
-          personnelName = "(Unassigned / User Removed)";
-        }
+    // If asset has assigned personnel
+    if (d.personnel) {
+      if (uidToNameMap[d.personnel]) {
+        // user exists in users list → normal
+        personnelName = uidToNameMap[d.personnel];
+      } else {
+        // user was deleted or disabled → fallback
+        personnelName = "(Unassigned / User Removed)";
       }
-
-  const resolveByEmail = (email?: string) => { if (!email) return undefined; return emailToNameMap[email.trim().toLowerCase()] || email; };
-  const createdByName = resolveByEmail(d.createdBy);
-  const updatedByName = resolveByEmail(d.updatedBy);
-        const { iconClass, timeLeft } = computeBadge(
-        d.licenseType,
-        d.expirationDate,
-        d.category // ADD THIS
-      );
-
-  return {
-    id: d.id,
-    title: d.assetName || '(No name)',
-    team: d.category || 'Uncategorized',
-    timeLeft,
-    serial: d.serialNo || 'N/A',
-    iconClass,
-    image: d.image || undefined,
-    assetId: d.assetId,
-    assetUrl: d.assetUrl,
-    qrcode: d.qrcode ?? null,
-    generateQR: !!d.generateQR,
-    personnel: personnelName,
-    personnelId: d.personnel,
-    propertyNo: d.propertyNo || undefined,  // ✅ ADD THIS LINE
-    purchaseDate: d.purchaseDate || undefined,
-    status: d.status || undefined,
-    licenseType: d.licenseType || undefined,
-    subType: d.subType || undefined,
-    createdAt: d.createdAt?.toDate ? new Date(d.createdAt.toDate()).toLocaleString() : (d.createdAt || undefined),
-    createdBy: createdByName,
-    updatedAt: d.updatedAt?.toDate ? new Date(d.updatedAt.toDate()).toLocaleString() : (d.updatedAt || undefined),
-    updatedBy: updatedByName,
-    renewdate: d.renewdate?.toDate ? new Date(d.renewdate.toDate()).toLocaleDateString() : (d.renewdate || undefined),
-    assetHistory: d.assetHistory || [],
-    hasReports: d.hasReports || false,
-    reportCount: d.reportCount || 0,
-  } as Card;
-}), [rawAssets, uidToNameMap, emailToNameMap]);
-const fuse = useMemo(() => {
-  return new Fuse(cards, {
-    keys: [
-      { name: "title", weight: 0.45 },
-      { name: "serial", weight: 0.25 },
-      { name: "personnel", weight: 0.15 },
-      { name: "team", weight: 0.10 },
-      { name: "status", weight: 0.05 },
-    ],
-    threshold: 0.4,          // typo tolerance (lower = stricter)
-    includeMatches: true,    // needed for highlighting
-    minMatchCharLength: 2,
-  });
-}, [cards]);
-function highlightText(text: string, matches?: any[]) {
-  if (!matches || matches.length === 0) return text;
-
-  // Collect and merge overlapping indices for cleaner highlights
-  const allIndices: [number, number][] = [];
-  
-  matches.forEach(m => {
-    if (m.indices) {
-      m.indices.forEach(([start, end]: [number, number]) => {
-        allIndices.push([start, end]);
-      });
     }
-  });
 
-  if (allIndices.length === 0) return text;
+    const resolveByEmail = (email?: string) => { if (!email) return undefined; return emailToNameMap[email.trim().toLowerCase()] || email; };
+    const createdByName = resolveByEmail(d.createdBy);
+    const updatedByName = resolveByEmail(d.updatedBy);
+    const { iconClass, timeLeft } = computeBadge(
+      d.licenseType,
+      d.expirationDate,
+      d.category
+    );
 
-  // Sort by start position
-  allIndices.sort((a, b) => a[0] - b[0]);
+    return {
+      id: d.id,
+      title: d.assetName || '(No name)',
+      team: d.category || 'Uncategorized',
+      timeLeft,
+      serial: d.serialNo || 'N/A',
+      iconClass,
+      image: d.image || undefined,
+      assetId: d.assetId,
+      assetUrl: d.assetUrl,
+      qrcode: d.qrcode ?? null,
+      generateQR: !!d.generateQR,
+      personnel: personnelName,
+      personnelId: d.personnel,
+      propertyNo: d.propertyNo || undefined,
+      purchaseDate: d.purchaseDate || undefined,
+      status: d.status || undefined,
+      licenseType: d.licenseType || undefined,
+      subType: d.subType || undefined,
+      createdAt: d.createdAt?.toDate ? new Date(d.createdAt.toDate()).toLocaleString() : (d.createdAt || undefined),
+      createdBy: createdByName,
+      updatedAt: d.updatedAt?.toDate ? new Date(d.updatedAt.toDate()).toLocaleString() : (d.updatedAt || undefined),
+      updatedBy: updatedByName,
+      renewdate: d.renewdate?.toDate ? new Date(d.renewdate.toDate()).toLocaleDateString() : (d.renewdate || undefined),
+      assetHistory: d.assetHistory || [],
+      hasReports: d.hasReports || false,
+      reportCount: d.reportCount || 0,
+    } as Card;
+  }), [rawAssets, uidToNameMap, emailToNameMap]);
 
-  // Merge overlapping or adjacent ranges
-  const merged: [number, number][] = [];
-  let current = allIndices[0];
+  const fuse = useMemo(() => {
+    return new Fuse(cards, {
+      keys: [
+        { name: "title", weight: 0.45 },
+        { name: "serial", weight: 0.25 },
+        { name: "personnel", weight: 0.15 },
+        { name: "team", weight: 0.10 },
+        { name: "status", weight: 0.05 },
+      ],
+      threshold: 0.4,
+      includeMatches: true,
+      minMatchCharLength: 2,
+    });
+  }, [cards]);
 
-  for (let i = 1; i < allIndices.length; i++) {
-    const [curStart, curEnd] = current;
-    const [nextStart, nextEnd] = allIndices[i];
+  function highlightText(text: string, matches?: any[]) {
+    if (!matches || matches.length === 0) return text;
 
-    // Merge if overlapping or adjacent (within 1 char)
-    if (nextStart <= curEnd + 1) {
-      current = [curStart, Math.max(curEnd, nextEnd)];
-    } else {
-      merged.push(current);
-      current = allIndices[i];
-    }
-  }
-  merged.push(current);
-
-  // Build highlighted string
-  let result = "";
-  let lastIndex = 0;
-
-  merged.forEach(([start, end]) => {
-    result += text.substring(lastIndex, start);
-    result += `<span class="highlight-match">${text.substring(start, end + 1)}</span>`;
-    lastIndex = end + 1;
-  });
-
-  result += text.substring(lastIndex);
-  return result;
-}
-
-const filteredCards = useMemo(() => {
-  let result = [...cards];
-
-  // 1. 🔍 SEARCH FIRST
-  if (debouncedQuery.trim() !== "") {
-    const results = fuse.search(debouncedQuery).map(r => ({
-      ...r.item,
-      _matches: r.matches ? [...r.matches] : undefined
-    }));
-    result = results;
-  }
-
-  // 2. 📂 CATEGORY FILTER
-  if (categoryFilter !== "all") {
-    result = result.filter((card) => card.team === categoryFilter);
-  }
-
-  // 3. 🔖 STATUS BADGE FILTER (permanent / normal / expired / etc)
-  if (statusFilter !== "all") {
-    result = result.filter((card) => {
-      switch (statusFilter) {
-        case "permanent":
-          return card.iconClass === "icon-blue";
-        case "normal":
-          return card.iconClass === "icon-green";
-        case "aboutToExpire":
-          return card.iconClass === "icon-orange";
-        case "expired":
-          return card.iconClass === "icon-red";
-        default:
-          return true;
+    const allIndices: [number, number][] = [];
+    
+    matches.forEach(m => {
+      if (m.indices) {
+        m.indices.forEach(([start, end]: [number, number]) => {
+          allIndices.push([start, end]);
+        });
       }
     });
+
+    if (allIndices.length === 0) return text;
+
+    allIndices.sort((a, b) => a[0] - b[0]);
+
+    const merged: [number, number][] = [];
+    let current = allIndices[0];
+
+    for (let i = 1; i < allIndices.length; i++) {
+      const [curStart, curEnd] = current;
+      const [nextStart, nextEnd] = allIndices[i];
+
+      if (nextStart <= curEnd + 1) {
+        current = [curStart, Math.max(curEnd, nextEnd)];
+      } else {
+        merged.push(current);
+        current = allIndices[i];
+      }
+    }
+    merged.push(current);
+
+    let result = "";
+    let lastIndex = 0;
+
+    merged.forEach(([start, end]) => {
+      result += text.substring(lastIndex, start);
+      result += `<span class="highlight-match">${text.substring(start, end + 1)}</span>`;
+      lastIndex = end + 1;
+    });
+
+    result += text.substring(lastIndex);
+    return result;
   }
 
-  // 4. 🏷 Asset Status Filter (Functional / Defective / etc)
-  if (assetStatusFilter !== "all") {
-    result = result.filter((card) => card.status === assetStatusFilter);
-  }
+  const filteredCards = useMemo(() => {
+    let result = [...cards];
 
-  // 5. 👤 My Assets
-  if (showMyAssets && currentUserDocId) {
-    result = result.filter((card) => card.personnelId === currentUserDocId);
-  }
+    // 1. 🔍 SEARCH FIRST
+    if (debouncedQuery.trim() !== "") {
+      const results = fuse.search(debouncedQuery).map(r => ({
+        ...r.item,
+        _matches: r.matches ? [...r.matches] : undefined
+      }));
+      result = results;
+    }
 
-  // 6. ⚠ Show Reported Only - FIX: Check hasReports property
-  if (showReported) {
-    result = result.filter((card) => card.hasReports === true);
-  }
+    // 2. 📂 CATEGORY FILTER
+    if (categoryFilter !== "all") {
+      result = result.filter((card) => card.team === categoryFilter);
+    }
 
-  return result;
-}, [
-  cards,
-  debouncedQuery,
-  fuse, // Add fuse as dependency
-  categoryFilter,
-  statusFilter,
-  assetStatusFilter,
-  showMyAssets,
-  showReported,
-  currentUserDocId,
-]);
+    // 3. 📖 STATUS BADGE FILTER
+    if (statusFilter !== "all") {
+      result = result.filter((card) => {
+        switch (statusFilter) {
+          case "permanent":
+            return card.iconClass === "icon-blue";
+          case "normal":
+            return card.iconClass === "icon-green";
+          case "aboutToExpire":
+            return card.iconClass === "icon-orange";
+          case "expired":
+            return card.iconClass === "icon-red";
+          default:
+            return true;
+        }
+      });
+    }
 
+    // 4. 🏷 Asset Status Filter
+    if (assetStatusFilter !== "all") {
+      result = result.filter((card) => card.status === assetStatusFilter);
+    }
 
+    // 5. 👤 My Assets
+    if (showMyAssets && currentUserDocId) {
+      result = result.filter((card) => card.personnelId === currentUserDocId);
+    }
 
-const counts = useMemo(() => {
-  let permanent = 0, normal = 0, aboutToExpire = 0, expired = 0, myAssets = 0, reported = 0;
-  
-  for (const c of cards) {
-    if (c.iconClass === 'icon-blue') permanent++;
-    else if (c.iconClass === 'icon-green') normal++;
-    else if (c.iconClass === 'icon-orange') aboutToExpire++;
-    else if (c.iconClass === 'icon-red') expired++;
+    // 6. ⚠ Show Reported Only
+    if (showReported) {
+      result = result.filter((card) => card.hasReports === true);
+    }
+
+    return result;
+  }, [
+    cards,
+    debouncedQuery,
+    fuse,
+    categoryFilter,
+    statusFilter,
+    assetStatusFilter,
+    showMyAssets,
+    showReported,
+    currentUserDocId,
+  ]);
+
+  // Pagination logic
+  const paginatedCards = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredCards.slice(startIndex, endIndex);
+  }, [filteredCards, currentPage]);
+
+  const totalPages = Math.ceil(filteredCards.length / ITEMS_PER_PAGE);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedQuery, categoryFilter, statusFilter, assetStatusFilter, showMyAssets, showReported]);
+
+  const counts = useMemo(() => {
+    let permanent = 0, normal = 0, aboutToExpire = 0, expired = 0, myAssets = 0, reported = 0;
     
-    if (currentUserDocId && c.personnelId === currentUserDocId) myAssets++;
-    if (c.hasReports) reported++;
-  }
-  return { permanent, normal, aboutToExpire, expired, myAssets, reported };
-}, [cards, currentUserDocId]); // Remove 'query' dependency
-
+    for (const c of cards) {
+      if (c.iconClass === 'icon-blue') permanent++;
+      else if (c.iconClass === 'icon-green') normal++;
+      else if (c.iconClass === 'icon-orange') aboutToExpire++;
+      else if (c.iconClass === 'icon-red') expired++;
+      
+      if (currentUserDocId && c.personnelId === currentUserDocId) myAssets++;
+      if (c.hasReports) reported++;
+    }
+    return { permanent, normal, aboutToExpire, expired, myAssets, reported };
+  }, [cards, currentUserDocId]);
 
   const handleCardOptionsToggle = (index: number) => setOpenCardOptionsId(prev => (prev === index ? null : index));
 
   const handleEditCard = (index: number) => {
-    const card = filteredCards[index];
+    const card = paginatedCards[index];
     if (!card) return;
     
     const rawAsset = rawAssets.find(a => a.id === card.id);
@@ -586,7 +589,7 @@ const counts = useMemo(() => {
   };
 
   const handleDeleteCard = async (index: number) => {
-    const card = filteredCards[index];
+    const card = paginatedCards[index];
     if (!card) {
       toast.error("Card not found.");
       console.error("Delete failed: Card not found at index", index);
@@ -644,7 +647,6 @@ const counts = useMemo(() => {
         deletedByEmail,
         deletionReason: 'User-initiated deletion from Asset Management',
         originalId: card.id,
-        
       };
 
       const deletedDocRef = await addDoc(collection(db, "Deleted_Assets"), auditRecord);
@@ -694,9 +696,11 @@ const counts = useMemo(() => {
     setCategoryFilter('all');
     setShowMyAssets(false);
     setShowReported(false);
+    setAssetStatusFilter('all');
+    setCurrentPage(1);
   };
 
-  const hasActiveFilters = statusFilter !== 'all' || categoryFilter !== 'all' || showMyAssets || showReported;
+  const hasActiveFilters = statusFilter !== 'all' || categoryFilter !== 'all' || showMyAssets || showReported || assetStatusFilter !== 'all';
 
   const shouldShowSubType = (category?: string) => {
     if (!category) return false;
@@ -723,7 +727,10 @@ const counts = useMemo(() => {
         asset={selectedCard}
         onEdit={() => {
           const idx = filteredCards.findIndex(c => c.id === selectedCard?.id);
-          if (idx >= 0) handleEditCard(idx);
+          if (idx >= 0) {
+            const pageIndex = idx % ITEMS_PER_PAGE;
+            handleEditCard(pageIndex);
+          }
         }}
         onReport={() => {
           if (selectedCard) {
@@ -770,12 +777,13 @@ const counts = useMemo(() => {
         assetDocId={reportingAsset?.docId || ''}
         assetName={reportingAsset?.name || ''}
       />
-       <BulkQRPrint 
+
+      <BulkQRPrint 
         isOpen={showBulkQR}
         onClose={() => setShowBulkQR(false)}
       />
 
-    <div className='assetmanagement-container'>
+      <div className='assetmanagement-container'>
         <div className="asset-header-with-action">
           <h1>Asset Management</h1>
           <button 
@@ -786,6 +794,7 @@ const counts = useMemo(() => {
             Print Multiple QRs
           </button>
         </div>
+        
         <div className="filter-section">
           <div className="quick-filters">
             <div className="filter-section-label">
@@ -800,26 +809,24 @@ const counts = useMemo(() => {
                   onChange={(e) => setCategoryFilter(e.target.value as CategoryFilterKey)}
                 >
                   <option value="all">All Categories</option>
-                    {categories.map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
                 </select>
               </div>
+              
               <div className="category-filter-wrapper">
-              <select 
-                className="category-filter-select"
-                value={assetStatusFilter}
-                onChange={(e) => setAssetStatusFilter(e.target.value)}
-              >
-                <option value="all">All Statuses</option>
-                {statuses.map((stat) => (
-                  <option key={stat} value={stat}>{stat}</option>
-                ))}
-              </select>
-
-            </div>
-
+                <select 
+                  className="category-filter-select"
+                  value={assetStatusFilter}
+                  onChange={(e) => setAssetStatusFilter(e.target.value)}
+                >
+                  <option value="all">All Statuses</option>
+                  {statuses.map((stat) => (
+                    <option key={stat} value={stat}>{stat}</option>
+                  ))}
+                </select>
+              </div>
 
               <button 
                 className={`multi-select ${showMyAssets ? 'active' : ''}`}
@@ -909,75 +916,129 @@ const counts = useMemo(() => {
             <p>Try adjusting your filters</p>
           </div>
         ) : (
-          <div className="cards-grid">
-            {filteredCards.map((card, index) => {
-              console.log("Rendering card:", card.title);
-              return (
-                <div className="card" key={card.id}>
-                  <div className="card-badges">
-                    {card.personnelId === currentUserDocId && (
-                      <span className="card-badge my-asset">Mine</span>
-                    )}
-                    {card.hasReports && (
-                      <span className="card-badge reported">
-                        <i className="fas fa-exclamation-circle" />
-                        {card.reportCount}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="card-top">
-                    <div className="card-top-left">
-                      <div className={`card-icon ${card.iconClass}`}>
-                        <i className={`fas ${card.team.toLowerCase().includes('hardware') ? 'fa-laptop' : 'fa-code'}`} />
-                      </div>
-                      <button className="view-more-btn" onClick={() => setSelectedCard(card)}>View More</button>
+          <>
+                      {totalPages > 1 && (
+              <div className="pagination-container">
+                <button 
+                  className="pagination-btn"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <i className="fas fa-chevron-left" />
+                  Previous
+                </button>
+                
+                <div className="pagination-info">
+                  <span className="page-numbers">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <span className="items-info">
+                    Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredCards.length)} of {filteredCards.length}
+                  </span>
+                </div>
+                
+                <button 
+                  className="pagination-btn"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <i className="fas fa-chevron-right" />
+                </button>
+              </div>
+            )}
+            <div className="cards-grid">
+              {paginatedCards.map((card, index) => {
+                const canEditDelete = card.personnelId === currentUserDocId;
+                return (
+                  <div className="card" key={card.id}>
+                    <div className="card-badges">
+                      {card.personnelId === currentUserDocId && (
+                        <span className="card-badge my-asset">Mine</span>
+                      )}
+                      {card.hasReports && (card.reportCount ?? 0) > 0 && (
+                        <span className="card-badge reported">
+                          <i className="fas fa-exclamation-circle" />
+                          {card.reportCount ?? 0}
+                        </span>
+                      )}
                     </div>
-                    <div className="card-options">
-                      <button className="options-btn" onClick={() => handleCardOptionsToggle(index)}>⋮</button>
-                      {openCardOptionsId === index && (
-                        <div className="card-options-menu">
-                          <button className="edit-btn" onClick={() => handleEditCard(index)}><i className="fas fa-edit"></i> Edit Asset</button>
-                          <button className="delete-btn" onClick={() => handleDeleteCard(index)}><i className="fas fa-trash-alt"></i> Delete Asset</button>
+
+                    <div className="card-top">
+                      <div className="card-top-left">
+                        <div className={`card-icon ${card.iconClass}`}>
+                          <i className={`fas ${card.team.toLowerCase().includes('hardware') ? 'fa-laptop' : 'fa-code'}`} />
+                        </div>
+                        <button className="view-more-btn" onClick={() => setSelectedCard(card)}>View More</button>
+                      </div>
+                      <div className="card-options">
+                        <button className="options-btn" onClick={() => handleCardOptionsToggle(index)}>⋮</button>
+                        {openCardOptionsId === index && (
+                          <div className="card-options-menu">
+                            {canEditDelete ? (
+                              <>
+                                <button className="edit-btn" onClick={() => handleEditCard(index)}>
+                                  <i className="fas fa-edit"></i> Edit Asset
+                                </button>
+                                <button className="delete-btn" onClick={() => handleDeleteCard(index)}>
+                                  <i className="fas fa-trash-alt"></i> Delete Asset
+                                </button>
+                              </>
+                            ) : (
+                              <button 
+                                className="report-btn" 
+                                onClick={() => {
+                                  setReportingAsset({
+                                    id: card.assetId || card.id,
+                                    docId: card.id,
+                                    name: card.title,
+                                  });
+                                  setReportModalOpen(true);
+                                  setOpenCardOptionsId(null);
+                                }}
+                              >
+                                <i className="fas fa-flag"></i> Report Issue
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <h2
+                      className="card-title"
+                      dangerouslySetInnerHTML={{
+                        __html: highlightText(card.title, card._matches),
+                      }}
+                    ></h2>
+                    
+                    <div className="card-meta">
+                      <div className="card-meta-item">
+                        <i className="fas fa-layer-group" />
+                        {card.team}
+                      </div>
+                      <div className="card-meta-item">
+                        <i className="fas fa-barcode" />
+                        {card.serial}
+                      </div>
+                      {card.personnel && (
+                        <div className="card-meta-item">
+                          <i className="fas fa-user" />
+                          {card.personnel}
                         </div>
                       )}
                     </div>
-                  </div>
-                  
-                                <h2
-                className="card-title"
-                dangerouslySetInnerHTML={{
-                  __html: highlightText(card.title, card._matches),
-                }}
-              ></h2>
-
-
-
-                  
-                  <div className="card-meta">
-                    <div className="card-meta-item">
-                      <i className="fas fa-layer-group" />
-                      {card.team}
+                    
+                    <div className="card-time-badge">
+                      {card.timeLeft}
                     </div>
-                    <div className="card-meta-item">
-                      <i className="fas fa-barcode" />
-                      {card.serial}
-                    </div>
-                    {card.personnel && (
-                      <div className="card-meta-item">
-                        <i className="fas fa-user" />
-                        {card.personnel}
-                      </div>
-                    )}
                   </div>
-                  
-                  <div className="card-time-badge">
-                    {card.timeLeft}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+
+
+          </>
         )}
       </div>
 

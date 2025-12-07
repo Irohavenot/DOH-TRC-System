@@ -39,11 +39,9 @@
 /* ============ Container ============ */
 .qrgen-container {
   width: 100%;
-  min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  background: linear-gradient(135deg, #e0f2f1 0%, #b2dfdb 50%, #80cbc4 100%);
 }
 
 .qrgen-wrapper {
@@ -228,7 +226,7 @@
 
 .qrgen-textarea {
   resize: vertical;
-  min-height: 100px;
+  min-height: 75px;
   line-height: 1.6;
 }
 

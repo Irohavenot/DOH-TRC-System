@@ -42,7 +42,7 @@ const ReportsAnalytics: React.FC = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [uidToNameMap, setUidToNameMap] = useState<Record<string, string>>({});
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 7;
 
   // Fetch categories
   useEffect(() => {

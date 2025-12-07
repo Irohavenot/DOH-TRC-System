@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { db, auth } from "../../firebase/firebase";
 import {
   collection,
@@ -8,118 +8,152 @@ import {
   deleteDoc,
   addDoc,
   serverTimestamp,
+  query,
+  where,
 } from "firebase/firestore";
 import { toast } from "react-toastify";
 import "../../assets/manageconsumablerequests.css";
 
 const ManageConsumableRequests: React.FC = () => {
   const [requests, setRequests] = useState<any[]>([]);
-  const [deletedRequests, setDeletedRequests] = useState<any[]>([]);
-  const [releasedRequests, setReleasedRequests] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState<
+    "Pending" | "Approved" | "Rejected" | "Deleted" | "Released"
+  >("Pending");
+  const [priorityFilter, setPriorityFilter] = useState<"All" | "Urgent" | "Normal">("All");
   const [selected, setSelected] = useState<any | null>(null);
-  const [viewMode, setViewMode] = useState<"active" | "deleted" | "released">("active");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
-  const printRef = useRef<HTMLDivElement>(null);
+  const itemsPerPage = 8;
 
-  const sortRequestsByPriority = (requestList: any[]) => {
-    return [...requestList].sort((a, b) => {
-      if (a.priority === "Urgent" && b.priority !== "Urgent") return -1;
-      if (a.priority !== "Urgent" && b.priority === "Urgent") return 1;
-      return 0;
-    });
+  // Badge counts
+  const [counts, setCounts] = useState({
+    Pending: 0,
+    Approved: 0,
+    Rejected: 0,
+    Deleted: 0,
+    Released: 0,
+  });
+
+  // Fetch users for name mapping
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const usersSnap = await getDocs(collection(db, "IT_Supply_Users"));
+        const usersList = usersSnap.docs.map((doc) => ({
+          id: doc.id,
+          email: doc.data().Email?.toLowerCase(),
+          fullName:
+            [
+              doc.data().FirstName || doc.data().firstName,
+              doc.data().MiddleInitial || doc.data().middleName,
+              doc.data().LastName || doc.data().lastName,
+            ]
+              .filter(Boolean)
+              .join(" ") || "Unknown User",
+        }));
+        setUsers(usersList);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  // Helper to get full name from email (SAFE)
+  const getFullName = (email?: string) => {
+    if (!email || typeof email !== "string") return "Unknown User";
+
+    // Only lowercase if it looks like an email
+    const safeEmail = email.includes("@") ? email.toLowerCase() : email;
+    const user = users.find((u) => u.email === safeEmail);
+    return user?.fullName || email;
   };
 
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const querySnap = await getDocs(collection(db, "requested_consumables"));
-      const list = querySnap.docs
-        .map((doc) => {
-          const data = doc.data() as any;
-          return {
-            id: doc.id,
-            ...data,
-          };
-        })
-        .filter((req: any) => req.status !== "Released");
-      const sortedList = sortRequestsByPriority(list);
-      setRequests(sortedList);
+      let collectionName = "requested_consumables";
+      let queryConstraints: any[] = [];
+
+      if (statusFilter === "Deleted") {
+        collectionName = "deleted_requests";
+      } else if (statusFilter === "Released") {
+        collectionName = "consumables";
+      } else {
+        queryConstraints.push(where("status", "==", statusFilter));
+      }
+
+      const q =
+        queryConstraints.length > 0
+          ? query(collection(db, collectionName), ...queryConstraints)
+          : collection(db, collectionName);
+
+      const querySnap = await getDocs(q);
+      const list = querySnap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        status: statusFilter === "Released" ? "Released" : doc.data().status,
+      }));
+
+      // Sort by priority (Urgent first) then by date
+      const sorted = list.sort((a: any, b: any) => {
+        const prioA = (a?.priority || "Normal") as string;
+        const prioB = (b?.priority || "Normal") as string;
+
+        if (prioA === "Urgent" && prioB !== "Urgent") return -1;
+        if (prioA !== "Urgent" && prioB === "Urgent") return 1;
+
+        // Prefer requestedAt, fall back to createdAt
+        const tsA = a?.requestedAt || a?.createdAt;
+        const tsB = b?.requestedAt || b?.createdAt;
+
+        const dateA =
+          tsA?.toDate?.() instanceof Function
+            ? tsA.toDate()
+            : tsA
+            ? new Date(tsA)
+            : new Date(0);
+        const dateB =
+          tsB?.toDate?.() instanceof Function
+            ? tsB.toDate()
+            : tsB
+            ? new Date(tsB)
+            : new Date(0);
+
+        return dateB.getTime() - dateA.getTime();
+      });
+
+      setRequests(sorted);
     } catch (error) {
       console.error("Error fetching requests:", error);
-      toast.error("Failed to fetch consumable requests.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchDeletedRequests = async () => {
-    setLoading(true);
-    try {
-      const querySnap = await getDocs(collection(db, "deleted_requests"));
-      const list = querySnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setDeletedRequests(list);
-    } catch (error) {
-      console.error("Error fetching deleted requests:", error);
-      toast.error("Failed to fetch deleted requests.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchReleasedRequests = async () => {
-    setLoading(true);
-    try {
-      const querySnap = await getDocs(collection(db, "consumables"));
-      const list = querySnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        status: "Released",
-      }));
-      setReleasedRequests(list);
-    } catch (error) {
-      console.error("Error fetching released requests:", error);
-      toast.error("Failed to fetch released requests.");
+      toast.error("Failed to fetch requests.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (viewMode === "active") {
+    if (users.length > 0) {
       fetchRequests();
-    } else if (viewMode === "deleted") {
-      fetchDeletedRequests();
-    } else {
-      fetchReleasedRequests();
     }
-    setCurrentPage(1);
-  }, [viewMode]);
+  }, [statusFilter, users]);
 
-  const generateDeleteId = () => {
-    const randomNum = Math.floor(1000000 + Math.random() * 9000000);
-    return `DEL-${randomNum}`;
-  };
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, priorityFilter]);
 
   const handleApprove = async (id: string) => {
     try {
       const ref = doc(db, "requested_consumables", id);
-      await updateDoc(ref, { 
+      await updateDoc(ref, {
         status: "Approved",
         approvedAt: serverTimestamp(),
-        approvedBy: auth.currentUser?.email || "Unknown"
+        approvedBy: auth.currentUser?.email || "Unknown",
       });
       toast.success("Request approved successfully!");
       setSelected(null);
-      
-      if (viewMode === "active") {
-        fetchRequests();
-      }
+      fetchRequests();
     } catch (error) {
       toast.error("Failed to approve request.");
     }
@@ -128,17 +162,14 @@ const ManageConsumableRequests: React.FC = () => {
   const handleReject = async (id: string) => {
     try {
       const ref = doc(db, "requested_consumables", id);
-      await updateDoc(ref, { 
+      await updateDoc(ref, {
         status: "Rejected",
         rejectedAt: serverTimestamp(),
-        rejectedBy: auth.currentUser?.email || "Unknown"
+        rejectedBy: auth.currentUser?.email || "Unknown",
       });
       toast.success("Request rejected.");
       setSelected(null);
-      
-      if (viewMode === "active") {
-        fetchRequests();
-      }
+      fetchRequests();
     } catch (error) {
       toast.error("Failed to reject request.");
     }
@@ -162,7 +193,7 @@ const ManageConsumableRequests: React.FC = () => {
         type: req.type,
         quantity: req.quantity,
         unit: req.unit,
-        priority: req.priority,
+        priority: req.priority || "Normal",
         department: req.department,
         requestedBy: req.requestedBy,
         originalRequestId: req.requestId,
@@ -170,78 +201,70 @@ const ManageConsumableRequests: React.FC = () => {
         createdAt: serverTimestamp(),
         releasedAt: serverTimestamp(),
         releasedBy: auth.currentUser?.email || "Unknown",
-        requestedAt: req.requestedAt,
-        approvedAt: req.approvedAt,
-        approvedBy: req.approvedBy
+        requestedAt: req.requestedAt || req.createdAt || null,
+        approvedAt: req.approvedAt || null,
+        approvedBy: req.approvedBy || null,
+        remarks: req.remarks || "",
+        neededBy: req.neededBy || null,
       });
 
       await deleteDoc(doc(db, "requested_consumables", id));
 
       toast.success(`Request released with ID: ${releaseId}`);
       setSelected(null);
-      
-      if (viewMode === "active") {
-        fetchRequests();
-      } else if (viewMode === "released") {
-        fetchReleasedRequests();
-      }
+      fetchRequests();
     } catch (error) {
       toast.error("Failed to release request.");
     }
   };
 
+  const generateDeleteId = () => {
+    const randomNum = Math.floor(1000000 + Math.random() * 9000000);
+    return `DEL-${randomNum}`;
+  };
+
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Delete this request permanently?")) return;
+    if (!window.confirm("Archive this request?")) return;
     try {
       const req = requests.find((r) => r.id === id);
       if (!req) return;
 
-      const currentUser = auth.currentUser;
       const deleteId = generateDeleteId();
 
       await addDoc(collection(db, "deleted_requests"), {
         ...req,
         originalId: req.id,
         deleteId: deleteId,
-        deletedBy: currentUser?.email || "Unknown",
+        deletedBy: auth.currentUser?.email || "Unknown",
         deletedAt: serverTimestamp(),
       });
 
       await deleteDoc(doc(db, "requested_consumables", id));
-      
+
       toast.success(`Request archived with ID: ${deleteId}`);
       setSelected(null);
-      
-      if (viewMode === "active") {
-        fetchRequests();
-      }
+      fetchRequests();
     } catch (error) {
-      toast.error("Failed to delete request.");
-      console.error(error);
+      toast.error("Failed to archive request.");
     }
   };
 
   const handleRestore = async (id: string) => {
     if (!window.confirm("Restore this request?")) return;
     try {
-      const req = deletedRequests.find((r) => r.id === id);
+      const req = requests.find((r) => r.id === id);
       if (!req) return;
 
       const { deleteId, deletedBy, deletedAt, originalId, id: _, ...originalData } = req;
 
       await addDoc(collection(db, "requested_consumables"), originalData);
-
       await deleteDoc(doc(db, "deleted_requests", id));
-      
+
       toast.success("Request restored successfully!");
       setSelected(null);
-      
-      if (viewMode === "deleted") {
-        fetchDeletedRequests();
-      }
+      fetchRequests();
     } catch (error) {
       toast.error("Failed to restore request.");
-      console.error(error);
     }
   };
 
@@ -251,204 +274,128 @@ const ManageConsumableRequests: React.FC = () => {
       await deleteDoc(doc(db, "deleted_requests", id));
       toast.success("Request permanently deleted.");
       setSelected(null);
-      
-      if (viewMode === "deleted") {
-        fetchDeletedRequests();
-      }
+      fetchRequests();
     } catch (error) {
       toast.error("Failed to permanently delete request.");
-    }
-  };
-
-  const formatDate = (timestamp: any) => {
-    if (!timestamp) return "N/A";
-    try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
-    } catch (error) {
-      return "N/A";
     }
   };
 
   const formatDateTime = (timestamp: any) => {
     if (!timestamp) return "N/A";
     try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      const date =
+        timestamp?.toDate?.() instanceof Function
+          ? timestamp.toDate()
+          : new Date(timestamp);
       return date.toLocaleString("en-US", {
         year: "numeric",
         month: "short",
         day: "numeric",
         hour: "2-digit",
-        minute: "2-digit"
+        minute: "2-digit",
       });
     } catch (error) {
       return "N/A";
     }
   };
 
-  const filteredRequests = requests.filter((req) => {
-    if (filter === "All") return true;
+  const filteredByPriority = useMemo(() => {
+    if (priorityFilter === "All") return requests;
+    return requests.filter((req) => req.priority === priorityFilter);
+  }, [requests, priorityFilter]);
 
-    if (filter === "RequestedToday") {
-      const today = new Date();
-      const reqDate = req.requestedAt?.toDate?.() || new Date(req.requestedAt);
-      return (
-        reqDate.getFullYear() === today.getFullYear() &&
-        reqDate.getMonth() === today.getMonth() &&
-        reqDate.getDate() === today.getDate()
-      );
-    }
+  const totalPages = Math.ceil(filteredByPriority.length / itemsPerPage) || 1;
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentItems = filteredByPriority.slice(startIndex, startIndex + itemsPerPage);
 
-    if (filter === "Urgent") {
-      return req.priority === "Urgent";
-    }
+  // Fetch counts for badges
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const [
+          pendingSnap,
+          approvedSnap,
+          rejectedSnap,
+          deletedSnap,
+          releasedSnap,
+        ] = await Promise.all([
+          getDocs(query(collection(db, "requested_consumables"), where("status", "==", "Pending"))),
+          getDocs(query(collection(db, "requested_consumables"), where("status", "==", "Approved"))),
+          getDocs(query(collection(db, "requested_consumables"), where("status", "==", "Rejected"))),
+          getDocs(collection(db, "deleted_requests")),
+          getDocs(collection(db, "consumables")),
+        ]);
 
-    if (filter === "Normal") {
-      return req.priority === "Normal";
-    }
-
-    if (filter === "Pending" || filter === "Approved") {
-      return req.status === filter;
-    }
-
-    return true;
-  });
+        setCounts({
+          Pending: pendingSnap.size,
+          Approved: approvedSnap.size,
+          Rejected: rejectedSnap.size,
+          Deleted: deletedSnap.size,
+          Released: releasedSnap.size,
+        });
+      } catch (error) {
+        console.error("Error fetching counts:", error);
+      }
+    };
+    fetchCounts();
+  }, [requests]);
 
   const handlePrint = () => {
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
-    const currentList = viewMode === "active" ? filteredRequests : viewMode === "deleted" ? deletedRequests : releasedRequests;
-    
     const printContent = `
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Consumable Requests Report</title>
+          <title>${statusFilter} Consumable Requests Report</title>
           <style>
-            body {
-              font-family: Arial, sans-serif;
-              padding: 20px;
-              color: #333;
-            }
-            .print-header {
-              text-align: center;
-              margin-bottom: 30px;
-              border-bottom: 3px solid #3b82f6;
-              padding-bottom: 15px;
-            }
-            .print-header h1 {
-              margin: 0;
-              color: #1f2937;
-            }
-            .print-info {
-              margin: 15px 0;
-              font-size: 14px;
-              color: #6b7280;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-top: 20px;
-            }
-            th, td {
-              border: 1px solid #e5e7eb;
-              padding: 12px;
-              text-align: left;
-            }
-            th {
-              background-color: #3b82f6;
-              color: white;
-              font-weight: 600;
-            }
-            tr:nth-child(even) {
-              background-color: #f9fafb;
-            }
-            .urgent-row {
-              background-color: #fef2f2 !important;
-              border-left: 4px solid #ef4444;
-            }
-            .priority-badge, .status-badge {
-              display: inline-block;
-              padding: 4px 12px;
-              border-radius: 12px;
-              font-size: 11px;
-              font-weight: 600;
-            }
-            .priority-badge.normal {
-              background: #dbeafe;
-              color: #1e40af;
-            }
-            .priority-badge.urgent {
-              background: #fee2e2;
-              color: #991b1b;
-            }
-            .status-badge.pending {
-              background: #fef3c7;
-              color: #92400e;
-            }
-            .status-badge.approved {
-              background: #d1fae5;
-              color: #065f46;
-            }
-            .status-badge.rejected {
-              background: #fee2e2;
-              color: #991b1b;
-            }
-            .status-badge.released {
-              background: #e0e7ff;
-              color: #3730a3;
-            }
-            @media print {
-              body {
-                padding: 0;
-              }
-            }
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #3b82f6; padding-bottom: 15px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #e5e7eb; padding: 12px; text-align: left; }
+            th { background-color: #3b82f6; color: white; }
+            tr:nth-child(even) { background-color: #f9fafb; }
+            .urgent-row { background-color: #fef2f2 !important; }
           </style>
         </head>
         <body>
-          <div class="print-header">
-            <h1>${viewMode === "active" ? "Active" : viewMode === "deleted" ? "Deleted Archive" : "Released"} Consumable Requests</h1>
-            <div class="print-info">
-              <p><strong>Filter:</strong> ${filter}</p>
-              <p><strong>Total Records:</strong> ${currentList.length}</p>
-              <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
-            </div>
+          <div class="header">
+            <h1>${statusFilter} Consumable Requests</h1>
+            <p>Priority Filter: ${priorityFilter} | Total: ${filteredByPriority.length}</p>
+            <p>Generated: ${new Date().toLocaleString()}</p>
           </div>
           <table>
             <thead>
               <tr>
-                <th>${viewMode === "deleted" ? "Delete ID" : viewMode === "released" ? "Release ID" : "Request ID"}</th>
-                <th>Item Name</th>
+                <th>Request ID</th>
+                <th>Item</th>
                 <th>Type</th>
-                <th>Quantity</th>
+                <th>Qty</th>
                 <th>Department</th>
-                ${viewMode === "active" ? "<th>Priority</th>" : ""}
-                <th>Status</th>
-                <th>Date Requested</th>
-                ${viewMode === "deleted" ? "<th>Deleted By</th><th>Deleted At</th>" : ""}
-                ${viewMode === "released" ? "<th>Released At</th>" : ""}
+                <th>Priority</th>
+                <th>Requested</th>
               </tr>
             </thead>
             <tbody>
-              ${currentList.map(req => `
-                <tr class="${req.priority === 'Urgent' ? 'urgent-row' : ''}">
-                  <td>${viewMode === "deleted" ? req.deleteId : viewMode === "released" ? req.releaseId : req.requestId}</td>
-                  <td>${req.name}</td>
-                  <td>${req.type}</td>
-                  <td>${req.quantity} ${req.unit}</td>
-                  <td>${req.department}</td>
-                  ${viewMode === "active" ? `<td><span class="priority-badge ${req.priority.toLowerCase()}">${req.priority}</span></td>` : ""}
-                  <td><span class="status-badge ${req.status.toLowerCase()}">${req.status}</span></td>
-                  <td>${formatDate(req.requestedAt || req.createdAt)}</td>
-                  ${viewMode === "deleted" ? `<td>${req.deletedBy}</td><td>${formatDateTime(req.deletedAt)}</td>` : ""}
-                  ${viewMode === "released" ? `<td>${formatDateTime(req.releasedAt || req.createdAt)}</td>` : ""}
+              ${filteredByPriority
+                .map((req) => {
+                  const priorityValue = (req.priority || "Normal") as string;
+                  return `
+                <tr class="${
+                  priorityValue === "Urgent" ? "urgent-row" : ""
+                }">
+                  <td>${req.requestId || req.deleteId || req.releaseId || "N/A"}</td>
+                  <td>${req.name || ""}</td>
+                  <td>${req.type || ""}</td>
+                  <td>${req.quantity || ""} ${req.unit || ""}</td>
+                  <td>${req.department || ""}</td>
+                  <td>${priorityValue}</td>
+                  <td>${formatDateTime(req.requestedAt || req.createdAt)}</td>
                 </tr>
-              `).join('')}
+              `;
+                })
+                .join("")}
             </tbody>
           </table>
         </body>
@@ -457,278 +404,449 @@ const ManageConsumableRequests: React.FC = () => {
 
     printWindow.document.write(printContent);
     printWindow.document.close();
-    printWindow.focus();
     setTimeout(() => {
       printWindow.print();
       printWindow.close();
     }, 250);
   };
 
-  const currentList = viewMode === "active" ? filteredRequests : viewMode === "deleted" ? deletedRequests : releasedRequests;
-  
-  // Pagination logic
-  const totalPages = Math.ceil(currentList.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentItems = currentList.slice(startIndex, endIndex);
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filter]);
-
   return (
-    <div className="mcreq-function-container">
-      <div className="mcreq-function-header">
-        <h2>Consumable Requests</h2>
-        <div className="mcreq-header-controls">
-          <div className="mcreq-view-toggle">
-            <button
-              className={`toggle-btn ${viewMode === "active" ? "active" : ""}`}
-              onClick={() => setViewMode("active")}
-            >
-              Active Requests
-            </button>
-            <button
-              className={`toggle-btn ${viewMode === "released" ? "active" : ""}`}
-              onClick={() => setViewMode("released")}
-            >
-              Released ({releasedRequests.length})
-            </button>
-            <button
-              className={`toggle-btn ${viewMode === "deleted" ? "active" : ""}`}
-              onClick={() => setViewMode("deleted")}
-            >
-              Deleted Archive ({deletedRequests.length})
-            </button>
-          </div>
-          {viewMode === "active" && (
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="mcreq-function-filter"
-            >
-              <option value="All">All</option>
-              <option value="RequestedToday">Requested Today</option>
-              <option value="Urgent">Urgent</option>
-              <option value="Normal">Normal Requests</option>
-              <option value="Pending">Pending</option>
-              <option value="Approved">Approved</option>
-            </select>
-          )}
-          <button className="print-btn" onClick={handlePrint}>
-            <span>🖨️</span> Print Report
+    <div className="mcreq-container">
+      <div className="mcreq-header">
+        <h2>Consumable Requests Management</h2>
+        <button className="print-btn" onClick={handlePrint}>
+          <i className="fas fa-print" /> Print Report
+        </button>
+      </div>
+
+      {/* Status Navigation */}
+      <div className="mcreq-status-nav">
+        <button
+          className={`status-nav-btn pending ${statusFilter === "Pending" ? "active" : ""}`}
+          onClick={() => setStatusFilter("Pending")}
+        >
+          <i className="fas fa-clock" />
+          <span>Pending</span>
+          <span className="badge">{counts.Pending}</span>
+        </button>
+        <button
+          className={`status-nav-btn approved ${statusFilter === "Approved" ? "active" : ""}`}
+          onClick={() => setStatusFilter("Approved")}
+        >
+          <i className="fas fa-check-circle" />
+          <span>Approved</span>
+          <span className="badge">{counts.Approved}</span>
+        </button>
+        <button
+          className={`status-nav-btn rejected ${statusFilter === "Rejected" ? "active" : ""}`}
+          onClick={() => setStatusFilter("Rejected")}
+        >
+          <i className="fas fa-times-circle" />
+          <span>Rejected</span>
+          <span className="badge">{counts.Rejected}</span>
+        </button>
+        <button
+          className={`status-nav-btn released ${statusFilter === "Released" ? "active" : ""}`}
+          onClick={() => setStatusFilter("Released")}
+        >
+          <i className="fas fa-box-open" />
+          <span>Released</span>
+          <span className="badge">{counts.Released}</span>
+        </button>
+        <button
+          className={`status-nav-btn deleted ${statusFilter === "Deleted" ? "active" : ""}`}
+          onClick={() => setStatusFilter("Deleted")}
+        >
+          <i className="fas fa-archive" />
+          <span>Archive</span>
+          <span className="badge">{counts.Deleted}</span>
+        </button>
+      </div>
+
+      {/* Priority Filter */}
+      <div className="mcreq-controls">
+        <div className="priority-filter">
+          <button
+            className={`priority-btn ${priorityFilter === "All" ? "active" : ""}`}
+            onClick={() => setPriorityFilter("All")}
+          >
+            All Priorities
           </button>
+          <button
+            className={`priority-btn urgent ${
+              priorityFilter === "Urgent" ? "active" : ""
+            }`}
+            onClick={() => setPriorityFilter("Urgent")}
+          >
+            <i className="fas fa-exclamation-triangle" /> Urgent Only
+          </button>
+          <button
+            className={`priority-btn normal ${
+              priorityFilter === "Normal" ? "active" : ""
+            }`}
+            onClick={() => setPriorityFilter("Normal")}
+          >
+            Normal Only
+          </button>
+        </div>
+        <div className="results-info">
+          Showing {currentItems.length} of {filteredByPriority.length} requests
         </div>
       </div>
 
       {loading ? (
-        <p>Loading requests...</p>
+        <div className="loading-state">
+          <div className="spinner" />
+          <p>Loading requests...</p>
+        </div>
       ) : (
         <>
-          <table className="mcreq-function-table">
-            <thead>
-              <tr>
-                <th>{viewMode === "deleted" ? "Delete ID" : "Request ID"}</th>
-                <th>Item Name</th>
-                <th>Date Requested</th>
-                <th>Quantity</th>
-                {viewMode === "active" && <th>Priority</th>}
-                <th>Status</th>
-                {viewMode === "deleted" && <th>Deleted By</th>}
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currentItems.length === 0 ? (
+          <div className="mcreq-table-container">
+            <table className="mcreq-table">
+              <thead>
                 <tr>
-                  <td colSpan={viewMode === "active" ? 7 : 7} style={{ textAlign: "center", padding: "2rem" }}>
-                    No {viewMode === "deleted" ? "deleted" : viewMode === "released" ? "released" : ""} requests found
-                  </td>
+                  <th>ID</th>
+                  <th>Item Name</th>
+                  <th>Requested</th>
+                  <th>Quantity</th>
+                  <th>Priority</th>
+                  <th>Department</th>
+                  <th>Actions</th>
                 </tr>
-              ) : (
-                currentItems.map((req) => (
-                  <tr
-                    key={req.id}
-                    className={req.priority === "Urgent" ? "urgent-row" : ""}
-                  >
-                    <td>{viewMode === "deleted" ? req.deleteId : viewMode === "released" ? req.releaseId : req.requestId}</td>
-                    <td>{req.name}</td>
-                    <td>{formatDate(req.requestedAt || req.createdAt)}</td>
-                    <td>
-                      {req.quantity} {req.unit}
-                    </td>
-                    {viewMode === "active" && (
-                      <td>
-                        <span className={`priority-badge ${req.priority.toLowerCase()}`}>
-                          {req.priority}
-                        </span>
-                      </td>
-                    )}
-                    <td>
-                      <span className={`status-badge ${req.status.toLowerCase()}`}>
-                        {req.status}
-                      </span>
-                    </td>
-                    {viewMode === "deleted" && (
-                      <td>{req.deletedBy}</td>
-                    )}
-                    <td>
-                      <button className="view-btn" onClick={() => setSelected(req)}>
-                        View Details
-                      </button>
+              </thead>
+              <tbody>
+                {currentItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="empty-cell">
+                      <i className="fas fa-inbox" />
+                      <p>No {statusFilter.toLowerCase()} requests found</p>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  currentItems.map((req) => {
+                    const priorityValue = (req.priority || "Normal") as string;
+                    const priorityClass = priorityValue.toLowerCase();
+
+                    return (
+                      <tr
+                        key={req.id}
+                        className={priorityValue === "Urgent" ? "urgent-row" : ""}
+                      >
+                        <td className="id-cell">
+                          {statusFilter === "Deleted"
+                            ? req.deleteId
+                            : statusFilter === "Released"
+                            ? req.releaseId
+                            : req.requestId}
+                        </td>
+                        <td className="name-cell">{req.name}</td>
+                        <td>{formatDateTime(req.requestedAt || req.createdAt)}</td>
+                        <td>
+                          {req.quantity} {req.unit}
+                        </td>
+                        <td>
+                          <span className={`priority-badge ${priorityClass}`}>
+                            {priorityValue === "Urgent" && (
+                              <i className="fas fa-bolt" />
+                            )}
+                            {priorityValue}
+                          </span>
+                        </td>
+                        <td>{req.department}</td>
+                        <td>
+                          <button
+                            className="view-btn"
+                            onClick={() => setSelected(req)}
+                          >
+                            <i className="fas fa-eye" /> View
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
 
           {totalPages > 1 && (
-            <div className="pagination-controls">
-              <button 
-                className="pagination-btn" 
-                onClick={handlePrevPage} 
+            <div className="pagination">
+              <button
+                className="page-btn"
+                onClick={() =>
+                  setCurrentPage((p) => Math.max(1, p - 1))
+                }
                 disabled={currentPage === 1}
               >
-                Previous
+                <i className="fas fa-chevron-left" /> Previous
               </button>
-              <span className="pagination-info">
-                Page {currentPage} of {totalPages} ({currentList.length} total items)
+              <span className="page-info">
+                Page {currentPage} of {totalPages}
               </span>
-              <button 
-                className="pagination-btn" 
-                onClick={handleNextPage} 
+              <button
+                className="page-btn"
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
                 disabled={currentPage === totalPages}
               >
-                Next
+                Next <i className="fas fa-chevron-right" />
               </button>
             </div>
           )}
         </>
       )}
 
+      {/* Modal */}
       {selected && (
-        <div className="mcreq-function-modal" onClick={() => setSelected(null)}>
-          <div className="mcreq-function-modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3>{viewMode === "deleted" ? "Deleted Request Details" : viewMode === "released" ? "Released Request Details" : "Request Details"}</h3>
-            <div className="modal-details">
-              {viewMode === "deleted" && (
-                <>
-                  <p><strong>Delete ID:</strong> {selected.deleteId}</p>
-                  <p><strong>Original Request ID:</strong> {selected.requestId}</p>
-                  <p><strong>Deleted By:</strong> {selected.deletedBy}</p>
-                  <p><strong>Deleted At:</strong> {formatDateTime(selected.deletedAt)}</p>
-                  <div className="modal-divider"></div>
-                </>
+        <div className="modal-backdrop" onClick={() => setSelected(null)}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h3>Request Details</h3>
+              <button
+                className="modal-close"
+                onClick={() => setSelected(null)}
+              >
+                <i className="fas fa-times" />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {statusFilter === "Deleted" && (
+                <div className="info-section deleted">
+                  <h4>
+                    <i className="fas fa-archive" /> Archive Information
+                  </h4>
+                  <div className="info-grid">
+                    <div className="info-item">
+                      <span className="label">Delete ID:</span>
+                      <span className="value">{selected.deleteId}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="label">Deleted By:</span>
+                      <span className="value">
+                        {getFullName(selected.deletedBy)}
+                      </span>
+                    </div>
+                    <div className="info-item">
+                      <span className="label">Deleted At:</span>
+                      <span className="value">
+                        {formatDateTime(selected.deletedAt)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               )}
-              {viewMode === "active" && (
-                <p><strong>Request ID:</strong> {selected.requestId}</p>
+
+              <div className="info-section">
+                <h4>
+                  <i className="fas fa-info-circle" /> Basic Information
+                </h4>
+                <div className="info-grid">
+                  <div className="info-item">
+                    <span className="label">Request ID:</span>
+                    <span className="value">
+                      {selected.requestId || selected.releaseId}
+                    </span>
+                  </div>
+                  <div className="info-item">
+                    <span className="label">Item Name:</span>
+                    <span className="value strong">{selected.name}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="label">Type:</span>
+                    <span className="value">{selected.type}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="label">Quantity:</span>
+                    <span className="value">
+                      {selected.quantity} {selected.unit}
+                    </span>
+                  </div>
+                  <div className="info-item">
+                    <span className="label">Department:</span>
+                    <span className="value">{selected.department}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="label">Priority:</span>
+                    {(() => {
+                      const prio = (selected.priority || "Normal") as string;
+                      const cls = prio.toLowerCase();
+                      return (
+                        <span className={`priority-badge ${cls}`}>
+                          {prio}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              <div className="info-section">
+                <h4>
+                  <i className="fas fa-user" /> Request Information
+                </h4>
+                <div className="info-grid">
+                  <div className="info-item">
+                    <span className="label">Requested By:</span>
+                    <span className="value">{selected.requestedBy}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="label">Requested At:</span>
+                    <span className="value">
+                      {formatDateTime(selected.requestedAt || selected.createdAt)}
+                    </span>
+                  </div>
+                  {selected.neededBy && (
+                    <div className="info-item">
+                      <span className="label">Needed By:</span>
+                      <span className="value urgent">
+                        {formatDateTime(selected.neededBy)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {(selected.approvedAt ||
+                selected.rejectedAt ||
+                selected.releasedAt) && (
+                <div className="info-section">
+                  <h4>
+                    <i className="fas fa-history" /> Action History
+                  </h4>
+                  <div className="info-grid">
+                    {selected.approvedAt && (
+                      <>
+                        <div className="info-item">
+                          <span className="label">Approved By:</span>
+                          <span className="value">
+                            {getFullName(selected.approvedBy)}
+                          </span>
+                        </div>
+                        <div className="info-item">
+                          <span className="label">Approved At:</span>
+                          <span className="value">
+                            {formatDateTime(selected.approvedAt)}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                    {selected.rejectedAt && (
+                      <>
+                        <div className="info-item">
+                          <span className="label">Rejected By:</span>
+                          <span className="value">
+                            {getFullName(selected.rejectedBy)}
+                          </span>
+                        </div>
+                        <div className="info-item">
+                          <span className="label">Rejected At:</span>
+                          <span className="value">
+                            {formatDateTime(selected.rejectedAt)}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                    {selected.releasedAt && (
+                      <>
+                        <div className="info-item">
+                          <span className="label">Released By:</span>
+                          <span className="value">
+                            {getFullName(selected.releasedBy)}
+                          </span>
+                        </div>
+                        <div className="info-item">
+                          <span className="label">Released At:</span>
+                          <span className="value">
+                            {formatDateTime(selected.releasedAt)}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
               )}
-              {viewMode === "released" && (
-                <>
-                  <p><strong>Release ID:</strong> {selected.releaseId}</p>
-                  <p><strong>Original Request ID:</strong> {selected.originalRequestId}</p>
-                </>
-              )}
-              <p><strong>Item Name:</strong> {selected.name}</p>
-              <p><strong>Type:</strong> {selected.type}</p>
-              <p><strong>Quantity:</strong> {selected.quantity} {selected.unit}</p>
-              <p><strong>Date Requested:</strong> {formatDate(selected.requestedAt || selected.createdAt)}</p>
-              <p><strong>Priority:</strong> 
-                <span className={`priority-badge ${selected.priority.toLowerCase()}`}>
-                  {selected.priority}
-                </span>
-              </p>
-              {selected.priority === "Urgent" && (
-                <p><strong>Needed By:</strong> {selected.neededBy}</p>
-              )}
-              <p><strong>Department:</strong> {selected.department}</p>
-              <p><strong>Requested By:</strong> {selected.requestedBy}</p>
-              <p><strong>Status:</strong> 
-                <span className={`status-badge ${selected.status.toLowerCase()}`}>
-                  {selected.status}
-                </span>
-              </p>
-              
-              {selected.approvedAt && (
-                <>
-                  <div className="modal-divider"></div>
-                  <p><strong>Approved At:</strong> {formatDateTime(selected.approvedAt)}</p>
-                  {selected.approvedBy && <p><strong>Approved By:</strong> {selected.approvedBy}</p>}
-                </>
-              )}
-              
-              {selected.rejectedAt && (
-                <>
-                  <div className="modal-divider"></div>
-                  <p><strong>Rejected At:</strong> {formatDateTime(selected.rejectedAt)}</p>
-                  {selected.rejectedBy && <p><strong>Rejected By:</strong> {selected.rejectedBy}</p>}
-                </>
-              )}
-              
-              {selected.releasedAt && (
-                <>
-                  <div className="modal-divider"></div>
-                  <p><strong>Released At:</strong> {formatDateTime(selected.releasedAt)}</p>
-                  {selected.releasedBy && <p><strong>Released By:</strong> {selected.releasedBy}</p>}
-                </>
-              )}
-              
+
               {selected.remarks && (
-                <p><strong>Remarks:</strong> {selected.remarks}</p>
+                <div className="info-section">
+                  <h4>
+                    <i className="fas fa-comment" /> Remarks
+                  </h4>
+                  <p className="remarks">{selected.remarks}</p>
+                </div>
               )}
             </div>
 
-            <div className="mcreq-function-modal-actions">
-              <button className="close-btn" onClick={() => setSelected(null)}>
-                Close
-              </button>
-              
-              {viewMode === "active" ? (
+            <div className="modal-actions">
+              {statusFilter === "Pending" && (
                 <>
-                  {selected.status === "Pending" && (
-                    <>
-                      <button className="approve-btn" onClick={() => handleApprove(selected.id)}>
-                        Approve
-                      </button>
-                      <button className="reject-btn" onClick={() => handleReject(selected.id)}>
-                        Reject
-                      </button>
-                    </>
-                  )}
-                  
-                  {selected.status === "Approved" && (
-                    <button className="release-btn" onClick={() => handleRelease(selected.id)}>
-                      Release to Inventory
-                    </button>
-                  )}
-                  
-                  <button className="delete-btn" onClick={() => handleDelete(selected.id)}>
-                    Delete
+                  <button
+                    className="action-btn approve"
+                    onClick={() => handleApprove(selected.id)}
+                  >
+                    <i className="fas fa-check" /> Approve
+                  </button>
+                  <button
+                    className="action-btn reject"
+                    onClick={() => handleReject(selected.id)}
+                  >
+                    <i className="fas fa-times" /> Reject
+                  </button>
+                  <button
+                    className="action-btn delete"
+                    onClick={() => handleDelete(selected.id)}
+                  >
+                    <i className="fas fa-archive" /> Archive
                   </button>
                 </>
-              ) : viewMode === "deleted" ? (
+              )}
+
+              {statusFilter === "Approved" && (
                 <>
-                  <button className="restore-btn" onClick={() => handleRestore(selected.id)}>
-                    Restore Request
+                  <button
+                    className="action-btn release"
+                    onClick={() => handleRelease(selected.id)}
+                  >
+                    <i className="fas fa-box-open" /> Release to Inventory
                   </button>
-                  <button className="delete-btn" onClick={() => handlePermanentDelete(selected.id)}>
-                    Delete Permanently
+                  <button
+                    className="action-btn delete"
+                    onClick={() => handleDelete(selected.id)}
+                  >
+                    <i className="fas fa-archive" /> Archive
                   </button>
                 </>
-              ) : null}
+              )}
+
+              {statusFilter === "Rejected" && (
+                <button
+                  className="action-btn delete"
+                  onClick={() => handleDelete(selected.id)}
+                >
+                  <i className="fas fa-archive" /> Archive
+                </button>
+              )}
+
+              {statusFilter === "Deleted" && (
+                <>
+                  <button
+                    className="action-btn restore"
+                    onClick={() => handleRestore(selected.id)}
+                  >
+                    <i className="fas fa-undo" /> Restore
+                  </button>
+                  <button
+                    className="action-btn delete"
+                    onClick={() => handlePermanentDelete(selected.id)}
+                  >
+                    <i className="fas fa-trash" /> Delete Permanently
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
