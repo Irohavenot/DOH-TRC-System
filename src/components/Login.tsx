@@ -1,4 +1,4 @@
-// Login.tsx (Updated with Forgot Password)
+// Login.tsx (Updated with renamed classes)
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { auth, provider, db } from "../firebase/firebase";
@@ -17,10 +17,8 @@ import { toast } from "react-toastify";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye } from '@fortawesome/free-solid-svg-icons';
 
-// 🔑 Define allowed status values
 type UserStatus = "email_pending" | "pending" | "approved" | "rejected";
 
-// 🔑 Define user document structure from Firestore
 interface ITSupplyUser {
   id: string;
   Email: string;
@@ -32,7 +30,7 @@ interface ITSupplyUser {
   Department: string;
   Status: UserStatus;
   EmailVerified: boolean;
-  CreatedAt: any; // Firestore Timestamp or Date
+  CreatedAt: any;
   AuthUID: string;
   IDPictureBase64?: string;
 }
@@ -46,7 +44,6 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
   const from = (location.state as any)?.from as Location | undefined;
   const [showPasswordTemp, setShowPasswordTemp] = useState(false);
 
-  // Forgot Password States
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetSent, setResetSent] = useState(false);
@@ -77,10 +74,8 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
         console.error(e);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 🔑 Type-safe: Fetch user doc by AuthUID
   const findUserDocByAuthUID = async (uid: string): Promise<ITSupplyUser | null> => {
     const q = query(collection(db, "IT_Supply_Users"), where("AuthUID", "==", uid));
     const snapshot = await getDocs(q);
@@ -89,13 +84,11 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
     const docData = snapshot.docs[0].data();
     const id = snapshot.docs[0].id;
 
-    // Validate required fields
     if (!docData.Email || !docData.AuthUID || !docData.hasOwnProperty('Status')) {
       console.warn("User document missing required fields:", { id, ...docData });
       return null;
     }
 
-    // Ensure Status is valid
     const validStatuses: UserStatus[] = ["email_pending", "pending", "approved", "rejected"];
     const status = docData.Status as string;
     if (!validStatuses.includes(status as UserStatus)) {
@@ -112,7 +105,7 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
       MiddleInitial: docData.MiddleInitial,
       Position: docData.Position,
       Department: docData.Department || "",
-      Status: status as UserStatus, // ✅ Safe cast after validation
+      Status: status as UserStatus,
       EmailVerified: docData.EmailVerified ?? false,
       CreatedAt: docData.CreatedAt || new Date(),
       AuthUID: docData.AuthUID,
@@ -120,7 +113,6 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
     };
   };
 
-  // ✅ Updated: Centralized post-sign-in logic
   async function postSignInChecks(currentUser: User, isGoogle = false) {
     const { email, uid, emailVerified } = currentUser;
 
@@ -141,18 +133,6 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
       throw new Error("unregistered-user");
     }
 
-    // if (!emailVerified) {
-    //   try {
-    //     await sendEmailVerification(currentUser);
-    //     toast.error("Please verify your email first. A new verification email was sent.");
-    //   } catch {
-    //     toast.error("Email not verified. Please check your inbox.");
-    //   }
-    //   await auth.signOut();
-    //   throw new Error("email-not-verified");
-    // }
-
-    // 🔄 Promote email_pending → pending on first verified login
     if (userDoc.Status === "email_pending") {
       const userRef = doc(db, "IT_Supply_Users", userDoc.id);
       await updateDoc(userRef, {
@@ -184,38 +164,33 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
       let emailToLogin = identifier;
       localStorage.setItem("lastIdentifier", identifier);
 
+      if (!identifier.includes("@")) {
+        const q = query(
+          collection(db, "IT_Supply_Users"),
+          where("Username", "==", identifier)
+        );
+        const snap = await getDocs(q);
 
-        // 1. CHECK USERNAME
-        if (!identifier.includes("@")) {
-          const q = query(
-            collection(db, "IT_Supply_Users"),
-            where("Username", "==", identifier)
-          );
-          const snap = await getDocs(q);
-
-          if (snap.empty) {
-            toast.error("Invalid credentials");
-            return;
-          }
-
-          emailToLogin = snap.docs[0].data().Email;
+        if (snap.empty) {
+          toast.error("Invalid credentials");
+          return;
         }
 
-        // 2. CHECK EMAIL
-        if (identifier.includes("@")) {
-          const q = query(
-            collection(db, "IT_Supply_Users"),
-            where("Email", "==", identifier)
-          );
-          const snap = await getDocs(q);
+        emailToLogin = snap.docs[0].data().Email;
+      }
 
-          // EMAIL NOT REGISTERED → Stop and show error (NO failedAttempts increase!)
-          if (snap.empty) {
-            toast.error("Invalid credentials");
-            return;
-          }
+      if (identifier.includes("@")) {
+        const q = query(
+          collection(db, "IT_Supply_Users"),
+          where("Email", "==", identifier)
+        );
+        const snap = await getDocs(q);
+
+        if (snap.empty) {
+          toast.error("Invalid credentials");
+          return;
         }
-
+      }
 
       const userCredential = await signInWithEmailAndPassword(auth, emailToLogin, password);
       await postSignInChecks(userCredential.user, false);
@@ -244,14 +219,12 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
         toast.success(`Signed in using ${result.user.email}`);
         navigate(targetAfterLogin, { replace: true });
       } catch (err) {
-        // If postSignInChecks fails (e.g., unapproved), delete the auth account
         try {
           await deleteUser(result.user);
           console.log("Unauthorized Google account deleted:", result.user.email);
         } catch (delErr) {
           console.warn("Failed to delete unauthorized account:", delErr);
         }
-        // Error message already shown by postSignInChecks
       }
     } catch (e: any) {
       if (
@@ -274,7 +247,6 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
     }
   };
 
-  // 🆕 Forgot Password Handler
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resetEmail || !resetEmail.includes("@")) {
@@ -330,15 +302,16 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
   };
 
   return (
-    <div className="form-card">
-      <div className="login-head">
+    <div className="auth-login-form-card">
+      <div className="auth-login-head">
         <h2>Log In</h2>
       </div>
 
       <form onSubmit={handleLogin}>
-        <label>
+        <label className="auth-login-label">
           Username or Email:
           <input
+            className="auth-login-input"
             type="text"
             placeholder="Username or Email"
             value={identifier}
@@ -347,43 +320,33 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
           />
         </label>
 
-        <label>
+        <label className="auth-login-label">
           Password:
-          <div className="password-wrapper">
+          <div className="auth-login-password-wrapper">
             <input
+              className="auth-login-input"
               type={showPasswordTemp ? "text" : "password"}
               placeholder="Password"
               value={password}
               required
               onChange={(e) => setPassword(e.target.value)}
             />
-            <span className="eye-icon" onClick={togglePasswordVisibility}>
+            <span className="auth-login-eye-icon" onClick={togglePasswordVisibility}>
               <FontAwesomeIcon icon={faEye} />
             </span>
           </div>
         </label>
 
-        <button className="login-button" type="submit">
+        <button className="auth-login-button" type="submit">
           Login
         </button>
 
-        {/* 🆕 Forgot Password Link */}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'flex-end', 
-          margin: '0.5rem 0 1rem' 
-        }}>
+        <div className="auth-login-forgot-link-container">
           <span
+            className="auth-login-forgot-link"
             onClick={() => {
               setShowForgotPassword(true);
               setResetEmail(identifier || '');
-            }}
-            style={{ 
-              cursor: 'pointer', 
-              color: '#00897B', 
-              fontSize: '0.9rem',
-              fontWeight: '500',
-              textDecoration: 'underline'
             }}
           >
             Forgot Password?
@@ -391,9 +354,9 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
         </div>
       </form>
 
-      <div className="or-divider">or</div>
+      <div className="auth-login-divider">or</div>
 
-      <button className="google-signin" onClick={handleGoogleSignIn}>
+      <button className="auth-login-google-btn" onClick={handleGoogleSignIn}>
         <img
           src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
           alt="Google"
@@ -401,49 +364,48 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
         Sign in with Google
       </button>
 
-      <div className="switch">
+      <div className="auth-login-switch">
         Don't have an account?{" "}
         <span onClick={() => setShowRegisterModal(true)}>Register</span>
       </div>
 
       {showRegisterModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="auth-login-modal-overlay">
+          <div className="auth-login-modal-content">
             <h3>Register As:</h3>
             <p>(This only Shows the admin your Preferred Position)</p>
             <p>(Please refer to your DOH-TRC ID to avoid mismatch)</p>
-            <div className="modal-buttons">
-              <button className="role-btn" onClick={() => handleRegisterChoice("Medical")}>
+            <div className="auth-login-modal-buttons">
+              <button className="auth-login-role-btn" onClick={() => handleRegisterChoice("Medical")}>
                 Medical Department Personnel
               </button>
-              <button className="role-btn" onClick={() => handleRegisterChoice("IT")}>
+              <button className="auth-login-role-btn" onClick={() => handleRegisterChoice("IT")}>
                 IT Department Personnel
               </button>
-              <button className="role-btn" onClick={() => handleRegisterChoice("Other")}>
+              <button className="auth-login-role-btn" onClick={() => handleRegisterChoice("Other")}>
                 Other Department Personnel
               </button>
             </div>
-            <button className="close-btn" onClick={() => setShowRegisterModal(false)}>
+            <button className="auth-login-close-btn" onClick={() => setShowRegisterModal(false)}>
               Cancel
             </button>
           </div>
         </div>
       )}
 
-      {/* 🆕 Forgot Password Modal */}
       {showForgotPassword && (
-        <div className="login-forgot-overlay">
-          <div className="login-forgot-modal">
-            <h3 className="login-forgot-title">Reset Password</h3>
-            <p className="login-forgot-desc">
+        <div className="auth-login-forgot-overlay">
+          <div className="auth-login-forgot-modal">
+            <h3 className="auth-login-forgot-title">Reset Password</h3>
+            <p className="auth-login-forgot-desc">
               Enter your email to receive a password reset link.
             </p>
 
             {resetSent ? (
-              <div className="login-forgot-success">
+              <div className="auth-login-forgot-success">
                 <p>Check your email for the reset link!</p>
                 <button
-                  className="login-forgot-btn login-forgot-btn-primary"
+                  className="auth-login-forgot-btn auth-login-forgot-btn-primary"
                   onClick={() => {
                     setShowForgotPassword(false);
                     setResetSent(false);
@@ -454,20 +416,20 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleForgotPassword} className="login-forgot-form">
+              <form onSubmit={handleForgotPassword} className="auth-login-forgot-form">
                 <input
                   type="email"
                   placeholder="Enter your email"
                   value={resetEmail}
                   onChange={(e) => setResetEmail(e.target.value)}
                   required
-                  className="login-forgot-input"
+                  className="auth-login-forgot-input"
                   autoFocus
                 />
-                <div className="login-forgot-actions">
+                <div className="auth-login-forgot-actions">
                   <button
                     type="button"
-                    className="login-forgot-btn login-forgot-btn-cancel"
+                    className="auth-login-forgot-btn auth-login-forgot-btn-cancel"
                     onClick={() => {
                       setShowForgotPassword(false);
                       setResetEmail("");
@@ -479,7 +441,7 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
                   </button>
                   <button
                     type="submit"
-                    className="login-forgot-btn login-forgot-btn-submit"
+                    className="auth-login-forgot-btn auth-login-forgot-btn-submit"
                     disabled={resetLoading}
                   >
                     {resetLoading ? "Sending..." : "Send Reset Link"}

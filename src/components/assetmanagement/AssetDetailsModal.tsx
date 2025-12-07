@@ -211,9 +211,10 @@ const AssetDetailsModal: React.FC<AssetDetailsModalProps> = ({
                   <td>{asset.serial}</td>
                 </tr>
                 <tr>
-                  <td><strong>License Status:</strong></td>
-                  <td>{asset.timeLeft}</td>
-                </tr>
+                <td><strong>{isLicenseCategory ? "License Status:" : "Service Life:"}</strong></td>
+                <td>{asset.timeLeft}</td>
+              </tr>
+
                 
                 {asset.licenseType && (
                   <tr>

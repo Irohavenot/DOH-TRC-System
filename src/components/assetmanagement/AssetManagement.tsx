@@ -271,20 +271,74 @@ useEffect(() => {
     checkAssets();
   }, []);
 
-  const computeBadge = (licenseType?: string, expirationDate?: string) => {
-    if (licenseType && NON_EXPIRING.has(licenseType)) return { iconClass: 'icon-blue' as const, timeLeft: 'No Expiration' };
-    if (!expirationDate) return { iconClass: 'icon-orange' as const, timeLeft: 'No Expiration Date' };
-    const today = new Date();
-    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-    const exp = new Date(expirationDate).getTime();
-    const MS_PER_DAY = 24 * 60 * 60 * 1000;
-    const daysLeft = Math.ceil((exp - startOfToday) / MS_PER_DAY);
-    if (daysLeft < 0) return { iconClass: 'icon-red' as const, timeLeft: `Expired ${Math.abs(daysLeft)} day(s) ago` };
-    if (daysLeft === 0) return { iconClass: 'icon-orange' as const, timeLeft: 'Expires today' };
-    if (daysLeft <= 30) return { iconClass: 'icon-orange' as const, timeLeft: `${daysLeft} day(s) left` };
-    if (daysLeft <= 90) return { iconClass: 'icon-green' as const, timeLeft: `${Math.ceil(daysLeft / 7)} week(s) left` };
-    return { iconClass: 'icon-green' as const, timeLeft: `${Math.ceil(daysLeft / 30)} month(s) left` };
+const computeBadge = (
+  licenseType?: string,
+  expirationDate?: string,
+  category?: string
+) => {
+  const isLicense = category?.toLowerCase() === "license";
+
+  // Non-expiring (Perpetual/OEM/Open Source)
+  if (licenseType && NON_EXPIRING.has(licenseType)) {
+    return { iconClass: "icon-blue", timeLeft: isLicense ? "No Expiration" : "No Service Limit" };
+  }
+
+  if (!expirationDate) {
+    return { iconClass: "icon-orange", timeLeft: isLicense ? "No Expiration Date" : "No Service End Date" };
+  }
+
+  const today = new Date();
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const exp = new Date(expirationDate).getTime();
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+  const daysLeft = Math.ceil((exp - startOfToday) / MS_PER_DAY);
+
+  // EXPIRED
+  if (daysLeft < 0) {
+    return {
+      iconClass: "icon-red",
+      timeLeft: isLicense
+        ? `Expired ${Math.abs(daysLeft)} day(s) ago`
+        : `Service ended ${Math.abs(daysLeft)} day(s) ago`
+    };
+  }
+
+  // TODAY
+  if (daysLeft === 0) {
+    return {
+      iconClass: "icon-orange",
+      timeLeft: isLicense ? "Expires today" : "Service ends today"
+    };
+  }
+
+  // Small time left
+  if (daysLeft <= 30) {
+    return {
+      iconClass: "icon-orange",
+      timeLeft: isLicense
+        ? `${daysLeft} day(s) left`
+        : `${daysLeft} day(s) of service left`
+    };
+  }
+
+  if (daysLeft <= 90) {
+    return {
+      iconClass: "icon-green",
+      timeLeft: isLicense
+        ? `${Math.ceil(daysLeft / 7)} week(s) left`
+        : `${Math.ceil(daysLeft / 7)} week(s) of service`
+    };
+  }
+
+  // Months remaining
+  return {
+    iconClass: "icon-green",
+    timeLeft: isLicense
+      ? `${Math.ceil(daysLeft / 30)} month(s) left`
+      : `${Math.ceil(daysLeft / 30)} month(s) of service`
   };
+};
+
 
 // In your AssetManagement.tsx, find the cards useMemo and update it:
 
@@ -307,7 +361,12 @@ const cards = useMemo(() => rawAssets.map((d: any) => {
   const resolveByEmail = (email?: string) => { if (!email) return undefined; return emailToNameMap[email.trim().toLowerCase()] || email; };
   const createdByName = resolveByEmail(d.createdBy);
   const updatedByName = resolveByEmail(d.updatedBy);
-  const { iconClass, timeLeft } = computeBadge(d.licenseType, d.expirationDate);
+        const { iconClass, timeLeft } = computeBadge(
+        d.licenseType,
+        d.expirationDate,
+        d.category // ADD THIS
+      );
+
   return {
     id: d.id,
     title: d.assetName || '(No name)',

@@ -1,4 +1,4 @@
-// Register.tsx (Updated)
+// Register.tsx (Updated with renamed classes)
 import { useState, useEffect } from "react";
 import { db } from "../firebase/firebase"; 
 import { toast } from "react-toastify";
@@ -10,10 +10,6 @@ import {
   getDocs,
 } from "firebase/firestore";
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEye } from '@fortawesome/free-solid-svg-icons';
-
-// Helper: Validate password strength
 const validatePassword = (password: string) => {
   const errors = [];
   if (password.length < 8) errors.push("At least 8 characters");
@@ -37,16 +33,6 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPasswordTemp, setShowPasswordTemp] = useState(false);
   const [showConfirmPasswordTemp, setShowConfirmPasswordTemp] = useState(false);
-
-  // const togglePasswordVisibility = () => {
-  //   setShowPasswordTemp(true);
-  //   setTimeout(() => setShowPasswordTemp(false), 1000);
-  // };
-
-  // const toggleConfirmPasswordVisibility = () => {
-  //   setShowConfirmPasswordTemp(true);
-  //   setTimeout(() => setShowConfirmPasswordTemp(false), 1000);
-  // };
 
   const passwordErrors = validatePassword(password);
 
@@ -80,17 +66,14 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
     });
   };
 
-  // 🔑 Optional: Send custom email via Resend (via Cloud Function)
   const sendRegistrationReceivedEmail = async (email: string, name: string) => {
     try {
-      // Call your Cloud Function that uses Resend
       const functions = (await import("firebase/functions")).getFunctions();
       const httpsCallable = (await import("firebase/functions")).httpsCallable;
       const sendEmail = httpsCallable(functions, "sendRegistrationReceivedEmail");
       await sendEmail({ email, name });
     } catch (error) {
       console.warn("Failed to send confirmation email:", error);
-      // Don't block registration if email fails
     }
   };
 
@@ -101,16 +84,6 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
       toast.error("ID Picture is required.");
       return;
     }
-
-    // if (passwordErrors.length > 0) {
-    //   toast.error("Please fix password requirements.");
-    //   return;
-    // }
-
-    // if (password !== confirmPassword) {
-    //   toast.error("Passwords do not match.");
-    //   return;
-    // }
 
     try {
       const pendingQuery = query(
@@ -124,13 +97,14 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
         toast.warning("You already have a pending registration. Please wait for admin approval.");
         return;
       }
-      // 🔍 Check if email or username already used
+
       const emailQuery = query(collection(db, "IT_Supply_Users"), where("Email", "==", email));
       const emailSnapshot = await getDocs(emailQuery);
       if (!emailSnapshot.empty) {
         toast.error("This email is already in use.");
         return;
       }
+
       const usernameQuery = query(collection(db, "IT_Supply_Users"), where("Username", "==", username));
       const usernameSnapshot = await getDocs(usernameQuery);
       if (!usernameSnapshot.empty) {
@@ -138,15 +112,10 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
         return;
       }
 
-      // 🔍 Check if username already has a pending registration
-
-
       toast.info("Submitting registration...");
 
-      // 🖼️ Convert ID picture
       const idPicBase64 = await fileToBase64(idPicture);
 
-      // 📦 Save ONLY to Firestore (no Auth account created!)
       await addDoc(collection(db, "IT_Supply_Users"), {
         Email: email,
         Username: username,
@@ -154,13 +123,12 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
         LastName: lastName,
         MiddleInitial: middleInitial,
         Position: position,
-        Department: role || "", // Set Department based on chosen role
-        Status: "pending", // 👈 Back to "pending" (not "email_pending")
+        Department: role || "",
+        Status: "pending",
         CreatedAt: new Date(),
         IDPictureBase64: idPicBase64,
       });
 
-      // 🔑 Optional: Send custom "Registration Received" email
       await sendRegistrationReceivedEmail(email, `${firstName} ${lastName}`);
 
       toast.success(
@@ -174,14 +142,14 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
   };
 
   return (
-    <div className="form-card">
-      <div className="login-head">
+    <div className="auth-register-form-card">
+      <div className="auth-register-head">
         <h2>Create an Account</h2>
       </div>
       <form onSubmit={handleRegister}>
-        {/* Username */}
-        <label>Username</label>
+        <label className="auth-register-label">Username</label>
         <input
+          className="auth-register-input"
           type="text"
           placeholder="Username"
           value={username}
@@ -189,11 +157,11 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
           onChange={(e) => setUsername(e.target.value)}
         />
 
-        {/* First Name + Middle Initial */}
-        <div className="register-row">
+        <div className="auth-register-row1">
           <div>
-            <label>First Name</label>
+            <label className="auth-register-label">First Name</label>
             <input
+              className="auth-register-input"
               type="text"
               placeholder="First Name"
               value={firstName}
@@ -202,8 +170,9 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
             />
           </div>
           <div>
-            <label>Middle Initial</label>
+            <label className="auth-register-label">Middle Initial</label>
             <input
+              className="auth-register-input"
               type="text"
               placeholder="M.I."
               value={middleInitial}
@@ -212,11 +181,11 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
           </div>
         </div>
 
-        {/* Last Name + Position */}
-        <div className="register-row">
+        <div className="auth-register-row2">
           <div>
-            <label>Last Name</label>
+            <label className="auth-register-label">Last Name</label>
             <input
+              className="auth-register-input"
               type="text"
               placeholder="Last Name"
               value={lastName}
@@ -225,8 +194,9 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
             />
           </div>
           <div>
-            <label>Position (Please Refer to your DOH-TRC ID)</label>
+            <label className="auth-register-label">Position (Please Refer to your DOH-TRC ID)</label>
             <select
+              className="auth-register-select"
               value={position}
               required
               onChange={(e) => setPosition(e.target.value)}
@@ -243,9 +213,9 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
           </div>
         </div>
 
-        {/* Email */}
-        <label>Email for Verification</label>
+        <label className="auth-register-label">Email for Verification</label>
         <input
+          className="auth-register-input"
           type="email"
           placeholder="Email for Verification"
           value={email}
@@ -253,74 +223,11 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
           onChange={(e) => setEmail(e.target.value)}
         />
 
-        {/* Password */}
-        {/* <label>Password</label>
-        <div className="password-wrapper">
-          <input
-            type={showPasswordTemp ? "text" : "password"}
-            placeholder="Password"
-            value={password}
-            required
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <span className="eye-icon" onClick={togglePasswordVisibility}>
-            <FontAwesomeIcon icon={faEye} />
-          </span>
-        </div> */}
-        {/* 🔒 Real-time password requirements */}
-        {/* <div style={{ marginTop: "-10px", fontSize: "12px", color: "#555" }}>
-          Password must contain:
-          <ul style={{ margin: "4px 0 0 16px", paddingLeft: 0, listStyle: "none" }}>
-            {["At least 8 characters", "Include uppercase letter", "Include lowercase letter", "Include numeric character"].map(
-              (rule) => (
-                <li
-                  key={rule}
-                  style={{
-                    color: passwordErrors.includes(rule) ? "#d32f2f" : "#2e7d32",
-                    fontWeight: passwordErrors.includes(rule) ? "normal" : "bold",
-                  }}
-                >
-                  • {rule}
-                </li>
-              )
-            )}
-          </ul>
-        </div> */}
-
-        {/* Confirm Password */}
-        {/* <label>Confirm Password</label>
-        <div className="password-wrapper">
-          <input
-            type={showConfirmPasswordTemp ? "text" : "password"}
-            placeholder="Confirm Password"
-            value={confirmPassword}
-            required
-            onChange={(e) => setConfirmPassword(e.target.value)}
-          />
-          <span className="eye-icon" onClick={toggleConfirmPasswordVisibility}>
-            <FontAwesomeIcon icon={faEye} />
-          </span>
-        </div>
-        {password && confirmPassword && password !== confirmPassword && (
-          <div style={{ color: "#d32f2f", fontSize: "12px", marginTop: "-13px" }}>
-            ❌ Passwords do not match
-          </div>
-        )} */}
-
-        {/* ID Picture */}
-        <label>ID Picture (Required)</label>
+        <label className="auth-register-label">ID Picture (Required)</label>
         {idPicture && (
           <button
             type="button"
-            style={{
-              marginTop: "10px",
-              padding: "5px 10px",
-              backgroundColor: "#007BFF",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
+            className="auth-register-preview-btn"
             onClick={() => {
               const imageUrl = URL.createObjectURL(idPicture);
               const newWindow = window.open();
@@ -340,39 +247,37 @@ export default function RegisterForm({ toggle }: { toggle: () => void }) {
           </button>
         )}
         <input
-              type="file"
-              accept="image/*"
-              required
-              onChange={(e) => {
-                const file = e.target.files?.[0] || null;
-                if (file) {
-                  // ✅ 1. Must be an image
-                  if (!file.type.startsWith("image/")) {
-                    toast.error("Only image files are allowed.");
-                    e.target.value = "";
-                    setIdPicture(null);
-                    return;
-                  }
+          className="auth-register-file-input"
+          type="file"
+          accept="image/*"
+          required
+          onChange={(e) => {
+            const file = e.target.files?.[0] || null;
+            if (file) {
+              if (!file.type.startsWith("image/")) {
+                toast.error("Only image files are allowed.");
+                e.target.value = "";
+                setIdPicture(null);
+                return;
+              }
 
-                  // ✅ 2. Limit file size to 1 MB (1 MB = 1024 * 1024 bytes)
-                  if (file.size > 1024 * 1024) {
-                    toast.error("Image file size cannot exceed 1MB. Please upload a smaller image.");
-                    e.target.value = "";
-                    setIdPicture(null);
-                    return;
-                  }
-                }
-                setIdPicture(file);
-              }}
-            />
+              if (file.size > 1024 * 1024) {
+                toast.error("Image file size cannot exceed 1MB. Please upload a smaller image.");
+                e.target.value = "";
+                setIdPicture(null);
+                return;
+              }
+            }
+            setIdPicture(file);
+          }}
+        />
 
-
-        <button type="submit" className="login-button">
+        <button type="submit" className="auth-register-button">
           Register
         </button>
       </form>
 
-      <div className="switch">
+      <div className="auth-register-switch">
         Already have an account? <span onClick={toggle}>Login</span>
       </div>
     </div>

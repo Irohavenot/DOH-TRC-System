@@ -1,24 +1,23 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom"; // ✅ import navigate
+import { useNavigate } from "react-router-dom";
 import Login from "./Login";
 import Registe from "./Register";
-import "../assets/auth.css"; // Import your CSS file
+import "../assets/auth.css";
 
 export default function AuthPage() {
   const [isRegistering, setIsRegistering] = useState(false);
-  const navigate = useNavigate(); // ✅ for programmatic navigation
+  const navigate = useNavigate();
 
-  // These states are optional — if you need them to match your Dashboard
   const [currentView, setCurrentView] = useState("");
   const [activeView, setActiveView] = useState("");
 
   useEffect(() => {
     const wrapper = document.querySelector(".auth-wrapper") as HTMLElement;
-    const switchLinks = document.querySelectorAll(".switch span");
+    const switchLinks = document.querySelectorAll(".auth-login-switch span, .auth-register-switch span");
 
     switchLinks.forEach((link) => {
       link.addEventListener("click", () => {
-        wrapper?.classList.toggle("register-active");
+        wrapper?.classList.toggle("auth-register-active");
       });
     });
 
@@ -33,8 +32,7 @@ export default function AuthPage() {
     <div className="auth-page">
       <div className="auth-wrapper">
         <div className="auth-left">
-          <div className="logo-container">
-            {/* ✅ Clickable logo with navigate */}
+          <div className="auth-logo-container">
             <div
               onClick={() => {
                 setCurrentView("dashboard");
@@ -54,7 +52,7 @@ export default function AuthPage() {
               aria-label="Go to dashadmin"
             >
               <img
-                className="rounded-logo"
+                className="auth-rounded-logo"
                 src="/dohlogo1.png"
                 alt="DOH Logo"
               />
@@ -68,7 +66,7 @@ export default function AuthPage() {
 
         <div
           className={`auth-right ${
-            isRegistering ? "slide-left" : "slide-right"
+            isRegistering ? "auth-slide-left" : "auth-slide-right"
           }`}
         >
           {isRegistering ? (
