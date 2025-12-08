@@ -5,6 +5,7 @@ import {
   addDoc,
   serverTimestamp,
   getDocs,
+  Timestamp,
 } from "firebase/firestore";
 import { toast } from "react-toastify";
 import "../../assets/requestconsumables.css";
@@ -20,15 +21,11 @@ const RequestConsumables: React.FC = () => {
   const [remarks, setRemarks] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Dynamic dropdown data
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
   const [consumableTypes, setConsumableTypes] = useState<string[]>([]);
 
   const currentUser = auth.currentUser;
 
-  /* ------------------------------------------------------------------
-     FETCH ALL POSITIONS AND FORMAT THEM AS "<Position> Position Department"
-     ------------------------------------------------------------------ */
   useEffect(() => {
     const fetchPositions = async () => {
       const collections = ["IT_Position", "Medical_Position", "Other_Position"];
@@ -55,9 +52,6 @@ const RequestConsumables: React.FC = () => {
     fetchPositions();
   }, []);
 
-  /* ------------------------------------------------------------------
-     FETCH TYPES ONLY FROM CATEGORY NAME "Consumable" / "Consumables"
-     ------------------------------------------------------------------ */
   useEffect(() => {
     const fetchTypes = async () => {
       try {
@@ -87,9 +81,6 @@ const RequestConsumables: React.FC = () => {
     fetchTypes();
   }, []);
 
-  /* ------------------------------------------------------------------
-     SUBMIT REQUEST — Now also saves time with date (datetime-local)
-     ------------------------------------------------------------------ */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -111,6 +102,11 @@ const RequestConsumables: React.FC = () => {
 
       const requestId = `REQ-${Date.now()}`;
 
+      // ✅ FIX: Convert to Firestore Timestamp instead of plain Date
+      const neededByTimestamp = priority === "Urgent" 
+        ? Timestamp.fromDate(new Date(neededBy))
+        : null;
+
       await addDoc(collection(db, "requested_consumables"), {
         requestId,
         name: itemName.trim(),
@@ -118,17 +114,12 @@ const RequestConsumables: React.FC = () => {
         quantity: Number(quantity),
         unit: unit.trim(),
         priority,
-
-        // ⭐ Store full timestamp (date + time)
-        neededBy: priority === "Urgent" ? new Date(neededBy) : null,
-
+        neededBy: neededByTimestamp, // ✅ Store as Firestore Timestamp
         department,
         remarks: remarks.trim(),
         status: "Pending",
         requestedBy: userName,
         requestedByUid: currentUser?.uid,
-
-        // ⭐ Already stores full timestamp automatically
         requestedAt: serverTimestamp(),
       });
 
@@ -165,7 +156,6 @@ const RequestConsumables: React.FC = () => {
 
         <form className="reqconsumable-function-form" onSubmit={handleSubmit}>
           
-          {/* CONSUMABLE NAME */}
           <div className="reqconsumable-function-field">
             <label>Consumable Name</label>
             <input
@@ -177,7 +167,6 @@ const RequestConsumables: React.FC = () => {
             />
           </div>
 
-          {/* CONSUMABLE TYPE - DYNAMIC */}
           <div className="reqconsumable-function-field">
             <label>Consumable Type</label>
             <select
@@ -194,7 +183,6 @@ const RequestConsumables: React.FC = () => {
             </select>
           </div>
 
-          {/* QUANTITY */}
           <div className="reqconsumable-function-field">
             <label>Quantity</label>
             <input
@@ -206,7 +194,6 @@ const RequestConsumables: React.FC = () => {
             />
           </div>
 
-          {/* UNIT */}
           <div className="reqconsumable-function-field">
             <label>Unit</label>
             <input
@@ -218,7 +205,6 @@ const RequestConsumables: React.FC = () => {
             />
           </div>
 
-          {/* DEPARTMENT / POSITION - DYNAMIC */}
           <div className="reqconsumable-function-field">
             <label>Department</label>
             <select
@@ -235,7 +221,6 @@ const RequestConsumables: React.FC = () => {
             </select>
           </div>
 
-          {/* PRIORITY */}
           <div className="reqconsumable-function-field">
             <label>Priority</label>
             <select
@@ -247,7 +232,6 @@ const RequestConsumables: React.FC = () => {
             </select>
           </div>
 
-          {/* NEEDED BY (DATE + TIME) */}
           {priority === "Urgent" && (
             <div className="reqconsumable-function-field">
               <label>Needed By (Date & Time)</label>
@@ -260,7 +244,6 @@ const RequestConsumables: React.FC = () => {
             </div>
           )}
 
-          {/* REMARKS */}
           <div className="reqconsumable-function-field">
             <label>Remarks</label>
             <textarea
