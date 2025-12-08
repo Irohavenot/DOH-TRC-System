@@ -13,6 +13,9 @@ import {
 } from "firebase/firestore";
 import { toast } from "react-toastify";
 import "../../assets/manageconsumablerequests.css";
+import { useSearch } from "../../context/SearchContext";
+
+
 
 const ManageConsumableRequests: React.FC = () => {
   const [requests, setRequests] = useState<any[]>([]);
@@ -32,6 +35,8 @@ const ManageConsumableRequests: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState<string>(
     currentDate.getFullYear().toString()
   ); // "all" or "" = All Years
+ const { debouncedQuery } = useSearch();
+
 
   // Multi-select state
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
@@ -350,13 +355,17 @@ const ManageConsumableRequests: React.FC = () => {
     setSelectedItems(newSelected);
   };
 
-  const handleSelectAll = (currentItems: any[]) => {
-    if (selectedItems.size === currentItems.length) {
-      setSelectedItems(new Set());
-    } else {
-      setSelectedItems(new Set(currentItems.map((item) => item.id)));
-    }
-  };
+const handleSelectAll = () => {
+  const allFilteredIds = filteredByPriority.map(item => item.id);
+
+  // If everything is already selected → unselect all
+  if (selectedItems.size === allFilteredIds.length) {
+    setSelectedItems(new Set());
+  } else {
+    setSelectedItems(new Set(allFilteredIds));
+  }
+};
+
 
   const handleBulkAction = (action: "approve" | "reject" | "archive" | "restore") => {
     if (selectedItems.size === 0) {
@@ -482,10 +491,22 @@ const ManageConsumableRequests: React.FC = () => {
     if (trimmed.toLowerCase() === "all" || trimmed === "") return "All Years";
     return trimmed;
   };
+  const filteredBySearch = useMemo(() => {
+  if (!debouncedQuery.trim()) return requests;
 
+  const lower = debouncedQuery.toLowerCase();
+
+  return requests.filter(r =>
+    r.name?.toLowerCase().includes(lower) ||
+    r.requestId?.toLowerCase().includes(lower) ||
+    r.department?.toLowerCase().includes(lower) ||
+    r.requestedBy?.toLowerCase().includes(lower)
+  );
+}, [requests, debouncedQuery]);
   // Filter by date
   const filteredByDate = useMemo(() => {
-    return requests.filter((req) => {
+    return filteredBySearch.filter((req) => {
+
       let timestamp;
 
       switch (statusFilter) {
@@ -534,7 +555,9 @@ const ManageConsumableRequests: React.FC = () => {
 
       return monthMatch && yearMatch;
     });
-  }, [requests, selectedMonth, selectedYear, statusFilter]);
+  }, [filteredBySearch, selectedMonth, selectedYear, statusFilter]);
+  // SEARCH FILTER — runs first
+
 
   const filteredByPriority = useMemo(() => {
     if (priorityFilter === "All") return filteredByDate;
@@ -926,10 +949,11 @@ const ManageConsumableRequests: React.FC = () => {
                       <input
                         type="checkbox"
                         checked={
-                          selectedItems.size === currentItems.length &&
-                          currentItems.length > 0
-                        }
-                        onChange={() => handleSelectAll(currentItems)}
+                              selectedItems.size === filteredByPriority.length &&
+                              filteredByPriority.length > 0
+                            }
+                            onChange={handleSelectAll}
+
                         className="checkbox-input"
                       />
                     </th>

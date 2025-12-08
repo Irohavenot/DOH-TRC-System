@@ -443,7 +443,7 @@ const Dashboard = () => {
 
         <div className="main-content">
           <header className="main-header">
-            {(currentView === 'reports' || currentView === 'assets') && (
+            {(currentView === 'reports' || currentView === 'assets' || currentView === 'manage-consumable-requests') && (
               <SearchInput placeholder="Search assets or personnel..." />
             )}
             {(currentView === 'dashboard') && (
