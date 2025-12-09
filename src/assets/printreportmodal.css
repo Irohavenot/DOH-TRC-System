@@ -1,0 +1,214 @@
+/* Print Report Modal */
+.modal-content.print-modal {
+  max-width: 700px;
+}
+
+.print-options-section {
+  margin-bottom: 2rem;
+}
+
+.print-options-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+.option-group {
+  margin-bottom: 1.5rem;
+}
+
+.option-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Radio Group */
+.radio-group {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.radio-option:hover {
+  border-color: #3b82f6;
+  background: #f0f9ff;
+}
+
+.radio-option input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #3b82f6;
+}
+
+.radio-option input[type="radio"]:checked + span {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+.radio-option:has(input[type="radio"]:checked) {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.radio-option i {
+  color: #9ca3af;
+  font-size: 1rem;
+}
+
+.radio-option:has(input[type="radio"]:checked) i {
+  color: #3b82f6;
+}
+
+/* Checkbox Group */
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-weight: 500;
+  color: #374151;
+}
+
+.checkbox-option:hover {
+  border-color: #3b82f6;
+  background: #f0f9ff;
+}
+
+.checkbox-option input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #3b82f6;
+}
+
+.checkbox-option:has(input[type="checkbox"]:checked) {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.checkbox-option input[type="checkbox"]:checked + span {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+/* Print Preview Info */
+.print-preview-info {
+  padding: 1.5rem;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 2px solid #e5e7eb;
+}
+
+.print-preview-info h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.preview-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.preview-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.preview-value {
+  font-size: 0.95rem;
+  color: #374151;
+  font-weight: 500;
+}
+
+.preview-value.strong {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #3b82f6;
+}
+
+/* Print Button */
+.action-btn.print {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+}
+
+.action-btn.print:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modal-content.print-modal {
+    max-width: 95%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .radio-group {
+    flex-direction: column;
+  }
+
+  .radio-option {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .preview-grid {
+    grid-template-columns: 1fr;
+  }
+}

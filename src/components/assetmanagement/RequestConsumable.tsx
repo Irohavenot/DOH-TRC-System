@@ -100,8 +100,7 @@ const RequestConsumables: React.FC = () => {
       const userName =
         currentUser?.displayName || currentUser?.email || "Unknown User";
 
-      const requestId = `REQ-${Date.now()}`;
-
+      const requestId = `REQ-${Math.floor(1000000 + Math.random() * 9000000)}`;
       // ✅ FIX: Convert to Firestore Timestamp instead of plain Date
       const neededByTimestamp = priority === "Urgent" 
         ? Timestamp.fromDate(new Date(neededBy))
