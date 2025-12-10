@@ -1,22 +1,183 @@
 .qr-modal {
-    background-color: white;
-    width: min(400px, 92vw);
-    max-height: 90vh;
-    overflow: auto;
-    border-radius: 12px;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+  background: white;
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  max-width: 450px;
+  width: 90%;
+  animation: scaleIn 0.3s ease;
 }
 
-h3 {
-    display: block;
-    font-size: 1.17em;
-    margin-block-start: 1em;
-    margin-block-end: 1em;
-    margin-inline-start: 0px;
-    margin-inline-end: 0px;
-    font-weight: bold;
-    unicode-bidi: isolate;
+.qr-modal h3 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  text-align: center;
+}
+
+.qr-display {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+  min-height: 250px;
+}
+
+.qr-display img {
+  max-width: 250px;
+  height: auto;
+  display: block;
+}
+
+.qr-display p {
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+/* Button Group - Improved Layout */
+.button-group {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+/* Primary Action Buttons (Print & Download) */
+.qr-modal .print-btn,
+.qr-modal .download-btn {
+  flex: 1;
+  min-width: 120px;
+  padding: 0.875rem 1.5rem;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: white;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.qr-modal .print-btn {
+  background: linear-gradient(135deg, #00695c 0%, #00897b 100%);
+  box-shadow: 0 4px 12px rgba(0, 105, 92, 0.3);
+}
+
+.qr-modal .print-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #004d40 0%, #00695c 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 105, 92, 0.4);
+}
+
+.qr-modal .download-btn {
+  background: linear-gradient(135deg, #1976d2 0%, #2196f3 100%);
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+}
+
+.qr-modal .download-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1565c0 0%, #1976d2 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(25, 118, 210, 0.4);
+}
+
+/* Close Button - Full Width Below */
+.qr-modal .close-btn {
+  flex: 1 1 100%;
+  padding: 0.875rem 1.5rem;
+  background: #e5e7eb;
+  color: #374151;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.qr-modal .close-btn:hover {
+  background: #d1d5db;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Disabled State */
+.qr-modal .print-btn:disabled,
+.qr-modal .download-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.qr-modal .print-btn:active:not(:disabled),
+.qr-modal .download-btn:active:not(:disabled),
+.qr-modal .close-btn:active {
+  transform: translateY(0);
+}
+
+/* Loading Message Styling */
+.loading-message {
+  text-align: center;
+  font-size: 0.9em;
+  color: #6b7280;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 540px) {
+  .qr-modal {
+    padding: 1.5rem;
+    max-width: 95%;
+  }
+
+  .button-group {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .qr-modal .print-btn,
+  .qr-modal .download-btn,
+  .qr-modal .close-btn {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .qr-display {
+    padding: 1rem;
+    min-height: 200px;
+  }
+
+  .qr-display img {
+    max-width: 200px;
+  }
+}
+
+@media screen and (max-width: 380px) {
+  .qr-modal {
+    padding: 1.25rem;
+  }
+
+  .qr-modal h3 {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .qr-modal .print-btn,
+  .qr-modal .download-btn,
+  .qr-modal .close-btn {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
 }
