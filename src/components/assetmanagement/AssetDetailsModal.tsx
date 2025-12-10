@@ -145,12 +145,13 @@ const AssetDetailsModal: React.FC<AssetDetailsModalProps> = ({
                 <button 
                   className="viewmore-reports-fab" 
                   onClick={handleViewReports}
-                  title={`View ${asset.reportCount} Report${asset.reportCount !== 1 ? 's' : ''}`}
                 >
-                  <i className="fas fa-exclamation-triangle" />
-                  <span>Reports ({asset.reportCount})</span>
+                  <i className="fas fa-exclamation-circle"></i>
+                  <span className="report-count">{asset.reportCount}</span>
                 </button>
               )}
+
+
               {asset.qrcode && (
                 <button className="viewmore-qr-fab" onClick={handleViewQR} title="View QR">
                   <i className="fas fa-qrcode" /> <span>View QR</span>

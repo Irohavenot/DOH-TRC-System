@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import "../../assets/dashboard.css";
 import "../../assets/notification.css";
 import WebQRScanner from "./qrscanner";
@@ -31,15 +31,42 @@ import{
 } from 'lucide-react';
 import { 
   collection, 
-  query, 
-  where, 
-  getDocs, 
-  doc, 
-  updateDoc 
+  addDoc, 
+  serverTimestamp,
+  query,
+  where,
+  onSnapshot,
+  updateDoc,
+  deleteDoc,
+  doc,
+  getDocs
 } from "firebase/firestore";
+
 import RequestConsumables from './RequestConsumable';
 import ManageConsumableRequests from './ManageConsumableRequests';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import emailjs from '@emailjs/browser';
+
+emailjs.init("H-E3p8euS03kue0bR");
+const formatNotificationTimestamp = (ts: any): string => {
+  if (!ts) return "";
+
+  // Firestore Timestamp object (has .toDate())
+  if (typeof ts.toDate === "function") {
+    return ts.toDate().toLocaleString();
+  }
+
+  // If serverTimestamp hasn't resolved yet, you might get an object with seconds
+  if (typeof ts === "object" && typeof ts.seconds === "number") {
+    return new Date(ts.seconds * 1000).toLocaleString();
+  }
+
+  // If you ever stored a plain string or number, just show it
+  if (typeof ts === "string") return ts;
+  if (typeof ts === "number") return new Date(ts).toLocaleString();
+
+  return "";
+};
 
 const Dashboard = () => {
   const { fullName, loading } = useCurrentUserFullName();
@@ -58,7 +85,9 @@ const Dashboard = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
-
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const notifiedAssetIds = useRef<Set<string>>(new Set());
+  const [unreadCount, setUnreadCount] = useState(0);
   // 🔒 Password validation logic
   const getPasswordErrors = (pwd: string): string[] => {
     const errors: string[] = [];
@@ -79,12 +108,13 @@ const Dashboard = () => {
     setShowConfirmNewPassword(!showConfirmNewPassword);
   };
 
-  type Notification = {
-    id: number;
+type Notification = {
+    id: string;
     message: string;
     timestamp: string;
     isRead: boolean;
-    type?: 'user' | 'application' | 'asset' | 'system';
+    type: 'expiry' | 'system' | 'asset';
+    assetId?: string;
   };
 
   const navigate = useNavigate();
@@ -95,16 +125,142 @@ const Dashboard = () => {
     { title: "New Consumable", category: "Consumable" },
     { title: "New Component", category: "Component" },
   ];
+const sendExpiryEmail = async (
+  email: string,
+  assetName: string,
+  expiryDate: Date
+) => {
+  try {
+    await emailjs.send(
+      "service_9ag7ij3", // your EmailJS service
+      "template_ns0qv0q", // your template
+      {
+        to_email: email,
+        user_name: fullName,
+        asset_name: assetName,
+        expiry_date: expiryDate.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+      },
+      "H-E3p8euS03kue0bR" // your public key
+    );
 
-  const [notifications, setNotifications] = useState<Notification[]>([
-    { id: 1, message: 'License Expiring Soon', timestamp: '1h ago', isRead: false },
-    { id: 2, message: 'New Asset Assigned', timestamp: '2d ago', isRead: true },
-    { id: 3, message: 'Asset Maintenance Required', timestamp: '3h ago', isRead: false },
-    { id: 4, message: 'Asset Deleted', timestamp: '5d ago', isRead: true },
-    { id: 5, message: 'Warranty Expired', timestamp: '1w ago', isRead: false },
-    { id: 6, message: 'New Meeting Scheduled', timestamp: '10m ago', isRead: false },
-    { id: 7, message: 'System Update Reminder', timestamp: '2h ago', isRead: true },
-  ]);
+    console.log("Expiry email sent to:", email);
+  } catch (err) {
+    console.error("Email send failed:", err);
+  }
+};
+useEffect(() => {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const q = query(
+    collection(db, "Notifications"),
+    where("userId", "==", user.uid)
+  );
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const notifList = snapshot.docs
+        .map(docSnap => ({
+          id: docSnap.id,
+          ...docSnap.data()
+        } as Notification & { timestamp?: any }))
+        .sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0)); // newest first
+
+    setNotifications(notifList);
+  });
+
+  return unsubscribe;
+}, []);
+useEffect(() => {
+  setUnreadCount(notifications.filter(n => !n.isRead).length);
+}, [notifications]);
+
+useEffect(() => {
+    const user = auth.currentUser;
+    if (!user || !user.email) return;
+
+    const q = query(
+  collection(db, "IT_Assets"),
+  where("personnel", "==", user.uid),
+  where("status", "in", ["active", "deployed", "in-use"])
+);
+
+
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+     const now = new Date();
+const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+        for (const docSnap of snapshot.docs) {
+  const data = docSnap.data();
+  const assetId = docSnap.id;
+
+  const assetName = data.assetName || data.name || "Unknown Asset";
+let expiryDate = null;
+
+if (data.expirationDate) {
+  // expirationDate is saved as a string (YYYY-MM-DD)
+  expiryDate = new Date(data.expirationDate);
+}
+
+// NON-EXPIRING TYPES (Perpetual/OEM/Open Source)
+if (data.licenseType && ["Perpetual","OEM","Open Source"].includes(data.licenseType)) {
+  continue; // skip → this asset never expires
+}
+
+if (!expiryDate || isNaN(expiryDate.getTime())) continue;
+
+
+
+  // Assigned personnel email (modify asset form to save this!)
+  const recipientEmail = data.assignedEmail || user.email;
+
+  if (!expiryDate) continue;
+
+
+  // Check if within 7-day expiry window
+  if (expiryDate >= now && expiryDate <= sevenDaysFromNow) {
+    const daysLeft = Math.ceil(
+      (expiryDate.getTime() - now.getTime()) / 86400000
+    );
+
+    // Prevent immediate duplicates in this sessio
+
+    const message =
+      daysLeft <= 0
+        ? `EXPIRED TODAY: ${assetName}`
+        : `Expires in ${daysLeft} day${daysLeft > 1 ? "s" : ""}: ${assetName}`;
+
+    // SAVE NOTIFICATION INTO FIRESTORE
+    await addDoc(collection(db, "Notifications"), {
+      userId: user.uid,
+      message,
+      timestamp: serverTimestamp(),
+      isRead: false,
+      assetId: assetId,
+      type: "expiry",
+    });
+
+    // SEND EMAIL
+    if (recipientEmail) {
+      await sendExpiryEmail(recipientEmail, assetName, expiryDate);
+    }
+
+    toast.warning(
+      `Warning: ${assetName} is expiring in ${daysLeft} day(s)!`
+    );
+  }
+}
+
+
+
+    });
+
+    return () => unsubscribe();
+  }, [fullName]);
+
 
   const filteredNotifications = notifications.filter(n =>
     notificationFilter === 'all' ? true : !n.isRead
@@ -112,15 +268,16 @@ const Dashboard = () => {
 
   const toggleNotif = () => setShowNotif(!showNotif);
 
-  const toggleReadStatus = (id: number) => {
-    setNotifications(prev =>
-      prev.map(n => n.id === id ? { ...n, isRead: !n.isRead } : n)
-    );
-  };
+const toggleReadStatus = async (id: string, currentState: boolean) => {
+  const notifRef = doc(db, "Notifications", id);
+  await updateDoc(notifRef, { isRead: !currentState });
+};
 
-  const handleDelete = (id: number) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
-  };
+
+const handleDelete = async (id: string) => {
+  await deleteDoc(doc(db, "Notifications", id));
+};
+
 
   const handleOptionsToggle = (id: number) => {
     setOpenOptionsId(prev => (prev === id ? null : id));
@@ -456,7 +613,27 @@ const Dashboard = () => {
               <div className="search-placeholder" style={{ width: '250px' }}></div>
             )}
             <div className="user-info">
-              <span className="notif" onClick={toggleNotif}>🔔</span>
+              <span className="notif" onClick={toggleNotif} style={{ position: "relative" }}>
+  🔔
+  {unreadCount > 0 && (
+    <span
+      style={{
+        position: "absolute",
+        top: "-5px",
+        right: "-8px",
+        background: "red",
+        color: "white",
+        borderRadius: "10px",
+        padding: "2px 6px",
+        fontSize: "10px",
+        fontWeight: "bold",
+      }}
+    >
+      {unreadCount}
+    </span>
+  )}
+</span>
+
               <img
                 src="/user.png"
                 alt="User"
@@ -496,13 +673,17 @@ const Dashboard = () => {
                   <ul>
                     {(showAll ? filteredNotifications : filteredNotifications.slice(0, 4)).map((notif) => (
                       <li key={notif.id} className="notification-item">
-                        <div className="notification-left" onClick={() => toggleReadStatus(notif.id)}>
+                        <div className="notification-left" onClick={() => toggleReadStatus(notif.id, notif.isRead)}>
                           <i className={`notification-icon ${getIconClass(notif.message)}`}></i>
                           <div className="notification-message">
                             <span className="text" style={{ fontWeight: notif.isRead ? 'normal' : 'bold' }}>
                               {notif.message}
                             </span>
-                            <span className="timestamp">{notif.timestamp}</span>
+                            <span className="timestamp">
+                            {formatNotificationTimestamp(notif.timestamp)}
+                          </span>
+
+
                           </div>
                         </div>
                         <div className="notification-options" onClick={() => handleOptionsToggle(notif.id)}>

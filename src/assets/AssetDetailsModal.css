@@ -70,6 +70,95 @@
   margin: 0;
   flex: 1;
 }
+/* REPORTS FAB BUTTON */
+.viewmore-reports-fab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #fca311 0%, #d62828 100%);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  box-shadow: 0 6px 14px rgba(214, 40, 40, 0.35);
+  transition: all 0.25s ease;
+}
+
+.viewmore-reports-fab:hover {
+  background: linear-gradient(135deg, #f77f00 0%, #b81d1d 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(214, 40, 40, 0.45);
+}
+
+.viewmore-reports-fab:active {
+  transform: translateY(0);
+}
+
+.viewmore-reports-fab i {
+  font-size: 1rem;
+}
+
+.viewmore-reports-fab .report-count {
+  background: rgba(255, 255, 255, 0.25);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  min-width: 24px;
+  text-align: center;
+}
+
+
+/* NEW: Report Counter Badge - Floating in header */
+.viewmore-report-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+  border: 2px solid #fff;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+  animation: pulse-counter 2s ease-in-out infinite;
+  margin-left: 12px;
+  white-space: nowrap;
+}
+
+.viewmore-report-counter i {
+  font-size: 0.85rem;
+  animation: shake-icon 0.5s ease-in-out;
+}
+
+.viewmore-report-counter .counter-value {
+  background: rgba(255, 255, 255, 0.25);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 800;
+  min-width: 24px;
+  text-align: center;
+}
+
+@keyframes pulse-counter {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 6px 16px rgba(245, 158, 11, 0.7);
+    transform: scale(1.05);
+  }
+}
+
+@keyframes shake-icon {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-10deg); }
+  75% { transform: rotate(10deg); }
+}
 
 /* Asset ID Badge - Next to header */
 .viewmore-asset-id-badge {
@@ -440,6 +529,21 @@
     font-size: 1.5rem;
   }
 
+  .viewmore-report-counter {
+    font-size: 0.7rem;
+    padding: 5px 10px;
+    margin-left: 8px;
+  }
+
+  .viewmore-report-counter i {
+    font-size: 0.75rem;
+  }
+
+  .viewmore-report-counter .counter-value {
+    padding: 1px 6px;
+    min-width: 20px;
+  }
+
   .viewmore-asset-id-badge {
     font-size: 0.7rem;
     padding: 3px 8px;
@@ -496,16 +600,30 @@
     margin-bottom: 8px;
   }
 
+  .viewmore-report-counter {
+    font-size: 0.65rem;
+    padding: 4px 8px;
+    margin-left: 0;
+    order: 1;
+  }
+
+  .viewmore-report-counter .counter-value {
+    padding: 1px 5px;
+    min-width: 18px;
+  }
+
   .viewmore-asset-id-badge {
     font-size: 0.65rem;
     padding: 2px 6px;
     margin-left: 0;
     margin-right: auto;
+    order: 2;
   }
 
   .viewmore-qr-fab {
     padding: 6px 10px;
     margin-left: auto;
+    order: 3;
   }
 
   .viewmore-qr-fab span {

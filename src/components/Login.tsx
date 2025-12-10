@@ -76,82 +76,69 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
     })();
   }, []);
 
-  const findUserDocByAuthUID = async (uid: string): Promise<ITSupplyUser | null> => {
-    const q = query(collection(db, "IT_Supply_Users"), where("AuthUID", "==", uid));
-    const snapshot = await getDocs(q);
-    if (snapshot.empty) return null;
+const findUserDocByEmail = async (email: string): Promise<ITSupplyUser | null> => {
+  const q = query(collection(db, "IT_Supply_Users"), where("Email", "==", email));
+  const snapshot = await getDocs(q);
 
-    const docData = snapshot.docs[0].data();
-    const id = snapshot.docs[0].id;
+  if (snapshot.empty) return null;
 
-    if (!docData.Email || !docData.AuthUID || !docData.hasOwnProperty('Status')) {
-      console.warn("User document missing required fields:", { id, ...docData });
-      return null;
-    }
+  return {
+    id: snapshot.docs[0].id,
+    ...snapshot.docs[0].data()
+  } as ITSupplyUser;
+};
 
-    const validStatuses: UserStatus[] = ["email_pending", "pending", "approved", "rejected"];
-    const status = docData.Status as string;
-    if (!validStatuses.includes(status as UserStatus)) {
-      console.warn("Invalid Status value:", status);
-      return null;
-    }
 
-    return {
-      id,
-      Email: docData.Email,
-      Username: docData.Username,
-      FirstName: docData.FirstName,
-      LastName: docData.LastName,
-      MiddleInitial: docData.MiddleInitial,
-      Position: docData.Position,
-      Department: docData.Department || "",
-      Status: status as UserStatus,
-      EmailVerified: docData.EmailVerified ?? false,
-      CreatedAt: docData.CreatedAt || new Date(),
-      AuthUID: docData.AuthUID,
-      IDPictureBase64: docData.IDPictureBase64,
-    };
-  };
+async function postSignInChecks(currentUser: User, isGoogle = false) {
+  const { email, uid } = currentUser;
 
-  async function postSignInChecks(currentUser: User, isGoogle = false) {
-    const { email, uid, emailVerified } = currentUser;
-
-    if (!email) {
-      toast.error("No email found on the account.");
-      await auth.signOut();
-      throw new Error("missing-email");
-    }
-
-    localStorage.setItem("lastIdentifier", email);
-
-    const userDoc = await findUserDocByAuthUID(uid);
-    if (!userDoc) {
-      toast.error(isGoogle 
-        ? "Google account not registered in system." 
-        : "Account not found in system."
-      );
-      throw new Error("unregistered-user");
-    }
-
-    if (userDoc.Status === "email_pending") {
-      const userRef = doc(db, "IT_Supply_Users", userDoc.id);
-      await updateDoc(userRef, {
-        Status: "pending",
-        EmailVerified: true,
-      });
-      toast.info("Email verified! Your registration is now pending admin approval.");
-      await auth.signOut();
-      throw new Error("awaiting-approval");
-    }
-
-    if (userDoc.Status !== "approved") {
-      toast.error("Your account is pending admin approval.");
-      await auth.signOut();
-      throw new Error("not-approved");
-    }
-
-    return userDoc;
+  if (!email) {
+    toast.error("No email found on this account.");
+    await auth.signOut();
+    throw new Error("missing-email");
   }
+
+  localStorage.setItem("lastIdentifier", email);
+
+  // 🔍 Find user by email (NOT by AuthUID)
+  const userDoc = await findUserDocByEmail(email);
+
+  if (!userDoc) {
+    toast.error("Account not registered in the system.");
+    await auth.signOut();
+    throw new Error("unregistered-user");
+  }
+
+  // 🔄 Auto-update AuthUID in Firestore if it's missing or outdated
+  if (!userDoc.AuthUID || userDoc.AuthUID !== uid) {
+    const userRef = doc(db, "IT_Supply_Users", userDoc.id);
+    await updateDoc(userRef, { AuthUID: uid });
+
+    console.log("🔄 AuthUID updated in Firestore for:", email);
+  }
+
+  // 🔐 Status checks
+  if (userDoc.Status === "email_pending") {
+    const ref = doc(db, "IT_Supply_Users", userDoc.id);
+    await updateDoc(ref, {
+      Status: "pending",
+      EmailVerified: true,
+    });
+
+    toast.info("Email verified! Awaiting approval.");
+    await auth.signOut();
+    throw new Error("awaiting-approval");
+  }
+
+  if (userDoc.Status !== "approved") {
+    toast.error("Your account is pending admin approval.");
+    await auth.signOut();
+    throw new Error("not-approved");
+  }
+
+  return userDoc;
+}
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -211,41 +198,37 @@ export default function LoginForm({ toggle }: { toggle: () => void }) {
     }
   };
 
-  const handleGoogleSignIn = async () => {
+const handleGoogleSignIn = async () => {
+  try {
+    const result = await signInWithPopup(auth, provider);
+
     try {
-      const result = await signInWithPopup(auth, provider);
-      try {
-        await postSignInChecks(result.user, true);
-        toast.success(`Signed in using ${result.user.email}`);
-        navigate(targetAfterLogin, { replace: true });
-      } catch (err) {
-        try {
-          await deleteUser(result.user);
-          console.log("Unauthorized Google account deleted:", result.user.email);
-        } catch (delErr) {
-          console.warn("Failed to delete unauthorized account:", delErr);
-        }
-      }
-    } catch (e: any) {
-      if (
-        e?.code === "auth/popup-blocked" ||
-        e?.code === "auth/operation-not-supported-in-this-environment" ||
-        e?.code === "auth/unauthorized-domain"
-      ) {
-        await signInWithRedirect(auth, provider);
-        return;
-      }
-      if (![
-        "unregistered-user",
-        "email-not-verified",
-        "not-approved",
-        "awaiting-approval"
-      ].some(msg => e?.message?.includes(msg))) {
-        console.error(e);
-        toast.error("Google Sign-In Failed.");
-      }
+      await postSignInChecks(result.user, true);
+      toast.success(`Signed in using ${result.user.email}`);
+      navigate(targetAfterLogin, { replace: true });
+
+    } catch (err: any) {
+      console.warn("Google login blocked:", err.message);
+
+      await auth.signOut(); // SAFE — no more deleting users
+      toast.error("Google account not authorized or not approved.");
     }
-  };
+
+  } catch (e: any) {
+    if ([
+      "auth/popup-blocked",
+      "auth/operation-not-supported-in-this-environment",
+      "auth/unauthorized-domain"
+    ].includes(e?.code)) {
+      await signInWithRedirect(auth, provider);
+      return;
+    }
+
+    console.error(e);
+    toast.error("Google Sign-In Failed.");
+  }
+};
+
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();

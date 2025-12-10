@@ -86,6 +86,7 @@ const AssetManagement: React.FC = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [rawAssets, setRawAssets] = useState<any[]>([]);
   const [reportedAssets, setReportedAssets] = useState<Set<string>>(new Set());
+  const [reportCounts, setReportCounts] = useState<Record<string, number>>({});
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [historyAsset, setHistoryAsset] = useState<{ id: string; name: string; history: HistoryEntry[] } | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -144,13 +145,16 @@ const AssetManagement: React.FC = () => {
         snap.docs.forEach((doc) => {
           const data = doc.data();
           const assetDocId = data.assetDocId || data.assetId;
+          
           if (assetDocId) {
             reported.add(assetDocId);
             reportCounts[assetDocId] = (reportCounts[assetDocId] || 0) + 1;
           }
         });
-        
-        setReportedAssets(reported);
+
+setReportedAssets(reported);
+setReportCounts(reportCounts);
+
         
         // Update rawAssets to include report information
         setRawAssets(prev => prev.map(asset => ({
@@ -171,11 +175,17 @@ const AssetManagement: React.FC = () => {
     const unsub = onSnapshot(
       qRef,
       (snap) => {
-        const assets = snap.docs.map((d) => ({ 
-          id: d.id, 
-          ...d.data(),
-          hasReports: reportedAssets.has(d.id)
-        }));
+        const assets = snap.docs.map((d) => {
+          const id = d.id;
+
+          return {
+            id,
+            ...d.data(),
+            hasReports: reportedAssets.has(id),
+            reportCount: reportCounts[id] || 0,   // <-- ADD THIS
+          };
+        });
+
         setRawAssets(assets);
         setLoading(false);
       },
